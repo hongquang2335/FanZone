@@ -1,4 +1,4 @@
-package com.example.eventticket.navigation
+package com.example.myapplication.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
