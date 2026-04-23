@@ -1,4 +1,4 @@
-﻿package com.example.myapplication.viewmodel
+package com.example.myapplication.viewmodel
 
 sealed interface ScreenState<out T> {
     data object Loading : ScreenState<Nothing>

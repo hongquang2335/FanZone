@@ -1,4 +1,4 @@
-﻿package com.example.myapplication.model
+package com.example.myapplication.model
 
 enum class EventStatus {
     Available,

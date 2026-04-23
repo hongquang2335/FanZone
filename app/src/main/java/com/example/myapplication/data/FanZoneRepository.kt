@@ -1,4 +1,4 @@
-﻿package com.example.myapplication.data
+package com.example.myapplication.data
 
 import com.example.myapplication.model.CommunityPost
 import com.example.myapplication.model.EventStatus
@@ -10,10 +10,6 @@ import com.example.myapplication.model.ResaleTicket
 import com.example.myapplication.model.TicketState
 import com.example.myapplication.model.TicketTier
 import com.example.myapplication.model.UserProfile
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.messaging.FirebaseMessaging
-import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -58,33 +54,6 @@ object FirestoreSchema {
         "lockedBy" to "String?",
         "lockExpiresAt" to "Timestamp?"
     )
-}
-
-class FirebaseFanZoneRepository(
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
-    private val storage: FirebaseStorage = FirebaseStorage.getInstance(),
-    private val messaging: FirebaseMessaging = FirebaseMessaging.getInstance()
-) : FanZoneRepository {
-    override fun featuredEvents(): Flow<List<FanEvent>> {
-        return MockFanZoneRepository().featuredEvents()
-    }
-
-    override fun communityPosts(eventId: String?): Flow<List<CommunityPost>> {
-        return MockFanZoneRepository().communityPosts(eventId)
-    }
-
-    override fun purchasedTickets(): Flow<List<PurchasedTicket>> {
-        return MockFanZoneRepository().purchasedTickets()
-    }
-
-    override fun resaleTickets(): Flow<List<ResaleTicket>> {
-        return MockFanZoneRepository().resaleTickets()
-    }
-
-    override fun currentProfile(): Flow<UserProfile> {
-        return MockFanZoneRepository().currentProfile()
-    }
 }
 
 class MockFanZoneRepository : FanZoneRepository {
