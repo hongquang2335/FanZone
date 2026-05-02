@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Festival
 import androidx.compose.material.icons.filled.IosShare
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -54,15 +56,29 @@ import com.example.myapplication.viewmodel.HomeViewModel
 @Composable
 fun HomeScreen(
     onEventClick: (String) -> Unit,
+    onChatClick: () -> Unit,
     viewModel: HomeViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    StateContent(state = state) { data ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-            contentPadding = PaddingValues(bottom = 112.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
+    androidx.compose.material3.Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onChatClick,
+                containerColor = VibeGreen,
+                contentColor = VibeGreenDeep,
+                shape = androidx.compose.foundation.shape.CircleShape,
+                modifier = Modifier.padding(bottom = 80.dp) // Offset above bottom nav if any
+            ) {
+                Icon(Icons.Default.ChatBubble, contentDescription = "Chat")
+            }
+        }
+    ) { padding ->
+        StateContent(state = state) { data ->
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background),
+                contentPadding = PaddingValues(bottom = 112.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
             item {
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp),
@@ -97,6 +113,7 @@ fun HomeScreen(
             }
         }
     }
+}
 }
 
 @Composable
