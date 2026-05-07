@@ -6,6 +6,9 @@ sealed class AppDestination(val route: String) {
     data object Tickets : AppDestination("tickets")
     data object Profile : AppDestination("profile")
     data object Support : AppDestination("support")
+    data object EventCommunity : AppDestination("community/event/{eventId}") {
+        fun create(eventId: String) = "community/event/$eventId"
+    }
     data object EventDetail : AppDestination("event/{eventId}") {
         fun create(eventId: String) = "event/$eventId"
     }

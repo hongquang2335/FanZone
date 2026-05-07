@@ -10,5 +10,7 @@ data class CommunityPost(
     val content: String,
     val likes: Int,
     val comments: Int,
-    @param:DrawableRes val imageRes: Int?
+    @param:DrawableRes val imageRes: Int?,
+    val eventId: String? = null,
+    val eventTitle: String? = null
 )

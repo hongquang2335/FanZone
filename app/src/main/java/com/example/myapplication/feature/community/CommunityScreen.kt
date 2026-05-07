@@ -33,7 +33,7 @@ fun CommunityScreen(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            
+            item { ComposerCard() }
             if (isExpanded) {
                 item { SectionHeader("Dong bai viet noi bat", "Co su kien kem tag") }
             }

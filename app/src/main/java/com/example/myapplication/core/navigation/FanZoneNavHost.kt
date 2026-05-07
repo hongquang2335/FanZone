@@ -11,6 +11,7 @@ import androidx.navigation.navArgument
 import com.example.myapplication.feature.booking.BookingRoute
 import com.example.myapplication.feature.checkout.CheckoutRoute
 import com.example.myapplication.feature.community.CommunityScreen
+import com.example.myapplication.feature.community.EventCommunityScreen
 import com.example.myapplication.feature.event.EventDetailScreen
 import com.example.myapplication.feature.home.HomeScreen
 import com.example.myapplication.feature.profile.ProfileScreen
@@ -48,9 +49,23 @@ fun FanZoneNavHost(
         composable(AppDestination.Community.route) {
             CommunityScreen(
                 posts = uiState.posts,
-                onOpenEvent = {
-                    navController.navigate(AppDestination.EventDetail.create(uiState.selectedEvent.id))
+                onOpenEvent = { eventId ->
+                    viewModel.selectEvent(eventId)
+                    navController.navigate(AppDestination.EventCommunity.create(eventId))
                 },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        composable(
+            route = AppDestination.EventCommunity.route,
+            arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+        ) { entry ->
+            val eventId = entry.arguments?.getString("eventId")
+            eventId?.let(viewModel::selectEvent)
+            EventCommunityScreen(
+                event = uiState.selectedEvent,
+                posts = uiState.posts.filter { it.eventId == eventId },
+                onBack = { navController.popBackStack() },
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -133,6 +148,10 @@ fun FanZoneNavHost(
         composable(AppDestination.Success.route) {
             PurchaseSuccessScreen(
                 ticket = uiState.latestPurchasedTicket,
+                onOpenEvent = { eventId ->
+                    viewModel.selectEvent(eventId)
+                    navController.navigate(AppDestination.EventDetail.create(eventId))
+                },
                 onOpenWallet = {
                     navController.navigate(AppDestination.Tickets.route) {
                         popUpTo(AppDestination.Home.route) { inclusive = false }
