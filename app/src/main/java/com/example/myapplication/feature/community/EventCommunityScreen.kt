@@ -388,18 +388,6 @@ fun ComposerCard() {
                     .clickable { composerOpen = true }
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            FilterChip(
-                selected = anonymous,
-                onClick = { anonymous = !anonymous },
-                label = { Text("Bai viet an danh") }
-            )
-            FilterChip(
-                selected = feeling,
-                onClick = { feeling = !feeling },
-                label = { Text("Cam xuc") }
-            )
-        }
     }
 
     if (composerOpen) {
