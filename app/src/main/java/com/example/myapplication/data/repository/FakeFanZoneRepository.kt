@@ -84,7 +84,7 @@ object FakeFanZoneRepository : FanZoneRepository {
             id = "p1",
             author = "Minh Tuan",
             role = "Fan cuong Son Tung",
-            topic = "Trao doi ca nhan",
+            topic = "Pre-party tai My Dinh",
             content = "Khong the tin duoc setlist dem qua. Ai co video doan highnote cuoi cung thi chia se voi minh voi.",
             likes = 128,
             comments = 24,
@@ -98,21 +98,7 @@ object FakeFanZoneRepository : FanZoneRepository {
             content = "Tuan toi se co dot pre-sale doc quyen cho khach da cap nhat ho so thanh vien. Nho kiem tra profile truoc 20:00 toi thu Sau.",
             likes = 84,
             comments = 18,
-            imageRes = null,
-            eventId = "neon-night",
-            eventTitle = "Neon Nights Festival 2024"
-        ),
-        CommunityPost(
-            id = "p3",
-            author = "Hoang Lam",
-            role = "Thanh vien da mua ve",
-            topic = "Lap nhom check-in",
-            content = "Minh lap nhom chat de cung trao doi va cap nhat thong tin check-in. Ban nao di Neon Nights mot minh thi vao chung cho vui nhe.",
-            likes = 37,
-            comments = 12,
-            imageRes = null,
-            eventId = "neon-night",
-            eventTitle = "Neon Nights Festival 2024"
+            imageRes = null
         )
     )
 
