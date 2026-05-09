@@ -2,9 +2,8 @@ package com.example.myapplication.ui.screens.chatbot
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -29,36 +28,33 @@ fun ChatbotScreen(
     viewModel: ChatViewModel = viewModel()
 ) {
     val messages by viewModel.messages.collectAsState()
-    val listState = rememberLazyListState()
+    val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
     
-    // Auto scroll to bottom when new messages arrive
+    // Tự động cuộn xuống đáy khi có tin nhắn mới hoặc nội dung thay đổi
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size - 1)
+            scrollState.animateScrollTo(scrollState.maxValue)
         }
     }
 
     Scaffold(
         topBar = { ChatTopBar(onBackClick = onBackClick) },
-        bottomBar = {
-            ChatInputBar(onSendMessage = { text ->
-                viewModel.sendMessage(text)
-            })
-        },
         containerColor = VibeCanvas
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 16.dp)
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(scrollState)
+                    .padding(bottom = 16.dp)
             ) {
-                items(messages) { message ->
+                messages.forEach { message ->
                     ChatBubble(
                         message = message,
                         onSuggestionClick = { suggestion ->
@@ -67,6 +63,10 @@ fun ChatbotScreen(
                     )
                 }
             }
+            
+            ChatInputBar(onSendMessage = { text ->
+                viewModel.sendMessage(text)
+            })
         }
     }
 }
@@ -97,11 +97,14 @@ fun ChatbotScreenPreview() {
             bottomBar = { ChatInputBar(onSendMessage = {}) },
             containerColor = VibeCanvas
         ) { padding ->
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(bottom = 16.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 16.dp)
             ) {
-                items(mockMessages) { message ->
+                mockMessages.forEach { message ->
                     ChatBubble(message = message, onSuggestionClick = {})
                 }
             }

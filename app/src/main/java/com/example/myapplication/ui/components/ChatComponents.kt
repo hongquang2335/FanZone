@@ -133,6 +133,7 @@ fun ChatBubble(
                     ThinkingIndicator(modifier = Modifier.padding(16.dp))
                 } else {
                     TypingText(
+                        messageId = message.id, // Truyền ID để quản lý animation state
                         text = message.content,
                         isBot = isBot,
                         modifier = Modifier.padding(16.dp)
@@ -204,47 +205,90 @@ fun ThinkingIndicator(modifier: Modifier = Modifier) {
     }
 }
 
+// Sử dụng một static Map hoặc ViewModel để lưu trạng thái đã chạy animation
+private val animatedMessageIds = mutableStateMapOf<String, Boolean>()
+
 @Composable
 fun TypingText(
+    messageId: String,
     text: String,
     isBot: Boolean,
     modifier: Modifier = Modifier
 ) {
     val isPreview = LocalInspectionMode.current
-    var displayedTextCount by remember(text) { mutableIntStateOf(if (isPreview || !isBot) text.length else 0) }
     
-    if (!isPreview && isBot && displayedTextCount < text.length) {
+    // Kiểm tra xem message này đã từng chạy xong animation chưa
+    val hasAnimated = animatedMessageIds[messageId] ?: false
+    
+    var displayedTextCount by remember(text) { 
+        mutableIntStateOf(if (isPreview || !isBot || hasAnimated) text.length else 0) 
+    }
+    
+    if (!isPreview && isBot && !hasAnimated && displayedTextCount < text.length) {
         LaunchedEffect(text) {
             val words = text.split(" ")
             var currentLength = 0
             for (word in words) {
                 currentLength += if (currentLength == 0) word.length else word.length + 1
                 displayedTextCount = currentLength
-                delay(15)
+                delay(30)
             }
             displayedTextCount = text.length
+            animatedMessageIds[messageId] = true // Đánh dấu đã xong
         }
     }
     
     val fullText = text.take(displayedTextCount)
-    
-    val annotatedString = buildAnnotatedString {
-        if (fullText.startsWith("Tuyệt vời!")) {
-            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = VibeGreenDark)) {
-                append("Tuyệt vời!")
-            }
-            append(fullText.substring(10))
-        } else {
-            append(fullText)
-        }
-    }
+    val annotatedString = parseMarkdown(fullText)
     
     Text(
         text = annotatedString,
         color = if (isBot) VibeText else Color.White,
         modifier = modifier,
-        style = MaterialTheme.typography.bodyMedium
+        style = MaterialTheme.typography.bodyMedium,
+        lineHeight = 22.sp
     )
+}
+
+/**
+ * Hàm parse Markdown nâng cao
+ * Xử lý: Bullet points phức tạp và Bold text lồng nhau
+ */
+private fun parseMarkdown(text: String): AnnotatedString {
+    // Bước 1: Xử lý bullet points lồng nhau hoặc thô
+    val lines = text.lines().map { line ->
+        var processedLine = line
+        // Regex khớp dấu * ở đầu dòng, có thể có khoảng trắng phía trước
+        val bulletRegex = Regex("""^\s*\*\s+""")
+        if (bulletRegex.containsMatchIn(processedLine)) {
+            processedLine = processedLine.replaceFirst(bulletRegex, "  • ")
+        }
+        processedLine
+    }
+    val processedText = lines.joinToString("\n")
+
+    // Bước 2: Parse Bold text dùng Regex
+    return buildAnnotatedString {
+        // Regex mạnh mẽ hơn để tránh lỗi khi có dấu * đơn lẻ hoặc lỗi format
+        val boldRegex = Regex("""\*\*(.*?)\*\*""")
+        var lastIdx = 0
+        
+        boldRegex.findAll(processedText).forEach { match ->
+            // Thêm đoạn text thường trước match
+            append(processedText.substring(lastIdx, match.range.first))
+            
+            // Thêm đoạn bold
+            withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = VibeGreenDark)) {
+                append(match.groupValues[1])
+            }
+            lastIdx = match.range.last + 1
+        }
+        
+        // Thêm đoạn còn lại
+        if (lastIdx < processedText.length) {
+            append(processedText.substring(lastIdx))
+        }
+    }
 }
 
 @Composable
@@ -285,58 +329,90 @@ fun SuggestionChips(
 
 @Composable
 fun ChatInputBar(
-    onSendMessage: (String) -> Unit
+    onSendMessage: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    var textState by remember { mutableStateOf("") }
+    var textState by remember { mutableStateOf(TextFieldValue("")) }
 
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .navigationBarsPadding(),
-        color = Color.White,
-        shadowElevation = 8.dp
+        modifier = modifier.fillMaxWidth(),
+        color = Color.White
     ) {
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { /* No attachments requested */ }) {
-                Icon(Icons.Default.AddCircle, contentDescription = "More", tint = VibeTextMuted)
-            }
-
-            TextField(
-                value = textState,
-                onValueChange = { textState = it },
-                placeholder = { Text("Nhập tin nhắn...", color = VibeTextSoft) },
+        Column(modifier = Modifier.navigationBarsPadding()) {
+            HorizontalDivider(color = VibeStroke, thickness = 1.dp)
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(24.dp)),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = VibeSurfaceMuted,
-                    unfocusedContainerColor = VibeSurfaceMuted,
-                    disabledContainerColor = VibeSurfaceMuted,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                ),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send)
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            IconButton(
-                onClick = {
-                    if (textState.isNotBlank()) {
-                        onSendMessage(textState)
-                        textState = ""
-                    }
-                },
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(VibeGreen)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.White)
+                IconButton(onClick = { /* No attachments requested */ }) {
+                    Icon(
+                        Icons.Default.AddCircle, 
+                        contentDescription = "More", 
+                        tint = VibeTextMuted,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+
+                TextField(
+                    value = textState,
+                    onValueChange = { textState = it },
+                    placeholder = { 
+                        Text(
+                            "Nhập tin nhắn...", 
+                            color = VibeTextSoft,
+                            style = MaterialTheme.typography.bodyMedium
+                        ) 
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 4.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = VibeSurfaceMuted,
+                        unfocusedContainerColor = VibeSurfaceMuted,
+                        disabledContainerColor = VibeSurfaceMuted,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                    ),
+                    shape = RoundedCornerShape(24.dp),
+                    singleLine = false,
+                    maxLines = 4,
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.Send,
+                        autoCorrectEnabled = true
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onSend = {
+                            if (textState.text.isNotBlank()) {
+                                onSendMessage(textState.text)
+                                textState = TextFieldValue("")
+                            }
+                        }
+                    )
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                IconButton(
+                    onClick = {
+                        if (textState.text.isNotBlank()) {
+                            onSendMessage(textState.text)
+                            textState = TextFieldValue("")
+                        }
+                    },
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(VibeGreen)
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Send, 
+                        contentDescription = "Send", 
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
         }
     }
