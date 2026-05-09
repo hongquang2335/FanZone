@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -30,6 +31,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplication.R
@@ -218,7 +220,7 @@ fun TypingText(
             for (word in words) {
                 currentLength += if (currentLength == 0) word.length else word.length + 1
                 displayedTextCount = currentLength
-                delay(50)
+                delay(15)
             }
             displayedTextCount = text.length
         }
@@ -286,7 +288,7 @@ fun ChatInputBar(
     onSendMessage: (String) -> Unit
 ) {
     var textState by remember { mutableStateOf("") }
-    
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -302,7 +304,7 @@ fun ChatInputBar(
             IconButton(onClick = { /* No attachments requested */ }) {
                 Icon(Icons.Default.AddCircle, contentDescription = "More", tint = VibeTextMuted)
             }
-            
+
             TextField(
                 value = textState,
                 onValueChange = { textState = it },
@@ -320,9 +322,9 @@ fun ChatInputBar(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send)
             )
-            
+
             Spacer(modifier = Modifier.width(8.dp))
-            
+
             IconButton(
                 onClick = {
                     if (textState.isNotBlank()) {
