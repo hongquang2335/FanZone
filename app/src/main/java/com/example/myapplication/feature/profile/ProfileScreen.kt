@@ -33,8 +33,6 @@ import com.example.myapplication.core.designsystem.theme.SoftText
 @Composable
 fun ProfileScreen(
     user: UserProfile,
-    unreadSupport: Int,
-    onOpenSupport: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -42,8 +40,7 @@ fun ProfileScreen(
         val entries = listOf(
             "Thong tin ca nhan" to "Cap nhat email, so dien thoai, dia chi",
             "Thong bao" to "Nhan canh bao flash sale va su kien quan tam",
-            "Lich su thanh toan" to "Kiem tra hoa don, giao dich va hoan tien",
-            "Ho tro truc tuyen" to if (unreadSupport > 0) "$unreadSupport tin nhan chua doc" else "Mo trung tam tro giup"
+            "Lich su thanh toan" to "Kiem tra hoa don, giao dich va hoan tien"
         )
 
         LazyColumn(
@@ -81,8 +78,8 @@ fun ProfileScreen(
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 group.forEach { (title, subtitle) ->
-                                    ProfileActionRow(title, subtitle, title == "Ho tro truc tuyen") {
-                                        if (title == "Ho tro truc tuyen") onOpenSupport()
+                                    ProfileActionRow(title, subtitle, false) {
+                                        // TODO: Handle navigation
                                     }
                                 }
                             }
@@ -91,8 +88,8 @@ fun ProfileScreen(
                 }
             } else {
                 items(entries) { (title, subtitle) ->
-                    ProfileActionRow(title, subtitle, title == "Ho tro truc tuyen") {
-                        if (title == "Ho tro truc tuyen") onOpenSupport()
+                    ProfileActionRow(title, subtitle, false) {
+                        // TODO: Handle navigation
                     }
                 }
             }
