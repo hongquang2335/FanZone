@@ -13,10 +13,29 @@ data class Event(
     val artists: List<String>,
     val timeline: List<EventMoment>,
     val notices: List<String>,
-    @param:DrawableRes val imageRes: Int
+    @param:DrawableRes val imageRes: Int,
+    val imageUrl: String? = null,
+    val tags: List<String> = emptyList(),
+    val performances: List<PerformanceSchedule> = emptyList(),
+    val resaleTickets: List<ResaleTicket> = emptyList()
 )
 
 data class EventMoment(
     val time: String,
     val title: String
+)
+
+data class PerformanceSchedule(
+    val id: String,
+    val time: String,
+    val date: String,
+    val ticketTiers: List<TicketTier> = emptyList()
+)
+
+data class ResaleTicket(
+    val id: String,
+    val tierName: String,
+    val price: Int,
+    val sellerName: String,
+    val sellerAvatarUrl: String? = null
 )

@@ -97,6 +97,7 @@ import com.example.myapplication.domain.model.TicketStatus
 import com.example.myapplication.domain.model.TicketTier
 import com.example.myapplication.domain.model.TicketWalletItem
 import com.example.myapplication.domain.model.TierStatus
+import coil.compose.AsyncImage
 
 
 @Composable
@@ -127,15 +128,27 @@ fun HeroBanner(event: Event, onOpenEvent: () -> Unit) {
                 Text("Xem ngay", color = Color.White)
             }
         }
-        Image(
-            painter = painterResource(event.imageRes),
-            contentDescription = event.title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .size(140.dp)
-                .clip(RoundedCornerShape(24.dp))
-        )
+        if (event.imageUrl != null) {
+            AsyncImage(
+                model = event.imageUrl,
+                contentDescription = event.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(140.dp)
+                    .clip(RoundedCornerShape(24.dp))
+            )
+        } else {
+            Image(
+                painter = painterResource(event.imageRes),
+                contentDescription = event.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(140.dp)
+                    .clip(RoundedCornerShape(24.dp))
+            )
+        }
     }
 }
 
@@ -148,14 +161,25 @@ fun EventCard(event: Event, modifier: Modifier = Modifier, onOpen: () -> Unit) {
     ) {
         Column {
             Box {
-                Image(
-                    painter = painterResource(event.imageRes),
-                    contentDescription = event.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(210.dp)
-                )
+                if (event.imageUrl != null) {
+                    AsyncImage(
+                        model = event.imageUrl,
+                        contentDescription = event.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(210.dp)
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(event.imageRes),
+                        contentDescription = event.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(210.dp)
+                    )
+                }
                 Surface(
                     modifier = Modifier
                         .align(Alignment.TopEnd)

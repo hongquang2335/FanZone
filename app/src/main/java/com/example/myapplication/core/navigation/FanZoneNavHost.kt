@@ -12,6 +12,7 @@ import com.example.myapplication.feature.booking.BookingRoute
 import com.example.myapplication.feature.checkout.CheckoutRoute
 import com.example.myapplication.feature.community.CommunityScreen
 import com.example.myapplication.feature.community.EventCommunityScreen
+import com.example.myapplication.feature.event.EventDetailRoute
 import com.example.myapplication.feature.event.EventDetailScreen
 import com.example.myapplication.feature.home.HomeScreen
 import com.example.myapplication.feature.profile.ProfileScreen
@@ -99,12 +100,11 @@ fun FanZoneNavHost(
             route = AppDestination.EventDetail.route,
             arguments = listOf(navArgument("eventId") { type = NavType.StringType })
         ) { entry ->
-            entry.arguments?.getString("eventId")?.let(viewModel::selectEvent)
-            EventDetailScreen(
-                event = uiState.selectedEvent,
-                tiers = uiState.tiersForSelectedEvent,
+            val eventId = entry.arguments?.getString("eventId")
+            EventDetailRoute(
+                eventId = eventId,
                 onBack = { navController.popBackStack() },
-                onBuyNow = { navController.navigate(AppDestination.Booking.create(uiState.selectedEvent.id)) },
+                onNavigateToBooking = { id -> navController.navigate(AppDestination.Booking.create(id)) },
                 modifier = Modifier.fillMaxSize()
             )
         }

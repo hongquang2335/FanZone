@@ -1,14 +1,20 @@
 package com.example.myapplication.ui.state
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.myapplication.app.AppDependencies
+import com.example.myapplication.domain.model.Event
 import com.example.myapplication.domain.model.TicketStatus
 import com.example.myapplication.domain.model.TicketWalletItem
 import com.example.myapplication.domain.repository.FanZoneRepository
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class FanZoneViewModel(
     private val repository: FanZoneRepository = AppDependencies.fanZoneRepository
@@ -23,13 +29,78 @@ class FanZoneViewModel(
             walletItems = repository.walletSeed,
             paymentMethods = repository.paymentMethods,
             supportShortcuts = repository.supportShortcuts,
-            selectedEventId = repository.events.first().id,
-            selectedPaymentMethod = repository.paymentMethods.first().id,
+            selectedEventId = repository.events.firstOrNull()?.id ?: "",
+            selectedPaymentMethod = repository.paymentMethods.firstOrNull()?.id ?: "",
             unreadSupportCount = 2,
             tierQuantities = emptyMap()
         )
     )
     val uiState: StateFlow<FanZoneUiState> = _uiState.asStateFlow()
+
+    init {
+        fetchEvents()
+    }
+
+    private fun fetchEvents() {
+        viewModelScope.launch {
+            try {
+                val snapshot = Firebase.firestore.collection("event").get().await()
+                val fetchedEvents = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        val rawStartTime = doc.getString("startTime") ?: ""
+                        val rawEndTime = doc.getString("endTime") ?: ""
+                        
+                        val formattedSchedule = if (rawStartTime.isNotEmpty()) {
+                            formatDate(rawStartTime) + (if (rawEndTime.isNotEmpty()) " - " + formatDate(rawEndTime) else "")
+                        } else doc.getString("schedule") ?: ""
+
+                        Event(
+                            id = doc.getLong("id")?.toString() ?: doc.id,
+                            title = doc.getString("title") ?: "",
+                            subtitle = doc.getString("orgName") ?: doc.getString("subtitle") ?: "",
+                            schedule = formattedSchedule,
+                            venue = doc.getString("venue") ?: "",
+                            city = doc.getString("address") ?: doc.getString("city") ?: "",
+                            description = doc.getString("description") ?: "",
+                            artists = doc.get("artists") as? List<String> ?: emptyList(),
+                            timeline = emptyList(), // Optional or mapped
+                            notices = doc.get("notices") as? List<String> ?: emptyList(),
+                            imageRes = repository.events.firstOrNull()?.imageRes ?: 0, // Fallback to avoid breaking drawable resources
+                            imageUrl = doc.getString("banner"),
+                            tags = doc.get("tags") as? List<String> ?: listOfNotNull(doc.getString("category"))
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+                
+                if (fetchedEvents.isNotEmpty()) {
+                    _uiState.update { state ->
+                        state.copy(
+                            events = fetchedEvents,
+                            selectedEventId = if (state.selectedEventId.isEmpty()) fetchedEvents.first().id else state.selectedEventId
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                // Fallback to local data on error or log
+            }
+        }
+    }
+
+    private fun formatDate(dateString: String): String {
+        try {
+            val parts = dateString.split("T")
+            if (parts.size >= 2) {
+                val date = parts[0]
+                val dateParts = date.split("-")
+                if (dateParts.size == 3) {
+                    return "${dateParts[2]}/${dateParts[1]}/${dateParts[0]}"
+                }
+            }
+        } catch (e: Exception) {}
+        return dateString
+    }
 
     fun selectEvent(eventId: String) {
         _uiState.update { state ->
