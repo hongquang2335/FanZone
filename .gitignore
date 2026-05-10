@@ -13,7 +13,4 @@
 .externalNativeBuild
 .cxx
 local.properties
-/docs
-app/src/androidTest
-app/src/test
 app/google-services.json
