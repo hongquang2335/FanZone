@@ -19,9 +19,6 @@ class MainActivity : ComponentActivity() {
         val db = Firebase.firestore
         Log.d("FirestoreSetup", "Firestore initialized: $db")
 
-        // Chạy script mồi dữ liệu (xóa dòng này sau khi chạy xong)
-        com.example.myapplication.feature.event.FirestoreSeeder.seedMissingFields()
-
         setContent {
             FanZoneTheme {
                 FanZoneApp()
