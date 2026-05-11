@@ -6,8 +6,8 @@ import com.example.myapplication.domain.model.Event
 import com.example.myapplication.domain.model.PerformanceSchedule
 import com.example.myapplication.domain.model.TicketTier
 import com.example.myapplication.domain.model.TierStatus
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,7 +24,9 @@ class EventDetailViewModel : ViewModel() {
         
         viewModelScope.launch {
             try {
-                val doc = Firebase.firestore.collection("event").document(eventId).get().await()
+                val db = Firebase.firestore
+                val doc = db.collection("event").document(eventId).get().await()
+                
                 if (doc.exists()) {
                     val rawStartTime = doc.getString("startTime") ?: ""
                     val rawEndTime = doc.getString("endTime") ?: ""
@@ -33,10 +35,11 @@ class EventDetailViewModel : ViewModel() {
                         formatDate(rawStartTime) + (if (rawEndTime.isNotEmpty()) " - " + formatDate(rawEndTime) else "")
                     } else ""
 
-                    // Bóc tách vé
-                    val ticketsList = doc.get("tickets") as? List<Map<String, Any>> ?: emptyList()
-                    val parsedTiers = ticketsList.mapNotNull { ticketMap ->
+                    // Bóc tách vé an toàn
+                    val rawTickets = doc.get("tickets") as? List<*>
+                    val parsedTiers = rawTickets?.mapNotNull { item ->
                         try {
+                            val ticketMap = item as? Map<*, *> ?: return@mapNotNull null
                             val statusStr = ticketMap["status"]?.toString() ?: ""
                             val tierStatus = when {
                                 statusStr.contains("closed", true) || statusStr.contains("sold", true) -> TierStatus.SOLD_OUT
@@ -47,14 +50,14 @@ class EventDetailViewModel : ViewModel() {
                                 id = ticketMap["id"]?.toString() ?: "",
                                 eventId = doc.id,
                                 name = ticketMap["name"]?.toString() ?: "",
-                                benefits = "Vé bán trên Event Hub", // Mock since benefits are not in JSON
+                                benefits = "Vé bán trên Event Hub",
                                 price = (ticketMap["price"] as? Number)?.toInt() ?: 0,
                                 status = tierStatus
                             )
                         } catch (e: Exception) { null }
-                    }
+                    } ?: emptyList()
 
-                    // Nhóm vé vào lịch biểu diễn (Performances)
+                    // Nhóm vé vào lịch biểu diễn
                     val performance = PerformanceSchedule(
                         id = "perf-1",
                         time = if (rawStartTime.isNotEmpty()) rawStartTime.substringAfter("T").take(5) else "",
@@ -70,12 +73,13 @@ class EventDetailViewModel : ViewModel() {
                         venue = doc.getString("venue") ?: "",
                         city = doc.getString("address") ?: "",
                         description = doc.getString("description") ?: "",
-                        artists = doc.get("artists") as? List<String> ?: emptyList(),
+                        artists = (doc.get("artists") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                         timeline = emptyList(),
-                        notices = doc.get("notices") as? List<String> ?: emptyList(),
+                        notices = (doc.get("notices") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                         imageRes = 0,
                         imageUrl = doc.getString("banner"),
-                        tags = doc.get("tags") as? List<String> ?: listOfNotNull(doc.getString("category")),
+                        tags = (doc.get("tags") as? List<*>)?.filterIsInstance<String>() 
+                            ?: listOfNotNull(doc.getString("category")),
                         performances = if (parsedTiers.isNotEmpty()) listOf(performance) else emptyList(),
                         resaleTickets = emptyList()
                     )
@@ -97,16 +101,17 @@ class EventDetailViewModel : ViewModel() {
     }
 
     private fun formatDate(dateString: String): String {
-        try {
+        return try {
             val parts = dateString.split("T")
             if (parts.size >= 2) {
                 val date = parts[0]
                 val dateParts = date.split("-")
                 if (dateParts.size == 3) {
-                    return "${dateParts[2]}/${dateParts[1]}/${dateParts[0]}"
-                }
-            }
-        } catch (e: Exception) {}
-        return dateString
+                    "${dateParts[2]}/${dateParts[1]}/${dateParts[0]}"
+                } else dateString
+            } else dateString
+        } catch (e: Exception) {
+            dateString
+        }
     }
 }

@@ -56,7 +56,13 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    
+    // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.firestore)
+    
+    // Coroutines Play Services for .await()
+    implementation(libs.kotlinx.coroutines.play.services)
+
     implementation("io.coil-kt:coil-compose:2.6.0")
 }
