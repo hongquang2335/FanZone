@@ -1,14 +1,16 @@
 package com.example.myapplication.ui.state
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.app.AppDependencies
+import com.example.myapplication.domain.model.Artist
 import com.example.myapplication.domain.model.Event
 import com.example.myapplication.domain.model.TicketStatus
 import com.example.myapplication.domain.model.TicketWalletItem
 import com.example.myapplication.domain.repository.FanZoneRepository
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,7 +46,14 @@ class FanZoneViewModel(
     private fun fetchEvents() {
         viewModelScope.launch {
             try {
+                Log.d("FanZoneVM", "Bắt đầu tải danh sách sự kiện từ Firestore...")
                 val snapshot = Firebase.firestore.collection("event").get().await()
+                
+                if (snapshot.isEmpty) {
+                    Log.w("FanZoneVM", "Collection 'event' đang trống trên Firestore!")
+                    return@launch
+                }
+
                 val fetchedEvents = snapshot.documents.mapNotNull { doc ->
                     try {
                         val rawStartTime = doc.getString("startTime") ?: ""
@@ -55,35 +64,44 @@ class FanZoneViewModel(
                         } else doc.getString("schedule") ?: ""
 
                         Event(
-                            id = doc.getLong("id")?.toString() ?: doc.id,
-                            title = doc.getString("title") ?: "",
+                            // LUÔN dùng doc.id để khớp với Document trên Firestore
+                            id = doc.id, 
+                            title = doc.getString("title") ?: "Không có tiêu đề",
                             subtitle = doc.getString("orgName") ?: doc.getString("subtitle") ?: "",
                             schedule = formattedSchedule,
                             venue = doc.getString("venue") ?: "",
                             city = doc.getString("address") ?: doc.getString("city") ?: "",
                             description = doc.getString("description") ?: "",
-                            artists = doc.get("artists") as? List<String> ?: emptyList(),
-                            timeline = emptyList(), // Optional or mapped
-                            notices = doc.get("notices") as? List<String> ?: emptyList(),
-                            imageRes = repository.events.firstOrNull()?.imageRes ?: 0, // Fallback to avoid breaking drawable resources
-                            imageUrl = doc.getString("banner"),
-                            tags = doc.get("tags") as? List<String> ?: listOfNotNull(doc.getString("category"))
+                            artists = (doc.get("artists") as? List<*>)?.mapNotNull { artistObj ->
+                                val map = artistObj as? Map<*, *> ?: return@mapNotNull null
+                                Artist(
+                                    id = map["id"]?.toString() ?: "",
+                                    name = map["name"]?.toString() ?: "",
+                                    image = map["image"]?.toString() ?: ""
+                                )
+                            } ?: emptyList(),
+                            timeline = emptyList(),
+                            notices = (doc.get("notices") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                            imageRes = 0,
+                            imageUrl = doc.getString("banner") ?: doc.getString("imageUrl"),
+                            tags = (doc.get("tags") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                            category = (doc.get("category") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
                         )
                     } catch (e: Exception) {
+                        Log.e("FanZoneVM", "Lỗi khi parse Document ${doc.id}: ${e.message}")
                         null
                     }
                 }
                 
-                if (fetchedEvents.isNotEmpty()) {
-                    _uiState.update { state ->
-                        state.copy(
-                            events = fetchedEvents,
-                            selectedEventId = if (state.selectedEventId.isEmpty()) fetchedEvents.first().id else state.selectedEventId
-                        )
-                    }
+                Log.d("FanZoneVM", "Tải thành công ${fetchedEvents.size} sự kiện.")
+                _uiState.update { state ->
+                    state.copy(
+                        events = fetchedEvents,
+                        selectedEventId = fetchedEvents.firstOrNull()?.id ?: state.selectedEventId
+                    )
                 }
             } catch (e: Exception) {
-                // Fallback to local data on error or log
+                Log.e("FanZoneVM", "Lỗi kết nối Firestore: ${e.message}", e)
             }
         }
     }
@@ -163,4 +181,3 @@ class FanZoneViewModel(
         return ticket
     }
 }
-

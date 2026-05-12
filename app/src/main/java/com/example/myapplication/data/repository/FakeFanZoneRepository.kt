@@ -1,6 +1,7 @@
 package com.example.myapplication.data.repository
 
 import com.example.myapplication.R
+import com.example.myapplication.domain.model.Artist
 import com.example.myapplication.domain.model.Category
 import com.example.myapplication.domain.model.CommunityPost
 import com.example.myapplication.domain.model.Event
@@ -38,7 +39,12 @@ object FakeFanZoneRepository : FanZoneRepository {
             venue = "San van dong My Dinh",
             city = "Ha Noi",
             description = "Dem nhac hoi mua he quy tu nhung ten tuoi hang dau cung san khau quy mo lon, khu trai nghiem fandom va khu am thuc ngoai troi.",
-            artists = listOf("Son Tung M-TP", "Den Vau", "Touliver", "Bich Phuong"),
+            artists = listOf(
+                Artist("1", "Son Tung M-TP", "https://i.pravatar.cc/150?u=sontung"),
+                Artist("2", "Den Vau", "https://i.pravatar.cc/150?u=denvau"),
+                Artist("3", "Touliver", "https://i.pravatar.cc/150?u=touliver"),
+                Artist("4", "Bich Phuong", "https://i.pravatar.cc/150?u=bichphuong")
+            ),
             timeline = listOf(
                 EventMoment("18:00", "Mo cua don khach va check-in"),
                 EventMoment("20:00", "Khai mac voi chuong trinh DJ set"),
@@ -58,7 +64,11 @@ object FakeFanZoneRepository : FanZoneRepository {
             venue = "Bao tang My thuat",
             city = "TP. Ho Chi Minh",
             description = "Bo suu tap nghe thuat duong dai gom tranh, installation va workshop giao luu voi curator tre.",
-            artists = listOf("Linh Dao", "Vu Hoang", "Khanh Nhi"),
+            artists = listOf(
+                Artist("5", "Linh Dao", "https://i.pravatar.cc/150?u=linhdao"),
+                Artist("6", "Vu Hoang", "https://i.pravatar.cc/150?u=vuhoang"),
+                Artist("7", "Khanh Nhi", "https://i.pravatar.cc/150?u=khanhnhi")
+            ),
             timeline = listOf(
                 EventMoment("09:00", "Mo cua phong trung bay"),
                 EventMoment("11:00", "Artist talk"),
