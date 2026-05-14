@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -115,9 +116,9 @@ private fun EventDetailBody(event: Event, tiers: List<TicketTier>, onBuyNow: () 
                     SectionHeader("Lịch biểu diễn & Đặt vé", null)
                     PerformanceList(event, tiers, onBuyNow)
 
-                    // Important Info
-                    SectionHeader("Thông tin quan trọng", null)
-                    ImportantInfo(event)
+                    // Organizer
+                    SectionHeader("Ban tổ chức", null)
+                    OrganizerSection(event)
                     
                     // Resale
                     if (event.resaleTickets.isNotEmpty()) {
@@ -196,15 +197,23 @@ private fun InfoGrid(event: Event) {
                 Icon(Icons.Default.Schedule, contentDescription = "Time", tint = Evergreen)
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(event.schedule, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
-                Text("15 Tháng 10, 2024", color = Color(0xFF64748B), style = MaterialTheme.typography.bodyMedium)
-            }
-            Box(
-                modifier = Modifier
-                    .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(16.dp))
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Text("+ 2 ngày khác", style = MaterialTheme.typography.labelSmall, color = Color(0xFF64748B))
+                val scheduleParts = event.schedule.split("|")
+                if (scheduleParts.size >= 2) {
+                    Text(
+                        text = scheduleParts[0],
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                    Text(
+                        text = scheduleParts[1],
+                        color = Color(0xFF64748B),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    Text(
+                        text = event.schedule,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                }
             }
         }
         
@@ -259,12 +268,28 @@ private fun ArtistAvatars(artists: List<Artist>) {
     }
 }
 
+private fun abbreviateDayOfWeek(text: String): String {
+    return text.replace("Thứ hai", "T2")
+        .replace("Thứ ba", "T3")
+        .replace("Thứ tư", "T4")
+        .replace("Thứ năm", "T5")
+        .replace("Thứ sáu", "T6")
+        .replace("Thứ bảy", "T7")
+        .replace("Chủ nhật", "CN")
+}
+
 @Composable
 private fun PerformanceList(event: Event, tiers: List<TicketTier>, onBuyNow: () -> Unit) {
+    // Tự động lấy thông tin từ event.schedule nếu danh sách biểu diễn rỗng
     val performances = event.performances.ifEmpty {
+        val scheduleParts = event.schedule.split("|")
         listOf(
-            PerformanceSchedule("1", "14:00 - 16:00, T3", "12 Tháng 05, 2026", tiers),
-            PerformanceSchedule("2", "14:00 - 16:00, T3", "19 Tháng 05, 2026", tiers)
+            PerformanceSchedule(
+                id = "default",
+                time = scheduleParts.getOrNull(0) ?: "Chưa rõ giờ",
+                date = scheduleParts.getOrNull(1) ?: "Chưa rõ ngày",
+                ticketTiers = tiers
+            )
         )
     }
 
@@ -287,8 +312,10 @@ private fun PerformanceList(event: Event, tiers: List<TicketTier>, onBuyNow: () 
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Cột chứa Text ngày giờ (tự co giãn)
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
@@ -298,16 +325,32 @@ private fun PerformanceList(event: Event, tiers: List<TicketTier>, onBuyNow: () 
                             Icon(Icons.Default.Event, contentDescription = null, tint = Color(0xFF94A3B8))
                         }
                         Column {
-                            Text(perf.time, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
-                            Text(perf.date, color = Evergreen, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
+                            Text(
+                                text = abbreviateDayOfWeek(perf.time), 
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = perf.date, 
+                                color = Evergreen, 
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
+                    
+                    Spacer(modifier = Modifier.width(12.dp))
+                    
+                    // Button được ưu tiên hiển thị
                     Button(
                         onClick = onBuyNow,
                         colors = ButtonDefaults.buttonColors(containerColor = Evergreen),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
                     ) {
-                        Text("Mua vé ngay")
+                        Text("Mua vé ngay", maxLines = 1, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                     }
                 }
                 
@@ -328,11 +371,35 @@ private fun PerformanceList(event: Event, tiers: List<TicketTier>, onBuyNow: () 
                                     .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(12.dp))
                                     .background(Color.White)
                                     .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(tier.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium))
-                                Text(formatPrice(tier.price), color = Evergreen, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                                // 1. MÔ TẢ VÉ: Bên tay trái (chiếm không gian còn lại)
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = tier.name, 
+                                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                                        color = Color(0xFF1E293B)
+                                    )
+                                    if (tier.benefits.isNotEmpty()) {
+                                        Text(
+                                            text = tier.benefits,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Color(0xFF64748B)
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                // 2. GIÁ TIỀN: Bên tay phải, ưu tiên không gian cho 8 chữ số
+                                Text(
+                                    text = formatPrice(tier.price), 
+                                    color = Evergreen, 
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+                                    modifier = Modifier.widthIn(min = 120.dp), // Đủ cho ~8 chữ số + "đ" không bị xuống dòng
+                                    textAlign = TextAlign.End,
+                                    softWrap = true // Chỉ xuống dòng khi vượt quá ngưỡng (ví dụ 9 chữ số)
+                                )
                             }
                         }
                     }
@@ -343,55 +410,68 @@ private fun PerformanceList(event: Event, tiers: List<TicketTier>, onBuyNow: () 
 }
 
 @Composable
-private fun ImportantInfo(event: Event) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        val notices = event.notices.ifEmpty {
-            listOf(
-                "Sự kiện dành cho người từ 18 tuổi trở lên. Vui lòng mang theo CMND/CCCD.",
-                "Chất cấm, vật nhọn, thú cưng và các thiết bị ghi hình chuyên nghiệp."
+private fun OrganizerSection(event: Event) {
+    val displayName = if (event.orgName.isNotEmpty()) event.orgName 
+                      else if (event.subtitle.isNotEmpty()) event.subtitle 
+                      else "Ban tổ chức"
+                      
+    val displayDesc = if (event.orgDescription.isNotEmpty()) event.orgDescription 
+                      else "Đơn vị tổ chức sự kiện."
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(16.dp))
+            .background(Color.White, RoundedCornerShape(16.dp))
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Org logo – circular with border
+        if (!event.orgLogo.isNullOrEmpty()) {
+            AsyncImage(
+                model = event.orgLogo,
+                contentDescription = displayName,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(56.dp)
+                    .border(1.dp, Color(0xFFE2E8F0), CircleShape)
+                    .padding(2.dp)
+                    .clip(CircleShape)
             )
-        }
-        
-        // Age limit
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(16.dp))
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        } else {
             Box(
-                modifier = Modifier.size(48.dp).background(Color(0xFFFEF2F2), RoundedCornerShape(12.dp)),
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color(0xFFF1F5F9), CircleShape)
+                    .border(1.dp, Color(0xFFE2E8F0), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFEF4444))
-            }
-            Column {
-                Text("Quy định độ tuổi", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(notices.firstOrNull() ?: "", color = Color(0xFF64748B), style = MaterialTheme.typography.bodyMedium)
+                Icon(
+                    Icons.Default.Business,
+                    contentDescription = displayName,
+                    tint = Evergreen,
+                    modifier = Modifier.size(28.dp)
+                )
             }
         }
-        
-        // Prohibited items
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(16.dp))
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+
+        // Org name + description
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Box(
-                modifier = Modifier.size(48.dp).background(Color(0xFFEFF6FF), RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.DoNotDisturb, contentDescription = null, tint = Evergreen)
-            }
-            Column {
-                Text("Vật dụng cấm mang vào", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(notices.drop(1).firstOrNull() ?: "", color = Color(0xFF64748B), style = MaterialTheme.typography.bodyMedium)
-            }
+            Text(
+                text = displayName,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = Color(0xFF1E293B)
+            )
+            Text(
+                text = displayDesc,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF64748B),
+                lineHeight = 20.sp
+            )
         }
     }
 }

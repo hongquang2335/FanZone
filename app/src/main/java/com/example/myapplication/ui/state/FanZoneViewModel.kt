@@ -85,7 +85,10 @@ class FanZoneViewModel(
                             imageRes = 0,
                             imageUrl = doc.getString("banner") ?: doc.getString("imageUrl"),
                             tags = (doc.get("tags") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
-                            category = (doc.get("category") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                            category = (doc.get("category") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                            orgName = doc.getString("orgName") ?: "",
+                            orgLogo = doc.getString("orgLogo"),
+                            orgDescription = doc.getString("orgDescription") ?: ""
                         )
                     } catch (e: Exception) {
                         Log.e("FanZoneVM", "Lỗi khi parse Document ${doc.id}: ${e.message}")

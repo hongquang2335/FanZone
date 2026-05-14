@@ -18,7 +18,10 @@ data class Event(
     val tags: List<String> = emptyList(),
     val category: List<String> = emptyList(),
     val performances: List<PerformanceSchedule> = emptyList(),
-    val resaleTickets: List<ResaleTicket> = emptyList()
+    val resaleTickets: List<ResaleTicket> = emptyList(),
+    val orgName: String = "",
+    val orgLogo: String? = null,
+    val orgDescription: String = ""
 )
 
 data class EventMoment(
