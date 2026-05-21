@@ -71,7 +71,6 @@ fun FanZoneNavHost(
         }
         composable(AppDestination.Tickets.route) {
             TicketWalletRoute(
-                tickets = uiState.walletItems,
                 onOpenEvent = { eventId ->
                     viewModel.selectEvent(eventId)
                     navController.navigate(AppDestination.EventDetail.create(eventId))

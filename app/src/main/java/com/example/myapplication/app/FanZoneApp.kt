@@ -71,7 +71,9 @@ fun FanZoneApp(
             navController = navController,
             uiState = uiState,
             viewModel = viewModel,
-            modifier = Modifier.fillMaxSize().padding(padding)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = padding.calculateBottomPadding())
         )
     }
 }

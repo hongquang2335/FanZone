@@ -6,6 +6,6 @@ import org.junit.Test
 class FormattersTest {
     @Test
     fun formatVnd_usesVietnameseCurrencySuffixAndDotGrouping() {
-        assertEquals("2.500.000\u0111", formatVnd(2_500_000))
+        assertEquals("2.500.000\u0111", 2_500_000.formatVnd())
     }
 }
