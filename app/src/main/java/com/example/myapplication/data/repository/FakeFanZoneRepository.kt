@@ -6,6 +6,7 @@ import com.example.myapplication.domain.model.CommunityPost
 import com.example.myapplication.domain.model.Event
 import com.example.myapplication.domain.model.EventMoment
 import com.example.myapplication.domain.model.PaymentMethod
+import com.example.myapplication.domain.model.SharedCommunityPost
 import com.example.myapplication.domain.model.SupportShortcut
 import com.example.myapplication.domain.model.TicketStatus
 import com.example.myapplication.domain.model.TicketTier
@@ -82,37 +83,62 @@ object FakeFanZoneRepository : FanZoneRepository {
     override val posts = listOf(
         CommunityPost(
             id = "p1",
-            author = "Minh Tuan",
-            role = "Fan cuong Son Tung",
-            topic = "Trao doi ca nhan",
-            content = "Khong the tin duoc setlist dem qua. Ai co video doan highnote cuoi cung thi chia se voi minh voi.",
+            authorId = "user-minh-tuan",
+            author = "Minh Tuấn",
+            role = "Fan cuồng Sơn Tùng",
+            topic = "Trao đổi cá nhân",
+            content = "Không thể tin được setlist đêm qua. Ai có video đoạn highnote cuối cùng thì chia sẻ với mình với.",
             likes = 128,
             comments = 24,
-            imageRes = R.drawable.event_concert
+            shareCount = 4,
+            imageRes = R.drawable.event_concert,
+            imageUrl = "android.resource://com.example.myapplication/drawable/event_concert",
+            mediaUrl = "android.resource://com.example.myapplication/drawable/event_concert",
+            mediaType = "image/png",
+            sharedPost = SharedCommunityPost(
+                author = "Hồng Quang",
+                caption = "a"
+            ),
+            createdAtMillis = 1_746_851_200_000,
+            updatedAtMillis = 1_746_851_200_000
         ),
         CommunityPost(
             id = "p2",
+            authorId = "fanzone-official",
             author = "FanZone Official",
-            role = "Thong bao cong dong",
-            topic = "Mo dot pre-sale doc quyen",
-            content = "Tuan toi se co dot pre-sale doc quyen cho khach da cap nhat ho so thanh vien. Nho kiem tra profile truoc 20:00 toi thu Sau.",
+            role = "Thông báo cộng đồng",
+            topic = "Mở đợt pre-sale độc quyền",
+            content = "Tuần tới sẽ có đợt pre-sale độc quyền cho khách đã cập nhật hồ sơ thành viên. Nhớ kiểm tra profile trước 20:00 tối thứ Sáu.",
             likes = 84,
             comments = 18,
+            shareCount = 2,
             imageRes = null,
+            imageUrl = null,
+            mediaUrl = null,
+            mediaType = null,
             eventId = "neon-night",
-            eventTitle = "Neon Nights Festival 2024"
+            eventTitle = "Neon Nights Festival 2024",
+            createdAtMillis = 1_778_393_600_000,
+            updatedAtMillis = 1_778_393_600_000
         ),
         CommunityPost(
             id = "p3",
-            author = "Hoang Lam",
-            role = "Thanh vien da mua ve",
-            topic = "Lap nhom check-in",
-            content = "Minh lap nhom chat de cung trao doi va cap nhat thong tin check-in. Ban nao di Neon Nights mot minh thi vao chung cho vui nhe.",
+            authorId = "user-hoang-lam",
+            author = "Hoàng Lâm",
+            role = "Thành viên đã mua vé",
+            topic = "Lập nhóm check-in",
+            content = "Mình lập nhóm chat để cùng trao đổi và cập nhật thông tin check-in. Bạn nào đi Neon Nights một mình thì vào chung cho vui nhé.",
             likes = 37,
             comments = 12,
+            shareCount = 1,
             imageRes = null,
+            imageUrl = null,
+            mediaUrl = null,
+            mediaType = null,
             eventId = "neon-night",
-            eventTitle = "Neon Nights Festival 2024"
+            eventTitle = "Neon Nights Festival 2024",
+            createdAtMillis = 1_778_307_200_000,
+            updatedAtMillis = 1_778_307_200_000
         )
     )
 

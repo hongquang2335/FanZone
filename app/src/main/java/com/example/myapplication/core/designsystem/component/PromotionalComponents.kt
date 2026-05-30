@@ -1,11 +1,17 @@
-package com.example.myapplication.core.designsystem.component
+﻿package com.example.myapplication.core.designsystem.component
 
+import android.net.Uri
+import android.widget.VideoView
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +21,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -24,6 +29,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -32,8 +39,11 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.RemoveRedEye
 import androidx.compose.material.icons.filled.Schedule
@@ -54,6 +64,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -75,8 +86,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import coil.compose.AsyncImage
 import com.example.myapplication.R
 import com.example.myapplication.core.designsystem.theme.Danger
 import com.example.myapplication.core.designsystem.theme.Evergreen
@@ -90,9 +103,11 @@ import com.example.myapplication.core.designsystem.theme.SoftText
 import com.example.myapplication.core.designsystem.theme.SurfaceCard
 import com.example.myapplication.core.designsystem.theme.Warning
 import com.example.myapplication.core.util.formatVnd
+import com.example.myapplication.domain.model.CommunityMediaItem
 import com.example.myapplication.domain.model.CommunityPost
 import com.example.myapplication.domain.model.Event
 import com.example.myapplication.domain.model.EventMoment
+import com.example.myapplication.domain.model.SharedCommunityPost
 import com.example.myapplication.domain.model.TicketStatus
 import com.example.myapplication.domain.model.TicketTier
 import com.example.myapplication.domain.model.TicketWalletItem
@@ -217,95 +232,93 @@ fun GradientPanel(title: String, body: String, action: String, onAction: () -> U
 fun CommunityCard(
     post: CommunityPost,
     modifier: Modifier = Modifier,
-    onOpenEventCommunity: (String) -> Unit = {}
+    onOpenEventCommunity: (String) -> Unit = {},
+    onSharePost: (CommunityPost, String) -> Unit = { _, _ -> }
 ) {
     var liked by remember(post.id) { mutableStateOf(false) }
     var likeCount by remember(post.id) { mutableStateOf(post.likes) }
     var commentCount by remember(post.id) { mutableStateOf(post.comments) }
     var commentOpen by remember(post.id) { mutableStateOf(false) }
     var shareOpen by remember(post.id) { mutableStateOf(false) }
-    var shareCount by remember(post.id) { mutableStateOf(4) }
+    var shareCount by remember(post.id) { mutableStateOf(post.shareCount) }
+    val sharedPost = post.sharedPost
 
-    Card(
+    Column(
         modifier = modifier,
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                CircleAvatar()
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    if (post.eventTitle != null) {
-                        Text(
-                            text = post.eventTitle,
-                            modifier = Modifier.clickable(enabled = post.eventId != null) {
-                                post.eventId?.let(onOpenEventCommunity)
-                            },
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+        if (sharedPost != null) {
+            SharedPostPreview(
+                post = post,
+                share = sharedPost,
+                onCommentClick = { commentOpen = true },
+                onShareClick = { shareOpen = true }
+            )
+        } else {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        CircleAvatar()
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            if (post.eventTitle != null) {
+                                Text(
+                                    text = post.eventTitle,
+                                    modifier = Modifier.clickable(enabled = post.eventId != null) {
+                                        post.eventId?.let(onOpenEventCommunity)
+                                    },
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                PostMetaLine(
+                                    author = post.author,
+                                    timeLabel = post.postTimeLabel(),
+                                    textStyle = MaterialTheme.typography.bodyMedium
+                                )
+                            } else {
+                                Text(
+                                    text = post.author,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                PostMetaLine(
+                                    timeLabel = post.postTimeLabel(),
+                                    textStyle = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    }
+                    Text(post.content, style = MaterialTheme.typography.bodyLarge)
+                    CommunityPostMedia(post = post, height = 190.dp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                        PostAction(
+                            icon = Icons.Default.FavoriteBorder,
+                            label = "$likeCount",
+                            tint = if (liked) Danger else SoftText,
+                            onClick = {
+                                liked = !liked
+                                likeCount += if (liked) 1 else -1
+                            }
                         )
-                        Text(
-                            text = "${post.author} - ${post.role}",
-                            color = SoftText,
-                            style = MaterialTheme.typography.bodyMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                        PostAction(
+                            icon = Icons.AutoMirrored.Outlined.Chat,
+                            label = "$commentCount",
+                            onClick = { commentOpen = true }
                         )
-                    } else {
-                        Text(
-                            text = post.author,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = post.role,
-                            color = SoftText,
-                            style = MaterialTheme.typography.bodyMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                        PostAction(
+                            icon = Icons.AutoMirrored.Filled.ArrowForward,
+                            label = "Chia sẻ",
+                            onClick = { shareOpen = true }
                         )
                     }
                 }
-            }
-            if (post.eventTitle == null) {
-                Text(post.topic, color = SoftText, style = MaterialTheme.typography.bodyMedium)
-            }
-            Text(post.content, style = MaterialTheme.typography.bodyLarge)
-            if (post.imageRes != null) {
-                Image(
-                    painter = painterResource(post.imageRes),
-                    contentDescription = post.topic,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(190.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                PostAction(
-                    icon = Icons.Default.FavoriteBorder,
-                    label = "$likeCount",
-                    tint = if (liked) Danger else SoftText,
-                    onClick = {
-                        liked = !liked
-                        likeCount += if (liked) 1 else -1
-                    }
-                )
-                PostAction(
-                    icon = Icons.AutoMirrored.Outlined.Chat,
-                    label = "$commentCount",
-                    onClick = { commentOpen = true }
-                )
-                PostAction(
-                    icon = Icons.AutoMirrored.Filled.ArrowForward,
-                    label = "Chia se",
-                    onClick = { shareOpen = true }
-                )
             }
         }
     }
@@ -324,10 +337,383 @@ fun CommunityCard(
         ShareDialog(
             post = post,
             onDismiss = { shareOpen = false },
-            onShareNow = {
+            onShareNow = { caption ->
                 shareCount++
+                onSharePost(post, caption)
                 shareOpen = false
             }
+        )
+    }
+}
+
+@Composable
+private fun SharedPostPreview(
+    post: CommunityPost,
+    share: SharedCommunityPost,
+    onCommentClick: () -> Unit,
+    onShareClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                CircleAvatar()
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = share.author,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = post.postTimeLabel(),
+                        color = SoftText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            if (share.caption.isNotBlank()) {
+                Text(share.caption, style = MaterialTheme.typography.bodyLarge)
+            }
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                color = Color.White,
+                border = BorderStroke(1.dp, SoftLine)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(
+                        modifier = Modifier.padding(start = 14.dp, top = 14.dp, end = 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            CircleAvatar(size = 36.dp)
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = post.eventTitle ?: post.author,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                PostMetaLine(
+                                    author = post.author.takeIf { post.eventTitle != null },
+                                    timeLabel = post.postTimeLabel(),
+                                    textStyle = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                        Text(post.content, style = MaterialTheme.typography.bodyMedium)
+                    }
+                    CommunityPostMedia(post = post, height = 220.dp, clipCorners = false)
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                PostAction(
+                    icon = Icons.Default.FavoriteBorder,
+                    label = "0",
+                    onClick = {}
+                )
+                PostAction(
+                    icon = Icons.AutoMirrored.Outlined.Chat,
+                    label = "0",
+                    onClick = onCommentClick
+                )
+                PostAction(
+                    icon = Icons.AutoMirrored.Filled.ArrowForward,
+                    label = "Chia sáº»",
+                    onClick = onShareClick
+                )
+            }
+        }
+    }
+}
+
+private fun CommunityPost.postTimeLabel(): String {
+    val createdAt = createdAtMillis ?: return "Vừa xong"
+    val elapsedMillis = (System.currentTimeMillis() - createdAt).coerceAtLeast(0L)
+    val minuteMillis = 60_000L
+    val hourMillis = 60 * minuteMillis
+    val dayMillis = 24 * hourMillis
+    val monthMillis = 31 * dayMillis
+    val yearMillis = 365 * dayMillis
+
+    return when {
+        elapsedMillis < minuteMillis -> "Vừa xong"
+        elapsedMillis < hourMillis -> "cách đây ${elapsedMillis / minuteMillis} phút"
+        elapsedMillis < dayMillis -> "cách đây ${elapsedMillis / hourMillis} giờ"
+        elapsedMillis < monthMillis -> "cách đây ${elapsedMillis / dayMillis} ngày"
+        elapsedMillis < yearMillis -> SimpleDateFormat("d/M", Locale.getDefault()).format(Date(createdAt))
+        else -> SimpleDateFormat("d/M/yyyy", Locale.getDefault()).format(Date(createdAt))
+    }
+}
+
+@Composable
+private fun CommunityPostMedia(
+    post: CommunityPost,
+    height: Dp,
+    clipCorners: Boolean = true
+) {
+    val mediaItems = post.displayMediaItems()
+    if (mediaItems.isEmpty()) return
+
+    var viewerStartIndex by remember(post.id) { mutableStateOf<Int?>(null) }
+    val shapeModifier = if (clipCorners) Modifier.clip(RoundedCornerShape(20.dp)) else Modifier
+    val previewHeight = when {
+        mediaItems.all { it.isAudio } -> 104.dp
+        height < 340.dp -> 340.dp
+        else -> height
+    }
+
+    if (mediaItems.size == 1) {
+        CommunityMediaPreview(
+            item = mediaItems.first(),
+            contentDescription = post.content,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(previewHeight)
+                .then(shapeModifier),
+            onClick = { viewerStartIndex = 0 }
+        )
+    } else {
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            itemsIndexed(mediaItems) { index, item ->
+                CommunityMediaPreview(
+                    item = item,
+                    contentDescription = post.content,
+                    modifier = Modifier
+                        .width(280.dp)
+                        .height(if (item.isAudio) 104.dp else 300.dp)
+                        .clip(RoundedCornerShape(20.dp)),
+                    onClick = { viewerStartIndex = index }
+                )
+            }
+        }
+    }
+
+    viewerStartIndex?.let { startIndex ->
+        CommunityMediaViewer(
+            mediaItems = mediaItems,
+            startIndex = startIndex,
+            contentDescription = post.content,
+            onDismiss = { viewerStartIndex = null }
+        )
+    }
+}
+
+@Composable
+private fun CommunityMediaPreview(
+    item: DisplayCommunityMediaItem,
+    contentDescription: String,
+    modifier: Modifier,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .background(if (item.isVideo) Color.Black else Color.White)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        when {
+            item.imageRes != null -> {
+                Image(
+                    painter = painterResource(item.imageRes),
+                    contentDescription = contentDescription,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            item.isImage -> {
+                AsyncImage(
+                    model = item.url,
+                    contentDescription = contentDescription,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            item.isVideo -> {
+                Box(modifier = Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.PlayCircle,
+                        contentDescription = "Xem video",
+                        tint = Color.White,
+                        modifier = Modifier.size(58.dp)
+                    )
+                }
+            }
+            else -> {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Mic, contentDescription = null, tint = Evergreen, modifier = Modifier.size(34.dp))
+                    Text("Ghi am", color = Ink, style = MaterialTheme.typography.titleMedium)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CommunityMediaViewer(
+    mediaItems: List<DisplayCommunityMediaItem>,
+    startIndex: Int,
+    contentDescription: String,
+    onDismiss: () -> Unit
+) {
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = startIndex)
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+            LazyRow(
+                state = listState,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                itemsIndexed(mediaItems) { _, item ->
+                    Box(
+                        modifier = Modifier
+                            .fillParentMaxWidth()
+                            .fillMaxHeight()
+                            .padding(vertical = 48.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        when {
+                            item.imageRes != null -> {
+                                Image(
+                                    painter = painterResource(item.imageRes),
+                                    contentDescription = contentDescription,
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                            item.isImage -> {
+                                AsyncImage(
+                                    model = item.url,
+                                    contentDescription = contentDescription,
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                            item.isVideo -> {
+                                CommunityVideoPlayer(url = item.url.orEmpty())
+                            }
+                            else -> {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(Icons.Default.Mic, contentDescription = null, tint = Color.White, modifier = Modifier.size(56.dp))
+                                    Text("Tep ghi am", color = Color.White, style = MaterialTheme.typography.titleLarge)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 18.dp, end = 14.dp)
+                    .background(Color.Black.copy(alpha = 0.42f), CircleShape)
+            ) {
+                Icon(Icons.Default.Close, contentDescription = "Thoat", tint = Color.White)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CommunityVideoPlayer(url: String) {
+    AndroidView(
+        factory = { context ->
+            VideoView(context).apply {
+                setVideoURI(Uri.parse(url))
+                setOnPreparedListener { player ->
+                    player.isLooping = true
+                    start()
+                }
+            }
+        },
+        update = { view ->
+            if (!view.isPlaying) {
+                view.setVideoURI(Uri.parse(url))
+                view.start()
+            }
+        },
+        modifier = Modifier.fillMaxSize()
+    )
+}
+
+private data class DisplayCommunityMediaItem(
+    val url: String? = null,
+    val type: String,
+    val imageRes: Int? = null
+) {
+    val isImage: Boolean get() = imageRes != null || type.startsWith("image/")
+    val isVideo: Boolean get() = type.startsWith("video/")
+    val isAudio: Boolean get() = type.startsWith("audio/")
+}
+
+private fun CommunityPost.displayMediaItems(): List<DisplayCommunityMediaItem> {
+    if (imageRes != null) {
+        return listOf(DisplayCommunityMediaItem(type = "image/resource", imageRes = imageRes))
+    }
+    val newItems = mediaItems.map { it.toDisplayItem() }
+    if (newItems.isNotEmpty()) return newItems
+
+    val legacyUrl = mediaUrl ?: imageUrl ?: return emptyList()
+    val legacyType = mediaType ?: if (imageUrl != null) "image/legacy" else "application/octet-stream"
+    return listOf(DisplayCommunityMediaItem(url = legacyUrl, type = legacyType))
+}
+
+private fun CommunityMediaItem.toDisplayItem(): DisplayCommunityMediaItem {
+    return DisplayCommunityMediaItem(url = url, type = type)
+}
+
+@Composable
+private fun PostMetaLine(
+    timeLabel: String,
+    textStyle: androidx.compose.ui.text.TextStyle,
+    author: String? = null
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (!author.isNullOrBlank()) {
+            Text(
+                text = author,
+                color = SoftText,
+                style = textStyle,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text("·", color = SoftText, style = textStyle)
+        }
+        Text(
+            text = timeLabel,
+            color = SoftText,
+            style = textStyle,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -361,7 +747,6 @@ private fun CommentsDialog(
     onAddComment: () -> Unit
 ) {
     var draft by remember { mutableStateOf("") }
-    var replyTarget by remember { mutableStateOf<String?>(null) }
     var dragDistance by remember { mutableStateOf(0f) }
 
     Dialog(
@@ -408,8 +793,8 @@ private fun CommentsDialog(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Yeu thich $likeCount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("$shareCount luot chia se", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("YÃªu thÃ­ch $likeCount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("$shareCount lÆ°á»£t chia sáº»", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
             Divider()
             LazyColumn(
@@ -420,64 +805,49 @@ private fun CommentsDialog(
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
                 item {
-                    CommentThread(
-                        author = "Trinh Hai Yen",
-                        body = "Xuat sac thuong hang",
-                        time = "1 ngay",
-                        replies = listOf("Hong Quang" to "Dung la tiet muc dinh nhat dem nay"),
-                        onReply = { replyTarget = it }
+                    CommentBubble(
+                        author = "Trá»‹nh Háº£i Yáº¿n",
+                        body = "Xuáº¥t sáº¯c thÆ°á»£ng háº¡ng"
                     )
                 }
                 item {
-                    CommentThread(
-                        author = "Nguyen Chinh",
-                        body = "thich qua aaa",
-                        time = "1 ngay",
-                        replies = emptyList(),
-                        onReply = { replyTarget = it }
+                    CommentBubble(
+                        author = "Há»“ng Quang",
+                        body = "ÄÃºng lÃ  tiáº¿t má»¥c Ä‘á»‰nh nháº¥t Ä‘Ãªm nay"
                     )
                 }
                 item {
-                    CommentThread(
-                        author = "Ma Anh Thu",
-                        body = "tui me 2 mc may qua aa",
-                        time = "2 ngay",
-                        replies = listOf("Huy Hung" to "Ma Anh Thu me 2"),
-                        onReply = { replyTarget = it }
+                    CommentBubble(
+                        author = "Nguyá»…n Chinh",
+                        body = "thÃ­ch quÃ¡ aaa"
                     )
                 }
                 item {
-                    CommentThread(
-                        author = "Nguyen Van Anh",
-                        body = "xinh dep tuyet voi",
-                        time = "2 ngay",
-                        replies = emptyList(),
-                        onReply = { replyTarget = it }
+                    CommentBubble(
+                        author = "MÃ£ Anh Thu",
+                        body = "tui mÃª 2 MC nÃ y quÃ¡ aa"
                     )
                 }
                 item {
-                    CommentThread(
-                        author = "Nghiem Hoa",
-                        body = "Top MC toi tin tuong day rui",
-                        time = "2 ngay",
-                        replies = emptyList(),
-                        onReply = { replyTarget = it }
+                    CommentBubble(
+                        author = "Huy HÃ¹ng",
+                        body = "MÃ£ Anh Thu mÃª 2"
+                    )
+                }
+                item {
+                    CommentBubble(
+                        author = "Nguyá»…n VÃ¢n Anh",
+                        body = "xinh Ä‘áº¹p tuyá»‡t vá»i"
+                    )
+                }
+                item {
+                    CommentBubble(
+                        author = "NghiÃªm HÃ²a",
+                        body = "Top MC tÃ´i tin tÆ°á»Ÿng Ä‘Ã¢y rá»“i"
                     )
                 }
             }
             Divider()
-            replyTarget?.let {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 18.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Dang tra loi $it", color = SoftText, fontWeight = FontWeight.SemiBold)
-                    TextButton(onClick = { replyTarget = null }) { Text("Huy") }
-                }
-            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -489,55 +859,17 @@ private fun CommentsDialog(
                     value = draft,
                     onValueChange = { draft = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text(replyTarget?.let { "Tra loi $it" } ?: "Binh luan duoi ten Hong Quang") },
+                    placeholder = { Text("BÃ¬nh luáº­n dÆ°á»›i tÃªn Há»“ng Quang") },
                     singleLine = true
                 )
                 TextButton(
                     enabled = draft.isNotBlank(),
                     onClick = {
                         draft = ""
-                        replyTarget = null
                         onAddComment()
                     }
                 ) {
-                    Text("Gui")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CommentThread(
-    author: String,
-    body: String,
-    time: String,
-    replies: List<Pair<String, String>>,
-    onReply: (String) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        CommentBubble(author = author, body = body, time = time, onReply = onReply)
-        replies.forEach { (replyAuthor, replyBody) ->
-            Row(modifier = Modifier.padding(start = 58.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                CircleAvatar(size = 32.dp)
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Surface(shape = RoundedCornerShape(16.dp), color = Color(0xFFF0F3F6)) {
-                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                            Text(replyAuthor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                            Text(replyBody, style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                        Text("Vua xong", color = SoftText, style = MaterialTheme.typography.bodyMedium)
-                        Text("Thich", color = SoftText, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
-                        Text(
-                            "Tra loi",
-                            color = SoftText,
-                            fontWeight = FontWeight.SemiBold,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.clickable { onReply(replyAuthor) }
-                        )
-                    }
+                    Text("Gá»­i")
                 }
             }
         }
@@ -547,28 +879,14 @@ private fun CommentThread(
 @Composable
 private fun CommentBubble(
     author: String,
-    body: String,
-    time: String,
-    onReply: (String) -> Unit
+    body: String
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         CircleAvatar(size = 46.dp)
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Surface(shape = RoundedCornerShape(18.dp), color = Color(0xFFF0F3F6)) {
-                Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-                    Text(author, fontWeight = FontWeight.Bold)
-                    Text(body, style = MaterialTheme.typography.bodyLarge)
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                Text(time, color = SoftText)
-                Text("Thich", color = SoftText, fontWeight = FontWeight.SemiBold)
-                Text(
-                    "Tra loi",
-                    color = SoftText,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clickable { onReply(author) }
-                )
+        Surface(shape = RoundedCornerShape(18.dp), color = Color(0xFFF0F3F6)) {
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                Text(author, fontWeight = FontWeight.Bold)
+                Text(body, style = MaterialTheme.typography.bodyLarge)
             }
         }
     }
@@ -578,9 +896,10 @@ private fun CommentBubble(
 private fun ShareDialog(
     post: CommunityPost,
     onDismiss: () -> Unit,
-    onShareNow: () -> Unit
+    onShareNow: (String) -> Unit
 ) {
     var dragDistance by remember { mutableStateOf(0f) }
+    var shareDraft by remember { mutableStateOf("") }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -599,7 +918,10 @@ private fun ShareDialog(
                 .fillMaxHeight(0.5f)
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                 .background(Color(0xFFF2F5F8))
-                .clickable(enabled = false) {}
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {}
                 .navigationBarsPadding()
                 .padding(top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -643,20 +965,34 @@ private fun ShareDialog(
                         CircleAvatar(size = 52.dp)
                         Column {
                             Text("Hong Quang", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            AssistChip(onClick = {}, label = { Text("Bang feed") })
                         }
                     }
-                    Text("Ban noi gi di...", color = SoftText, style = MaterialTheme.typography.titleLarge)
-                    Row(
+                    TextField(
+                        value = shareDraft,
+                        onValueChange = { shareDraft = it },
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        placeholder = { Text("Ban dang nghi gi?", color = SoftText) },
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            disabledContainerColor = Color.White,
+                            focusedIndicatorColor = SoftLine,
+                            unfocusedIndicatorColor = SoftLine
+                        ),
+                        minLines = 3,
+                        maxLines = 5
+                    )
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.CenterEnd
                     ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Icon(Icons.Default.FavoriteBorder, contentDescription = null, tint = SoftText)
-                            Icon(Icons.AutoMirrored.Outlined.Chat, contentDescription = null, tint = SoftText)
-                        }
-                        Button(onClick = onShareNow, shape = RoundedCornerShape(14.dp)) {
+                        Button(
+                            onClick = {
+                                onShareNow(shareDraft)
+                                shareDraft = ""
+                            },
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
                             Text("Chia se ngay")
                         }
                     }

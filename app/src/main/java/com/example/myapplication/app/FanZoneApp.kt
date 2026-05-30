@@ -25,7 +25,7 @@ fun FanZoneApp(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val showBottomBar = currentRoute in bottomDestinations.map { it.route }
+    val showBottomBar = currentRoute == null || currentRoute in bottomDestinations.map { it.route }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,

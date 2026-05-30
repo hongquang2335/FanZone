@@ -1,0 +1,51 @@
+package com.example.myapplication.domain.repository
+
+import android.net.Uri
+import com.example.myapplication.domain.model.CommunityPost
+
+interface CommunityRepository {
+    fun observeCommunityPosts(
+        onPosts: (List<CommunityPost>) -> Unit,
+        onError: (Throwable) -> Unit
+    ): CommunityPostSubscription
+
+    fun createCommunityPost(
+        request: CreateCommunityPostRequest,
+        onSuccess: () -> Unit,
+        onError: (Throwable) -> Unit
+    )
+
+    fun shareCommunityPost(
+        post: CommunityPost,
+        author: String,
+        caption: String,
+        onSuccess: () -> Unit,
+        onError: (Throwable) -> Unit
+    )
+}
+
+fun interface CommunityPostSubscription {
+    fun dispose()
+}
+
+data class CreateCommunityPostRequest(
+    val authorId: String?,
+    val author: String,
+    val anonymous: Boolean,
+    val content: String,
+    val eventId: String? = null,
+    val eventTitle: String? = null,
+    val media: List<SelectedCommunityMedia> = emptyList()
+) {
+    val role: String
+        get() = if (anonymous) "An danh" else "Thanh vien cong dong"
+
+    val topic: String
+        get() = if (eventTitle != null) "Bai viet su kien" else "Bai viet cong dong"
+}
+
+data class SelectedCommunityMedia(
+    val uri: Uri,
+    val name: String,
+    val type: String
+)

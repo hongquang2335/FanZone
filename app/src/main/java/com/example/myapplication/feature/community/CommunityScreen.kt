@@ -23,6 +23,7 @@ import com.example.myapplication.core.designsystem.component.SectionHeader
 fun CommunityScreen(
     posts: List<CommunityPost>,
     onOpenEvent: (String) -> Unit,
+    onSharePost: (CommunityPost, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background)) {
@@ -35,7 +36,7 @@ fun CommunityScreen(
         ) {
             item { ComposerCard() }
             if (isExpanded) {
-                item { SectionHeader("Dong bai viet noi bat", "Co su kien kem tag") }
+                item { SectionHeader("Dòng bài viết nổi bật", "Có sự kiện kèm tag") }
             }
             if (isExpanded) {
                 item {
@@ -45,13 +46,25 @@ fun CommunityScreen(
                                 modifier = Modifier.weight(1f),
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                group.forEach { post -> CommunityCard(post, onOpenEventCommunity = onOpenEvent) }
+                                group.forEach { post ->
+                                    CommunityCard(
+                                        post = post,
+                                        onOpenEventCommunity = onOpenEvent,
+                                        onSharePost = onSharePost
+                                    )
+                                }
                             }
                         }
                     }
                 }
             } else {
-                items(posts) { post -> CommunityCard(post, onOpenEventCommunity = onOpenEvent) }
+                items(posts) { post ->
+                    CommunityCard(
+                        post = post,
+                        onOpenEventCommunity = onOpenEvent,
+                        onSharePost = onSharePost
+                    )
+                }
             }
         }
     }
