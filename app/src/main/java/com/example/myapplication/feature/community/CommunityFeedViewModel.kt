@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import com.example.myapplication.app.AppDependencies
 import com.example.myapplication.domain.model.CommunityPost
 import com.example.myapplication.domain.repository.CommunityPostSubscription
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,12 +16,15 @@ class CommunityFeedViewModel(
     application: Application
 ) : AndroidViewModel(application) {
     private val repository = AppDependencies.communityRepository(application)
+    private val auth = FirebaseAuth.getInstance()
+    private val firestore = FirebaseFirestore.getInstance()
     private val _uiState = MutableStateFlow(CommunityFeedUiState())
     val uiState: StateFlow<CommunityFeedUiState> = _uiState.asStateFlow()
 
     private var subscription: CommunityPostSubscription? = null
 
     init {
+        loadCurrentAuthor()
         observePosts()
     }
 
@@ -30,15 +35,44 @@ class CommunityFeedViewModel(
     fun sharePost(post: CommunityPost, caption: String) {
         repository.shareCommunityPost(
             post = post,
-            author = "Hong Quang",
+            author = _uiState.value.currentAuthorName,
             caption = caption.trim(),
             onSuccess = {},
             onError = { throwable ->
                 _uiState.update {
-                    it.copy(errorMessage = throwable.localizedMessage ?: "Khong the chia se bai viet.")
+                    it.copy(errorMessage = throwable.localizedMessage ?: "Không thể chia sẻ bài viết.")
                 }
             }
         )
+    }
+
+    fun toggleLike(postId: String) {
+        val currentUserId = auth.currentUser?.uid ?: return
+        val post = _uiState.value.posts.firstOrNull { it.id == postId } ?: return
+        val isLiked = post.likedBy.contains(currentUserId)
+
+        if (isLiked) {
+            repository.unlikeCommunityPost(postId, currentUserId, onSuccess = {}, onError = {})
+        } else {
+            repository.likeCommunityPost(postId, currentUserId, onSuccess = {}, onError = {})
+        }
+    }
+
+    private fun loadCurrentAuthor() {
+        val user = auth.currentUser ?: return
+        val fallbackName = user.displayName?.takeIf { it.isNotBlank() }
+            ?: user.email?.substringBefore("@")?.takeIf { it.isNotBlank() }
+            ?: "Bạn"
+
+        _uiState.update { it.copy(currentAuthorName = fallbackName, currentUserId = user.uid) }
+
+        firestore.collection("users")
+            .document(user.uid)
+            .get()
+            .addOnSuccessListener { document ->
+                val profileName = document.getString("displayName")?.takeIf { it.isNotBlank() }
+                _uiState.update { it.copy(currentAuthorName = profileName ?: fallbackName, currentUserId = user.uid) }
+            }
     }
 
     private fun observePosts() {
@@ -57,7 +91,7 @@ class CommunityFeedViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = throwable.localizedMessage ?: "Khong the tai bai viet."
+                        errorMessage = throwable.localizedMessage ?: "Không thể tải bài viết."
                     )
                 }
             }

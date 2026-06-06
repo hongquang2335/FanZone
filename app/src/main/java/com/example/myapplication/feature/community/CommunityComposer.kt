@@ -1,6 +1,5 @@
 package com.example.myapplication.feature.community
 
-import android.net.Uri
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -49,6 +48,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.core.designsystem.component.CircleAvatar
+import com.example.myapplication.core.designsystem.component.AuthPromptDialog
 import com.example.myapplication.core.designsystem.theme.Evergreen
 import com.example.myapplication.core.designsystem.theme.SoftLine
 import com.example.myapplication.core.designsystem.theme.SoftText
@@ -58,9 +58,11 @@ import com.example.myapplication.domain.repository.SelectedCommunityMedia
 fun ComposerCard(
     eventId: String? = null,
     eventTitle: String? = null,
+    onOpenAuth: () -> Unit = {},
     viewModel: CommunityPostViewModel = viewModel()
 ) {
     var composerOpen by remember { mutableStateOf(false) }
+    var showAuthPrompt by remember { mutableStateOf(false) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(
@@ -75,13 +77,19 @@ fun ComposerCard(
             Surface(
                 modifier = Modifier
                     .weight(1f)
-                    .clickable { composerOpen = true },
+                    .clickable {
+                        if (state.currentAuthorId == null) {
+                            showAuthPrompt = true
+                        } else {
+                            composerOpen = true
+                        }
+                    },
                 shape = RoundedCornerShape(24.dp),
                 color = Color(0xFFF3F5F7),
                 border = androidx.compose.foundation.BorderStroke(1.dp, SoftLine)
             ) {
                 Text(
-                    text = "Ban dang nghi gi?",
+                    text = "Bạn đang nghĩ gì?",
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
                     color = SoftText,
                     style = MaterialTheme.typography.bodyLarge
@@ -89,11 +97,17 @@ fun ComposerCard(
             }
             Icon(
                 Icons.Default.Image,
-                contentDescription = "Them anh",
+                contentDescription = "Thêm ảnh",
                 tint = Evergreen,
                 modifier = Modifier
                     .size(28.dp)
-                    .clickable { composerOpen = true }
+                    .clickable {
+                        if (state.currentAuthorId == null) {
+                            showAuthPrompt = true
+                        } else {
+                            composerOpen = true
+                        }
+                    }
             )
         }
     }
@@ -112,6 +126,13 @@ fun ComposerCard(
                     composerOpen = false
                 }
             }
+        )
+    }
+
+    if (showAuthPrompt) {
+        AuthPromptDialog(
+            onDismiss = { showAuthPrompt = false },
+            onSignIn = onOpenAuth
         )
     }
 }
@@ -141,7 +162,7 @@ private fun NewPostDialog(
             }
             SelectedCommunityMedia(
                 uri = uri,
-                name = uri.lastPathSegment?.substringAfterLast('/') ?: "Tep da chon",
+                name = uri.lastPathSegment?.substringAfterLast('/') ?: "Tệp đã chọn",
                 type = context.contentResolver.getType(uri)
                     ?: pendingTypes.firstOrNull()
                     ?: "application/octet-stream"
@@ -168,14 +189,14 @@ private fun NewPostDialog(
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 10.dp)
             ) {
-                androidx.compose.material3.IconButton(
+                IconButton(
                     onClick = onDismiss,
                     modifier = Modifier.align(Alignment.CenterStart)
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = "Dong")
+                    Icon(Icons.Default.Close, contentDescription = "Đóng")
                 }
                 Text(
-                    text = "Bai viet moi",
+                    text = "Bài viết mới",
                     modifier = Modifier.align(Alignment.Center),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold
@@ -193,12 +214,12 @@ private fun NewPostDialog(
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
                     CircleAvatar(size = 64.dp)
-                    Text("Hong Quang", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+                    Text(state.currentAuthorName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
                 }
 
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     item {
-                        ComposerActionChip(Icons.Default.Image, "Anh") {
+                        ComposerActionChip(Icons.Default.Image, "Ảnh") {
                             pendingTypes = arrayOf("image/*")
                             mediaLauncher.launch(pendingTypes)
                         }
@@ -210,7 +231,7 @@ private fun NewPostDialog(
                         }
                     }
                     item {
-                        ComposerActionChip(Icons.Default.Audiotrack, "Ghi am") {
+                        ComposerActionChip(Icons.Default.Audiotrack, "Ghi âm") {
                             pendingTypes = arrayOf("audio/*")
                             mediaLauncher.launch(pendingTypes)
                         }
@@ -234,7 +255,7 @@ private fun NewPostDialog(
                     )
                     if (state.draft.isBlank()) {
                         Text(
-                            text = "Ban dang nghi gi?",
+                            text = "Bạn đang nghĩ gì?",
                             color = SoftText,
                             style = MaterialTheme.typography.headlineSmall
                         )
@@ -256,7 +277,7 @@ private fun NewPostDialog(
                     enabled = state.canPost,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(if (state.isPosting) "Dang dang..." else "Dang")
+                    Text(if (state.isPosting) "Đang đăng..." else "Đăng")
                 }
             }
             state.errorMessage?.let { message ->
@@ -305,7 +326,7 @@ private fun SelectedMediaRow(
                 maxLines = 1
             )
             IconButton(onClick = onRemove, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Delete, contentDescription = "Xoa tep", tint = SoftText)
+                Icon(Icons.Default.Delete, contentDescription = "Xóa tệp", tint = SoftText)
             }
         }
     }

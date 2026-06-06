@@ -1,4 +1,4 @@
-﻿package com.example.myapplication.core.designsystem.component
+package com.example.myapplication.core.designsystem.component
 
 import android.net.Uri
 import android.widget.VideoView
@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.RemoveRedEye
 import androidx.compose.material.icons.filled.Schedule
@@ -232,15 +233,20 @@ fun GradientPanel(title: String, body: String, action: String, onAction: () -> U
 fun CommunityCard(
     post: CommunityPost,
     modifier: Modifier = Modifier,
+    currentAuthorName: String = "Bạn",
+    currentUserId: String? = null,
     onOpenEventCommunity: (String) -> Unit = {},
-    onSharePost: (CommunityPost, String) -> Unit = { _, _ -> }
+    onSharePost: (CommunityPost, String) -> Unit = { _, _ -> },
+    onToggleLike: () -> Unit = {},
+    onOpenAuth: () -> Unit = {}
 ) {
-    var liked by remember(post.id) { mutableStateOf(false) }
+    var liked by remember(post.id) { mutableStateOf(post.isLikedByUser(currentUserId)) }
     var likeCount by remember(post.id) { mutableStateOf(post.likes) }
     var commentCount by remember(post.id) { mutableStateOf(post.comments) }
     var commentOpen by remember(post.id) { mutableStateOf(false) }
     var shareOpen by remember(post.id) { mutableStateOf(false) }
     var shareCount by remember(post.id) { mutableStateOf(post.shareCount) }
+    var showAuthPrompt by remember { mutableStateOf(false) }
     val sharedPost = post.sharedPost
 
     Column(
@@ -303,19 +309,36 @@ fun CommunityCard(
                             label = "$likeCount",
                             tint = if (liked) Danger else SoftText,
                             onClick = {
-                                liked = !liked
-                                likeCount += if (liked) 1 else -1
+                                if (currentUserId == null) {
+                                    showAuthPrompt = true
+                                } else {
+                                    liked = !liked
+                                    likeCount += if (liked) 1 else -1
+                                    onToggleLike()
+                                }
                             }
                         )
                         PostAction(
                             icon = Icons.AutoMirrored.Outlined.Chat,
                             label = "$commentCount",
-                            onClick = { commentOpen = true }
+                            onClick = {
+                                if (currentUserId == null) {
+                                    showAuthPrompt = true
+                                } else {
+                                    commentOpen = true
+                                }
+                            }
                         )
                         PostAction(
                             icon = Icons.AutoMirrored.Filled.ArrowForward,
                             label = "Chia sẻ",
-                            onClick = { shareOpen = true }
+                            onClick = {
+                                if (currentUserId == null) {
+                                    showAuthPrompt = true
+                                } else {
+                                    shareOpen = true
+                                }
+                            }
                         )
                     }
                 }
@@ -323,11 +346,19 @@ fun CommunityCard(
         }
     }
 
+    if (showAuthPrompt) {
+        AuthPromptDialog(
+            onDismiss = { showAuthPrompt = false },
+            onSignIn = onOpenAuth
+        )
+    }
+
     if (commentOpen) {
         CommentsDialog(
             post = post,
             likeCount = likeCount,
             shareCount = shareCount,
+            authorName = currentAuthorName,
             onDismiss = { commentOpen = false },
             onAddComment = { commentCount++ }
         )
@@ -336,6 +367,7 @@ fun CommunityCard(
     if (shareOpen) {
         ShareDialog(
             post = post,
+            authorName = currentAuthorName,
             onDismiss = { shareOpen = false },
             onShareNow = { caption ->
                 shareCount++
@@ -430,7 +462,7 @@ private fun SharedPostPreview(
                 )
                 PostAction(
                     icon = Icons.AutoMirrored.Filled.ArrowForward,
-                    label = "Chia sáº»",
+                    label = "Chia sẻ",
                     onClick = onShareClick
                 )
             }
@@ -743,6 +775,7 @@ private fun CommentsDialog(
     post: CommunityPost,
     likeCount: Int,
     shareCount: Int,
+    authorName: String,
     onDismiss: () -> Unit,
     onAddComment: () -> Unit
 ) {
@@ -793,8 +826,8 @@ private fun CommentsDialog(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("YÃªu thÃ­ch $likeCount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("$shareCount lÆ°á»£t chia sáº»", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("Yêu thích $likeCount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("$shareCount lượt chia sẻ", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
             Divider()
             LazyColumn(
@@ -806,44 +839,44 @@ private fun CommentsDialog(
             ) {
                 item {
                     CommentBubble(
-                        author = "Trá»‹nh Háº£i Yáº¿n",
-                        body = "Xuáº¥t sáº¯c thÆ°á»£ng háº¡ng"
+                        author = "Trịnh Hải Yến",
+                        body = "Xuất sắc thượng hạng"
                     )
                 }
                 item {
                     CommentBubble(
-                        author = "Há»“ng Quang",
-                        body = "ÄÃºng lÃ  tiáº¿t má»¥c Ä‘á»‰nh nháº¥t Ä‘Ãªm nay"
+                        author = "Hồng Quang",
+                        body = "Đúng là tiết mục đỉnh nhất đêm nay"
                     )
                 }
                 item {
                     CommentBubble(
-                        author = "Nguyá»…n Chinh",
-                        body = "thÃ­ch quÃ¡ aaa"
+                        author = "Nguyễn Chinh",
+                        body = "thích quá aaa"
                     )
                 }
                 item {
                     CommentBubble(
-                        author = "MÃ£ Anh Thu",
-                        body = "tui mÃª 2 MC nÃ y quÃ¡ aa"
+                        author = "Mã Anh Thu",
+                        body = "tui mê 2 MC này quá aa"
                     )
                 }
                 item {
                     CommentBubble(
-                        author = "Huy HÃ¹ng",
-                        body = "MÃ£ Anh Thu mÃª 2"
+                        author = "Huy Hùng",
+                        body = "Mã Anh Thu mê 2"
                     )
                 }
                 item {
                     CommentBubble(
-                        author = "Nguyá»…n VÃ¢n Anh",
-                        body = "xinh Ä‘áº¹p tuyá»‡t vá»i"
+                        author = "Nguyễn Vân Anh",
+                        body = "xinh đẹp tuyệt vời"
                     )
                 }
                 item {
                     CommentBubble(
-                        author = "NghiÃªm HÃ²a",
-                        body = "Top MC tÃ´i tin tÆ°á»Ÿng Ä‘Ã¢y rá»“i"
+                        author = "Nghiêm Hòa",
+                        body = "Top MC tôi tin tưởng đây rồi"
                     )
                 }
             }
@@ -859,7 +892,7 @@ private fun CommentsDialog(
                     value = draft,
                     onValueChange = { draft = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("BÃ¬nh luáº­n dÆ°á»›i tÃªn Há»“ng Quang") },
+                    placeholder = { Text("Bình luận dưới tên $authorName") },
                     singleLine = true
                 )
                 TextButton(
@@ -869,7 +902,7 @@ private fun CommentsDialog(
                         onAddComment()
                     }
                 ) {
-                    Text("Gá»­i")
+                    Text("Gửi")
                 }
             }
         }
@@ -895,6 +928,7 @@ private fun CommentBubble(
 @Composable
 private fun ShareDialog(
     post: CommunityPost,
+    authorName: String,
     onDismiss: () -> Unit,
     onShareNow: (String) -> Unit
 ) {
@@ -964,14 +998,14 @@ private fun ShareDialog(
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         CircleAvatar(size = 52.dp)
                         Column {
-                            Text("Hong Quang", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text(authorName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         }
                     }
                     TextField(
                         value = shareDraft,
                         onValueChange = { shareDraft = it },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Ban dang nghi gi?", color = SoftText) },
+                        placeholder = { Text("Bạn đang nghĩ gì?", color = SoftText) },
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.White,
                             unfocusedContainerColor = Color.White,
@@ -993,13 +1027,13 @@ private fun ShareDialog(
                             },
                             shape = RoundedCornerShape(14.dp)
                         ) {
-                            Text("Chia se ngay")
+                            Text("Chia sẻ ngay")
                         }
                     }
                 }
             }
             TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                Text("Dong")
+                Text("Đóng")
             }
         }
         }
@@ -1036,3 +1070,68 @@ private fun ShareSection(
     }
 }
 
+@Composable
+fun AuthPromptDialog(
+    onDismiss: () -> Unit,
+    onSignIn: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = true)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = Color.White,
+            tonalElevation = 8.dp,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    tint = Evergreen,
+                    modifier = Modifier.size(56.dp)
+                )
+                Text(
+                    text = "Yêu cầu đăng nhập",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Ink
+                )
+                Text(
+                    text = "Vui lòng đăng nhập để thích, bình luận, chia sẻ hoặc viết bài của riêng bạn.",
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = SoftText
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, SoftLine)
+                    ) {
+                        Text("Để sau", color = SoftText)
+                    }
+                    Button(
+                        onClick = {
+                            onDismiss()
+                            onSignIn()
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text("Đăng nhập")
+                    }
+                }
+            }
+        }
+    }
+}

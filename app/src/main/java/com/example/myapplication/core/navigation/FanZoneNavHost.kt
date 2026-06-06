@@ -24,6 +24,7 @@ import com.example.myapplication.feature.profile.AuthViewModel
 import com.example.myapplication.feature.profile.LoginScreen
 import com.example.myapplication.feature.profile.NotificationSettingsScreen
 import com.example.myapplication.feature.profile.PinSetupScreen
+import com.example.myapplication.feature.profile.ProfileOptionsScreen
 import com.example.myapplication.feature.profile.ProfileScreen
 import com.example.myapplication.feature.profile.RegisterScreen
 import com.example.myapplication.feature.success.PurchaseSuccessScreen
@@ -37,6 +38,8 @@ fun FanZoneNavHost(
     navController: NavHostController,
     uiState: FanZoneUiState,
     viewModel: FanZoneViewModel,
+    darkTheme: Boolean,
+    onDarkThemeChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     communityFeedViewModel: CommunityFeedViewModel = composeViewModel(),
     authViewModel: AuthViewModel = composeViewModel()
@@ -69,11 +72,15 @@ fun FanZoneNavHost(
         composable(AppDestination.Community.route) {
             CommunityScreen(
                 posts = communityFeedState.posts,
+                currentAuthorName = communityFeedState.currentAuthorName,
+                currentUserId = communityFeedState.currentUserId,
                 onOpenEvent = { eventId ->
                     viewModel.selectEvent(eventId)
                     navController.navigate(AppDestination.EventCommunity.create(eventId))
                 },
                 onSharePost = communityFeedViewModel::sharePost,
+                onToggleLike = communityFeedViewModel::toggleLike,
+                onOpenAuth = { navController.navigate(AppDestination.Login.route) },
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -89,7 +96,11 @@ fun FanZoneNavHost(
             EventCommunityScreen(
                 event = event,
                 posts = communityFeedState.posts.filter { it.eventId == eventId },
+                currentAuthorName = communityFeedState.currentAuthorName,
+                currentUserId = communityFeedState.currentUserId,
                 onSharePost = communityFeedViewModel::sharePost,
+                onToggleLike = communityFeedViewModel::toggleLike,
+                onOpenAuth = { navController.navigate(AppDestination.Login.route) },
                 onBack = { navController.popBackStack() },
                 modifier = Modifier.fillMaxSize()
             )
@@ -109,12 +120,28 @@ fun FanZoneNavHost(
                 user = uiState.user,
                 authState = authState,
                 unreadSupport = uiState.unreadSupportCount,
+                posts = communityFeedState.posts,
                 onOpenSupport = { navController.navigate(AppDestination.Support.route) },
                 onOpenAuth = { navController.navigate(AppDestination.Login.route) },
                 onOpenAccountInfo = { navController.navigate(AppDestination.AccountInfo.route) },
                 onOpenPinSetup = { navController.navigate(AppDestination.PinSetup.route) },
                 onOpenNotificationSettings = { navController.navigate(AppDestination.NotificationSettings.route) },
+                onOpenProfileOptions = { navController.navigate(AppDestination.ProfileOptions.route) },
                 onSignOut = authViewModel::signOut,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        composable(AppDestination.ProfileOptions.route) {
+            ProfileOptionsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenAccountInfo = { navController.navigate(AppDestination.AccountInfo.route) },
+                onOpenPinSetup = { navController.navigate(AppDestination.PinSetup.route) },
+                onOpenNotificationSettings = { navController.navigate(AppDestination.NotificationSettings.route) },
+                onOpenSupport = { navController.navigate(AppDestination.Support.route) },
+                onSignOut = {
+                    authViewModel.signOut()
+                    navController.popBackStack(AppDestination.Profile.route, inclusive = false)
+                },
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -138,6 +165,8 @@ fun FanZoneNavHost(
         }
         composable(AppDestination.NotificationSettings.route) {
             NotificationSettingsScreen(
+                darkTheme = darkTheme,
+                onDarkThemeChange = onDarkThemeChange,
                 onBack = { navController.popBackStack() },
                 modifier = Modifier.fillMaxSize()
             )

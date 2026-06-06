@@ -9,6 +9,8 @@ data class CommunityPostUiState(
     val anonymous: Boolean = false,
     val feeling: Boolean = false,
     val isPosting: Boolean = false,
+    val currentAuthorId: String? = null,
+    val currentAuthorName: String = "Bạn",
     val errorMessage: String? = null
 ) {
     val canPost: Boolean

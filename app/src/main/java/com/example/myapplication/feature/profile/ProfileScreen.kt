@@ -21,18 +21,21 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SportsSoccer
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -41,48 +44,72 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplication.core.designsystem.theme.Evergreen
+import com.example.myapplication.domain.model.CommunityPost
 import com.example.myapplication.domain.model.UserProfile
+
+private data class ProfileColors(
+    val background: Color,
+    val panel: Color,
+    val primaryText: Color,
+    val mutedText: Color,
+    val divider: Color,
+    val sectionIcon: Color,
+    val languageBadge: Color
+)
+
+@Composable
+private fun profileColors(): ProfileColors {
+    val colorScheme = MaterialTheme.colorScheme
+    val isDark = colorScheme.background.luminance() < 0.5f
+    return ProfileColors(
+        background = colorScheme.background,
+        panel = colorScheme.surface,
+        primaryText = colorScheme.onBackground,
+        mutedText = colorScheme.onBackground.copy(alpha = if (isDark) 0.64f else 0.58f),
+        divider = colorScheme.outline.copy(alpha = if (isDark) 0.48f else 0.72f),
+        sectionIcon = colorScheme.primary,
+        languageBadge = colorScheme.onBackground.copy(alpha = if (isDark) 0.18f else 0.08f)
+    )
+}
 
 @Composable
 fun ProfileScreen(
     user: UserProfile,
     authState: AuthUiState,
     unreadSupport: Int,
+    posts: List<CommunityPost>,
     onOpenSupport: () -> Unit,
     onOpenAuth: () -> Unit,
     onOpenAccountInfo: () -> Unit,
     onOpenPinSetup: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
+    onOpenProfileOptions: () -> Unit,
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (authState.isSignedIn) {
         SignedInProfileScreen(
             authUser = authState.user,
-            onOpenSupport = onOpenSupport,
-            onOpenAccountInfo = onOpenAccountInfo,
-            onOpenPinSetup = onOpenPinSetup,
-            onOpenNotificationSettings = onOpenNotificationSettings,
-            onSignOut = onSignOut,
+            posts = posts,
+            onOpenProfileOptions = onOpenProfileOptions,
             modifier = modifier
         )
         return
     }
 
-    val darkBackground = Color(0xFF232323)
-    val panelBackground = Color(0xFF3A3940)
-    val mutedText = Color(0xFF9B99A2)
+    val profileColors = profileColors()
 
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(darkBackground)
+            .background(profileColors.background)
             .navigationBarsPadding()
     ) {
         val compactHeight = maxHeight < 700.dp
@@ -116,7 +143,7 @@ fun ProfileScreen(
             }
 
             Text(
-                text = "Dang nhap/Dang ky",
+                text = "Đăng nhập/Đăng ký",
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(onClick = onOpenAuth)
@@ -133,12 +160,12 @@ fun ProfileScreen(
                     .padding(horizontal = horizontalPadding, vertical = if (compactHeight) 22.dp else 32.dp),
                 verticalArrangement = Arrangement.spacedBy(if (compactHeight) 14.dp else 18.dp)
             ) {
-                SectionTitle(icon = Icons.Default.Settings, title = "Cai dat ung dung")
+                SectionTitle(icon = Icons.Default.Settings, title = "Cài đặt ứng dụng", colors = profileColors)
 
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
-                    color = panelBackground
+                    color = profileColors.panel
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
@@ -146,27 +173,11 @@ fun ProfileScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Thay doi ngon ngu",
-                            color = Color.White,
+                            text = "Thay đổi ngôn ngữ",
+                            color = profileColors.primaryText,
                             style = MaterialTheme.typography.bodyLarge
                         )
-                        Surface(
-                            shape = RoundedCornerShape(28.dp),
-                            color = Color(0xFF5A5961)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Surface(shape = CircleShape, color = Color(0xFFE22D28), modifier = Modifier.size(28.dp)) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text("*", color = Color(0xFFFFEB3B), fontWeight = FontWeight.ExtraBold)
-                                    }
-                                }
-                                Text("Vie", color = Color.White, style = MaterialTheme.typography.bodyMedium)
-                            }
-                        }
+                        LanguageBadge(colors = profileColors)
                     }
                 }
 
@@ -178,25 +189,16 @@ fun ProfileScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    SectionTitle(icon = Icons.Default.Help, title = "Trung tam tro giup")
+                    SectionTitle(icon = Icons.Default.Help, title = "Trung tâm trợ giúp", colors = profileColors)
                     Icon(
                         Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = "Mo trung tam tro giup",
-                        tint = mutedText,
+                        contentDescription = "Mở trung tâm trợ giúp",
+                        tint = profileColors.mutedText,
                         modifier = Modifier.size(34.dp)
                     )
                 }
             }
 
-            Text(
-                text = "Phien ban 3.1.41(30388)",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 24.dp, bottom = 28.dp),
-                color = mutedText,
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center
-            )
         }
     }
 }
@@ -204,24 +206,21 @@ fun ProfileScreen(
 @Composable
 private fun SignedInProfileScreen(
     authUser: AuthUser?,
-    onOpenSupport: () -> Unit,
-    onOpenAccountInfo: () -> Unit,
-    onOpenPinSetup: () -> Unit,
-    onOpenNotificationSettings: () -> Unit,
-    onSignOut: () -> Unit,
+    posts: List<CommunityPost>,
+    onOpenProfileOptions: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val darkBackground = Color(0xFF232323)
-    val panelBackground = Color(0xFF3A3940)
-    val mutedText = Color(0xFF9B99A2)
+    val profileColors = profileColors()
     val displayName = authUser?.displayName.orEmpty()
     val initial = displayName.firstOrNull()
         ?: authUser?.email?.firstOrNull()
+    val userPosts = posts.filter { it.authorId == authUser?.uid }
+    val totalLikes = userPosts.sumOf { it.likes }
 
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(darkBackground)
+            .background(profileColors.background)
             .navigationBarsPadding()
     ) {
         val compactHeight = maxHeight < 700.dp
@@ -242,6 +241,20 @@ private fun SignedInProfileScreen(
                         .height(patternHeight)
                         .statusBarsPadding()
                 )
+                IconButton(
+                    onClick = onOpenProfileOptions,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .statusBarsPadding()
+                        .padding(top = 12.dp, end = horizontalPadding)
+                ) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = "Mở tùy chọn profile",
+                        tint = Color.White,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
                 Surface(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -261,45 +274,176 @@ private fun SignedInProfileScreen(
                 }
             }
 
-            if (displayName.isNotBlank()) {
-                Text(
-                    text = displayName,
-                    modifier = Modifier.fillMaxWidth(),
-                    color = Color.White,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-            }
+            Text(
+                text = displayName.ifBlank { authUser?.email.orEmpty() },
+                modifier = Modifier.fillMaxWidth(),
+                color = profileColors.primaryText,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+
+            ProfileStatsRow(
+                following = 0,
+                followers = 0,
+                likes = totalLikes,
+                colors = profileColors,
+                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 20.dp)
+            )
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = horizontalPadding, vertical = if (compactHeight) 22.dp else 32.dp),
-                verticalArrangement = Arrangement.spacedBy(if (compactHeight) 16.dp else 22.dp)
+                    .padding(horizontal = horizontalPadding, vertical = if (compactHeight) 14.dp else 20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                SectionTitle(icon = Icons.Default.Person, title = "Cai dat tai khoan")
-                Surface(shape = RoundedCornerShape(18.dp), color = panelBackground) {
-                    Column {
-                        AccountRow("Thong tin tai khoan", onClick = onOpenAccountInfo)
-                        AccountDivider()
-                        AccountRow("Thiet lap ma PIN", onClick = onOpenPinSetup)
-                        AccountDivider()
-                        AccountRow("Cai dat thong bao", onClick = onOpenNotificationSettings)
+                Text(
+                    text = "Bài viết của bạn",
+                    color = profileColors.primaryText,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                if (userPosts.isEmpty()) {
+                    EmptyProfilePosts(colors = profileColors)
+                } else {
+                    userPosts.forEach { post ->
+                        ProfilePostItem(post = post, colors = profileColors)
                     }
                 }
-
-                ProfileNavRow(icon = Icons.Default.Help, title = "Trung tam tro giup", onClick = onOpenSupport, mutedText = mutedText)
-                ProfileNavRow(icon = Icons.Default.Logout, title = "Dang xuat", onClick = onSignOut, mutedText = mutedText)
             }
 
-            Text(
-                text = "Phien ban 3.1.41(30388)",
-                modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 28.dp),
-                color = mutedText,
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center
-            )
+        }
+    }
+}
+
+@Composable
+fun ProfileOptionsScreen(
+    onBack: () -> Unit,
+    onOpenAccountInfo: () -> Unit,
+    onOpenPinSetup: () -> Unit,
+    onOpenNotificationSettings: () -> Unit,
+    onOpenSupport: () -> Unit,
+    onSignOut: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val profileColors = profileColors()
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(profileColors.background)
+            .navigationBarsPadding()
+    ) {
+        ProfileOptionsHeader(title = "Tùy chọn", onBack = onBack)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(22.dp)
+        ) {
+            SectionTitle(icon = Icons.Default.Person, title = "Cài đặt tài khoản", colors = profileColors)
+            Surface(shape = RoundedCornerShape(18.dp), color = profileColors.panel) {
+                Column {
+                    AccountRow("Thông tin tài khoản", colors = profileColors, onClick = onOpenAccountInfo)
+                    AccountDivider(colors = profileColors)
+                    AccountRow("Thiết lập mã PIN", colors = profileColors, onClick = onOpenPinSetup)
+                    AccountDivider(colors = profileColors)
+                    AccountRow("Cài đặt", colors = profileColors, onClick = onOpenNotificationSettings)
+                }
+            }
+            ProfileNavRow(icon = Icons.Default.Help, title = "Trung tâm trợ giúp", colors = profileColors, onClick = onOpenSupport)
+            ProfileNavRow(icon = Icons.Default.Logout, title = "Đăng xuất", colors = profileColors, onClick = onSignOut)
+        }
+    }
+}
+
+@Composable
+private fun ProfileOptionsHeader(title: String, onBack: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(112.dp)
+            .background(Evergreen)
+            .statusBarsPadding()
+    ) {
+        Surface(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .padding(start = 24.dp)
+                .size(46.dp)
+                .clickable(onClick = onBack),
+            shape = CircleShape,
+            color = Color.Transparent,
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.65f))
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = Color.White, modifier = Modifier.size(28.dp))
+            }
+        }
+        Text(
+            text = title,
+            modifier = Modifier.align(Alignment.Center),
+            color = Color.White,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.ExtraBold,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun ProfileStatsRow(
+    following: Int,
+    followers: Int,
+    likes: Int,
+    colors: ProfileColors,
+    modifier: Modifier = Modifier
+) {
+    Surface(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = colors.panel) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ProfileStat(value = following.toString(), label = "đã follow", colors = colors, modifier = Modifier.weight(1f))
+            ProfileStat(value = followers.toString(), label = "Follower", colors = colors, modifier = Modifier.weight(1f))
+            ProfileStat(value = likes.toString(), label = "thích", colors = colors, modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun ProfileStat(value: String, label: String, colors: ProfileColors, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(value, color = colors.primaryText, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+        Text(label, color = colors.mutedText, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+    }
+}
+
+@Composable
+private fun EmptyProfilePosts(colors: ProfileColors) {
+    Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = colors.panel) {
+        Text(
+            text = "Bạn chưa tạo bài viết nào.",
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 34.dp).fillMaxWidth(),
+            color = colors.mutedText,
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun ProfilePostItem(post: CommunityPost, colors: ProfileColors) {
+    Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = colors.panel) {
+        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(post.topic, color = Evergreen, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Text(post.content, color = colors.primaryText, style = MaterialTheme.typography.bodyLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("${post.likes} thích", color = colors.mutedText, style = MaterialTheme.typography.bodyMedium)
+                Text("${post.comments} bình luận", color = colors.mutedText, style = MaterialTheme.typography.bodyMedium)
+                Text("${post.shareCount} chia sẻ", color = colors.mutedText, style = MaterialTheme.typography.bodyMedium)
+            }
         }
     }
 }
@@ -358,15 +502,15 @@ private fun GuestAvatar(
 }
 
 @Composable
-private fun SectionTitle(icon: ImageVector, title: String) {
+private fun SectionTitle(icon: ImageVector, title: String, colors: ProfileColors) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(26.dp))
+        Icon(icon, contentDescription = null, tint = colors.sectionIcon, modifier = Modifier.size(26.dp))
         Text(
             text = title,
-            color = Color.White,
+            color = colors.primaryText,
             style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
             fontWeight = FontWeight.ExtraBold
         )
@@ -374,7 +518,7 @@ private fun SectionTitle(icon: ImageVector, title: String) {
 }
 
 @Composable
-private fun AccountRow(title: String, onClick: () -> Unit) {
+private fun AccountRow(title: String, colors: ProfileColors, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -383,23 +527,23 @@ private fun AccountRow(title: String, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(title, color = Color.White, style = MaterialTheme.typography.bodyLarge)
+        Text(title, color = colors.primaryText, style = MaterialTheme.typography.bodyLarge)
         Icon(
             Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
-            tint = Color.White,
+            tint = colors.mutedText,
             modifier = Modifier.size(28.dp)
         )
     }
 }
 
 @Composable
-private fun AccountDivider() {
+private fun AccountDivider(colors: ProfileColors) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(1.dp)
-            .background(Color(0xFF5B5961))
+            .background(colors.divider)
     )
 }
 
@@ -407,7 +551,7 @@ private fun AccountDivider() {
 private fun ProfileNavRow(
     icon: ImageVector,
     title: String,
-    mutedText: Color,
+    colors: ProfileColors,
     onClick: () -> Unit
 ) {
     Row(
@@ -418,19 +562,19 @@ private fun ProfileNavRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        SectionTitle(icon = icon, title = title)
+        SectionTitle(icon = icon, title = title, colors = colors)
         Icon(
             Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
-            tint = mutedText,
+            tint = colors.mutedText,
             modifier = Modifier.size(32.dp)
         )
     }
 }
 
 @Composable
-private fun LanguageBadge() {
-    Surface(shape = RoundedCornerShape(28.dp), color = Color(0xFF5A5961)) {
+private fun LanguageBadge(colors: ProfileColors) {
+    Surface(shape = RoundedCornerShape(28.dp), color = colors.languageBadge) {
         Row(
             modifier = Modifier.padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -441,7 +585,7 @@ private fun LanguageBadge() {
                     Text("*", color = Color(0xFFFFEB3B), fontWeight = FontWeight.ExtraBold)
                 }
             }
-            Text("Vie", color = Color.White, style = MaterialTheme.typography.bodyMedium)
+            Text("Vie", color = colors.primaryText, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

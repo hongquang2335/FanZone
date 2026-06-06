@@ -57,6 +57,7 @@ class CommunityFirestoreDataSource(
             FIELD_TOPIC to topic,
             FIELD_CONTENT to content,
             FIELD_LIKES to 0,
+            FIELD_LIKED_BY to emptyList<String>(),
             FIELD_COMMENTS to 0,
             FIELD_SHARE_COUNT to 0,
             FIELD_IMAGE_URL to imageUrl,
@@ -83,6 +84,7 @@ class CommunityFirestoreDataSource(
             FIELD_TOPIC to originalPost.topic,
             FIELD_CONTENT to originalPost.content,
             FIELD_LIKES to 0,
+            FIELD_LIKED_BY to emptyList<String>(),
             FIELD_COMMENTS to 0,
             FIELD_SHARE_COUNT to 0,
             FIELD_IMAGE_URL to originalPost.imageUrl,
@@ -105,6 +107,28 @@ class CommunityFirestoreDataSource(
         return postsCollection
             .document(post.id)
             .set(post.toFirestoreMap(), SetOptions.merge())
+    }
+
+    fun likeCommunityPost(postId: String, userId: String): Task<Void> {
+        return postsCollection
+            .document(postId)
+            .update(
+                mapOf(
+                    FIELD_LIKED_BY to FieldValue.arrayUnion(userId),
+                    FIELD_LIKES to FieldValue.increment(1)
+                )
+            )
+    }
+
+    fun unlikeCommunityPost(postId: String, userId: String): Task<Void> {
+        return postsCollection
+            .document(postId)
+            .update(
+                mapOf(
+                    FIELD_LIKED_BY to FieldValue.arrayRemove(userId),
+                    FIELD_LIKES to FieldValue.increment(-1)
+                )
+            )
     }
 
     fun checkCommunityStorage(
@@ -147,6 +171,7 @@ class CommunityFirestoreDataSource(
             topic = topic,
             content = content,
             likes = document.getLong(FIELD_LIKES)?.toInt() ?: 0,
+            likedBy = (document.get(FIELD_LIKED_BY) as? List<*>)?.mapNotNull { it as? String }.orEmpty(),
             comments = document.getLong(FIELD_COMMENTS)?.toInt() ?: 0,
             shareCount = document.getLong(FIELD_SHARE_COUNT)?.toInt() ?: 0,
             imageRes = null,
@@ -199,6 +224,7 @@ class CommunityFirestoreDataSource(
         const val FIELD_TOPIC = "topic"
         const val FIELD_CONTENT = "content"
         const val FIELD_LIKES = "likes"
+        const val FIELD_LIKED_BY = "likedBy"
         const val FIELD_COMMENTS = "comments"
         const val FIELD_SHARE_COUNT = "shareCount"
         const val FIELD_IMAGE_URL = "imageUrl"
@@ -222,6 +248,7 @@ class CommunityFirestoreDataSource(
             FIELD_TOPIC,
             FIELD_CONTENT,
             FIELD_LIKES,
+            FIELD_LIKED_BY,
             FIELD_COMMENTS,
             FIELD_SHARE_COUNT,
             FIELD_CREATED_AT,
@@ -247,6 +274,7 @@ private fun CommunityPost.toFirestoreMap(): Map<String, Any?> {
         CommunityFirestoreDataSource.FIELD_TOPIC to topic,
         CommunityFirestoreDataSource.FIELD_CONTENT to content,
         CommunityFirestoreDataSource.FIELD_LIKES to likes,
+        CommunityFirestoreDataSource.FIELD_LIKED_BY to likedBy,
         CommunityFirestoreDataSource.FIELD_COMMENTS to comments,
         CommunityFirestoreDataSource.FIELD_SHARE_COUNT to shareCount,
         CommunityFirestoreDataSource.FIELD_IMAGE_URL to imageUrl,

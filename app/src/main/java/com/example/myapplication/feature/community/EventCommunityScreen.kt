@@ -53,7 +53,11 @@ import com.example.myapplication.domain.model.Event
 fun EventCommunityScreen(
     event: Event,
     posts: List<CommunityPost>,
+    currentAuthorName: String,
+    currentUserId: String?,
     onSharePost: (CommunityPost, String) -> Unit,
+    onToggleLike: (String) -> Unit,
+    onOpenAuth: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -98,7 +102,11 @@ fun EventCommunityScreen(
                             selectedTab = selectedTab,
                             onSelectTab = { selectedTab = it },
                             visiblePosts = visiblePosts,
-                            onSharePost = onSharePost
+                            currentAuthorName = currentAuthorName,
+                            currentUserId = currentUserId,
+                            onSharePost = onSharePost,
+                            onToggleLike = onToggleLike,
+                            onOpenAuth = onOpenAuth
                         )
                     }
                 } else {
@@ -116,7 +124,7 @@ fun EventCommunityScreen(
                         )
                     }
                     item {
-                        ComposerCard(eventId = event.id, eventTitle = event.title)
+                        ComposerCard(eventId = event.id, eventTitle = event.title, onOpenAuth = onOpenAuth)
                     }
                     item {
                         FeedTitle(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
@@ -124,8 +132,12 @@ fun EventCommunityScreen(
                     items(visiblePosts) { post ->
                         CommunityCard(
                             post = post,
+                            currentAuthorName = currentAuthorName,
+                            currentUserId = currentUserId,
                             modifier = Modifier.padding(horizontal = 16.dp),
-                            onSharePost = onSharePost
+                            onSharePost = onSharePost,
+                            onToggleLike = { onToggleLike(post.id) },
+                            onOpenAuth = onOpenAuth
                         )
                     }
                     if (visiblePosts.isEmpty()) {
@@ -147,7 +159,11 @@ private fun ExpandedEventCommunityContent(
     selectedTab: String,
     onSelectTab: (String) -> Unit,
     visiblePosts: List<CommunityPost>,
-    onSharePost: (CommunityPost, String) -> Unit
+    currentAuthorName: String,
+    currentUserId: String?,
+    onSharePost: (CommunityPost, String) -> Unit,
+    onToggleLike: (String) -> Unit,
+    onOpenAuth: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -169,7 +185,7 @@ private fun ExpandedEventCommunityContent(
                 selectedTab = selectedTab,
                 onSelectTab = onSelectTab
             )
-            ComposerCard(eventId = event.id, eventTitle = event.title)
+            ComposerCard(eventId = event.id, eventTitle = event.title, onOpenAuth = onOpenAuth)
         }
         Column(
             modifier = Modifier.weight(1.2f),
@@ -180,7 +196,14 @@ private fun ExpandedEventCommunityContent(
                 EmptyPostsMessage()
             } else {
                 visiblePosts.forEach { post ->
-                    CommunityCard(post = post, onSharePost = onSharePost)
+                    CommunityCard(
+                        post = post,
+                        currentAuthorName = currentAuthorName,
+                        currentUserId = currentUserId,
+                        onSharePost = onSharePost,
+                        onToggleLike = { onToggleLike(post.id) },
+                        onOpenAuth = onOpenAuth
+                    )
                 }
             }
         }
@@ -229,26 +252,26 @@ private fun EventCommunityTopBar(
         }
         Row {
             IconButton(onClick = onToggleSearch) {
-                Icon(Icons.Default.Search, contentDescription = "Tim kiem")
+                Icon(Icons.Default.Search, contentDescription = "Tìm kiếm")
             }
             androidx.compose.foundation.layout.Box {
                 IconButton(onClick = { moreExpanded = true }) {
-                    Icon(Icons.Default.MoreHoriz, contentDescription = "Them")
+                    Icon(Icons.Default.MoreHoriz, contentDescription = "Thêm")
                 }
                 DropdownMenu(
                     expanded = moreExpanded,
                     onDismissRequest = { moreExpanded = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Xem thong tin nhom") },
+                        text = { Text("Xem thông tin nhóm") },
                         onClick = { moreExpanded = false }
                     )
                     DropdownMenuItem(
-                        text = { Text("Chia se nhom") },
+                        text = { Text("Chia sẻ nhóm") },
                         onClick = { moreExpanded = false }
                     )
                     DropdownMenuItem(
-                        text = { Text("Bao cao noi dung") },
+                        text = { Text("Báo cáo nội dung") },
                         onClick = { moreExpanded = false }
                     )
                 }

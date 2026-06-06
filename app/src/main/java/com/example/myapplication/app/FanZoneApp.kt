@@ -19,6 +19,8 @@ import com.example.myapplication.ui.state.FanZoneViewModel
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun FanZoneApp(
+    darkTheme: Boolean,
+    onDarkThemeChange: (Boolean) -> Unit,
     viewModel: FanZoneViewModel = viewModel()
 ) {
     val navController = rememberNavController()
@@ -50,6 +52,8 @@ fun FanZoneApp(
             navController = navController,
             uiState = uiState,
             viewModel = viewModel,
+            darkTheme = darkTheme,
+            onDarkThemeChange = onDarkThemeChange,
             modifier = Modifier.fillMaxSize()
         )
     }

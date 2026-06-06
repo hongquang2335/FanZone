@@ -22,6 +22,20 @@ interface CommunityRepository {
         onSuccess: () -> Unit,
         onError: (Throwable) -> Unit
     )
+
+    fun likeCommunityPost(
+        postId: String,
+        userId: String,
+        onSuccess: () -> Unit,
+        onError: (Throwable) -> Unit
+    )
+
+    fun unlikeCommunityPost(
+        postId: String,
+        userId: String,
+        onSuccess: () -> Unit,
+        onError: (Throwable) -> Unit
+    )
 }
 
 fun interface CommunityPostSubscription {

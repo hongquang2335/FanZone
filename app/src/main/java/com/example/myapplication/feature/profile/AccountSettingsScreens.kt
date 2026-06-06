@@ -82,7 +82,7 @@ fun AccountInfoScreen(
             .background(darkBackground)
             .navigationBarsPadding()
     ) {
-        SettingsHeader(title = "Thong tin tai khoan", onBack = onBack)
+        SettingsHeader(title = "Thông tin tài khoản", onBack = onBack)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -115,17 +115,17 @@ fun AccountInfoScreen(
                 }
             }
             Text(
-                text = "Cung cap thong tin chinh xac se ho tro ban trong qua trinh mua ve, hoac khi can xac thuc ve",
+                text = "Cung cấp thông tin chính xác sẽ hỗ trợ bạn trong quá trình mua vé, hoặc khi cần xác thực vé",
                 modifier = Modifier.fillMaxWidth(),
                 color = Color.White,
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
             )
 
-            FieldLabel("Ho va ten")
+            FieldLabel("Họ và tên")
             ProfileTextField(value = fullName, onValueChange = { fullName = it })
 
-            FieldLabel("So dien thoai")
+            FieldLabel("Số điện thoại")
             ProfileTextField(
                 value = phone,
                 onValueChange = { value -> phone = value.filter { it.isDigit() }.take(10) },
@@ -154,9 +154,9 @@ fun AccountInfoScreen(
                 }
             )
 
-            FieldLabel("Gioi tinh")
+            FieldLabel("Giới tính")
             Row(horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                listOf("Nam", "Nu", "Khac").forEach { option ->
+                listOf("Nam", "Nữ", "Khác").forEach { option ->
                     Row(
                         modifier = Modifier.clickable { gender = option },
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -181,7 +181,7 @@ fun AccountInfoScreen(
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Evergreen)
             ) {
-                Text(if (authState.isLoading) "Dang luu..." else "Hoan thanh", style = MaterialTheme.typography.titleMedium)
+                Text(if (authState.isLoading) "Đang lưu..." else "Hoàn thành", style = MaterialTheme.typography.titleMedium)
             }
         }
     }
@@ -211,20 +211,20 @@ fun PinSetupScreen(
     Column(
         modifier = modifier.fillMaxSize().background(Color.White).navigationBarsPadding()
     ) {
-        SettingsHeader(title = "Thiet lap ma PIN", onBack = onBack)
+        SettingsHeader(title = "Thiết lập mã PIN", onBack = onBack)
         Column(
             modifier = Modifier.fillMaxSize().padding(horizontal = 26.dp, vertical = 78.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(28.dp)
         ) {
             Text(
-                text = "Tao ma PIN khi truy cap trang \"Chi tiet ve\" de tang bao mat cho ve cua ban",
+                text = "Tạo mã PIN khi truy cập trang \"Chi tiết vé\" để tăng bảo mật cho vé của bạn",
                 color = Color.Black,
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
             )
             Text(
-                text = "Vui long khong chia se ma PIN voi nguoi khac",
+                text = "Vui lòng không chia sẻ mã PIN với người khác",
                 color = Color(0xFFE58A28),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
@@ -258,7 +258,7 @@ fun PinSetupScreen(
                     disabledContentColor = Color.White
                 )
             ) {
-                Text(if (authState.isLoading) "Dang luu..." else "Tiep tuc", style = MaterialTheme.typography.titleMedium)
+                Text(if (authState.isLoading) "Đang lưu..." else "Tiếp tục", style = MaterialTheme.typography.titleMedium)
             }
             AuthInlineMessage(error = authState.errorMessage, info = authState.infoMessage)
         }
@@ -267,43 +267,80 @@ fun PinSetupScreen(
 
 @Composable
 fun NotificationSettingsScreen(
+    darkTheme: Boolean,
+    onDarkThemeChange: (Boolean) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var enabled by remember { mutableStateOf(true) }
+    val screenBackground = if (darkTheme) Color.Black else Color(0xFFF3F5F7)
+    val panelBackground = if (darkTheme) Color(0xFF3A3940) else Color.White
+    val primaryText = if (darkTheme) Color.White else Color(0xFF232323)
+    val secondaryText = if (darkTheme) Color.White else Color(0xFF5B5961)
 
     Column(
-        modifier = modifier.fillMaxSize().background(Color.Black).navigationBarsPadding()
+        modifier = modifier.fillMaxSize().background(screenBackground).navigationBarsPadding()
     ) {
-        SettingsHeader(title = "Cai dat thong bao", onBack = onBack)
+        SettingsHeader(title = "Cài đặt", onBack = onBack)
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 54.dp),
-            verticalArrangement = Arrangement.spacedBy(32.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Bat thong bao de khong bo lo cac cap nhat moi nhat ve don hang va su kien",
-                color = Color.White,
+                text = "Bật thông báo để không bỏ lỡ các cập nhật mới nhất về đơn hàng và sự kiện",
+                color = secondaryText,
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
             )
-            Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = Color(0xFF3A3940)) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 18.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Thong bao", color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Switch(
-                        checked = enabled,
-                        onCheckedChange = { enabled = it },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = Evergreen
-                        )
-                    )
+            SettingsSwitchRow(
+                title = "Thông báo",
+                checked = enabled,
+                onCheckedChange = { enabled = it },
+                panelBackground = panelBackground,
+                textColor = primaryText
+            )
+            SettingsSwitchRow(
+                title = "Chế độ hiển thị",
+                value = if (darkTheme) "Tối" else "Sáng",
+                checked = darkTheme,
+                onCheckedChange = onDarkThemeChange,
+                panelBackground = panelBackground,
+                textColor = primaryText
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsSwitchRow(
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    panelBackground: Color,
+    textColor: Color,
+    value: String? = null
+) {
+    Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = panelBackground) {
+        Row(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 18.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                if (value != null) {
+                    Text(value, color = textColor.copy(alpha = 0.72f), style = MaterialTheme.typography.bodyMedium)
                 }
             }
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = Evergreen
+                )
+            )
         }
     }
 }
@@ -324,7 +361,7 @@ private fun SettingsHeader(title: String, onBack: () -> Unit) {
             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.65f))
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lai", tint = Color.White, modifier = Modifier.size(28.dp))
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = Color.White, modifier = Modifier.size(28.dp))
             }
         }
         Text(
@@ -437,7 +474,7 @@ private fun BirthdayPickerSheet(
                             border = BorderStroke(1.dp, Evergreen)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text("Huy", color = Evergreen, style = MaterialTheme.typography.titleMedium)
+                                Text("Hủy", color = Evergreen, style = MaterialTheme.typography.titleMedium)
                             }
                         }
                         Surface(
@@ -449,7 +486,7 @@ private fun BirthdayPickerSheet(
                             color = Evergreen
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text("Ap dung", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                                Text("Áp dụng", color = Color.White, style = MaterialTheme.typography.titleMedium)
                             }
                         }
                     }
@@ -474,7 +511,7 @@ private fun CalendarHeader(
         CalendarNavButton("<<", onPreviousYear)
         CalendarNavButton("<", onPreviousMonth)
         Text(
-            text = "Thang ${displayedMonth.get(Calendar.MONTH) + 1}, ${displayedMonth.get(Calendar.YEAR)}",
+            text = "Tháng ${displayedMonth.get(Calendar.MONTH) + 1}, ${displayedMonth.get(Calendar.YEAR)}",
             modifier = Modifier.weight(1f),
             color = Color(0xFF232323),
             style = MaterialTheme.typography.headlineSmall,

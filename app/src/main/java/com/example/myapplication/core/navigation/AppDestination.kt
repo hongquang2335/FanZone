@@ -8,6 +8,7 @@ sealed class AppDestination(val route: String) {
     data object Login : AppDestination("login")
     data object Register : AppDestination("register")
     data object AccountInfo : AppDestination("profile/account-info")
+    data object ProfileOptions : AppDestination("profile/options")
     data object PinSetup : AppDestination("profile/pin-setup")
     data object NotificationSettings : AppDestination("profile/notification-settings")
     data object Support : AppDestination("support")

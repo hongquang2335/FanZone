@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import com.example.myapplication.app.AppDependencies
 import com.example.myapplication.domain.repository.CreateCommunityPostRequest
 import com.example.myapplication.domain.repository.SelectedCommunityMedia
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,8 +16,14 @@ class CommunityPostViewModel(
     application: Application
 ) : AndroidViewModel(application) {
     private val repository = AppDependencies.communityRepository(application)
+    private val auth = FirebaseAuth.getInstance()
+    private val firestore = FirebaseFirestore.getInstance()
     private val _uiState = MutableStateFlow(CommunityPostUiState())
     val uiState: StateFlow<CommunityPostUiState> = _uiState.asStateFlow()
+
+    init {
+        loadCurrentAuthor()
+    }
 
     fun updateDraft(value: String) {
         _uiState.update { it.copy(draft = value, errorMessage = null) }
@@ -60,8 +68,8 @@ class CommunityPostViewModel(
 
         repository.createCommunityPost(
             request = CreateCommunityPostRequest(
-                authorId = "user-hong-quang",
-                author = "Hong Quang",
+                authorId = state.currentAuthorId,
+                author = state.currentAuthorName,
                 anonymous = state.anonymous,
                 content = content,
                 eventId = eventId,
@@ -69,18 +77,45 @@ class CommunityPostViewModel(
                 media = state.selectedMedia
             ),
             onSuccess = {
-                _uiState.value = CommunityPostUiState()
+                _uiState.value = CommunityPostUiState(
+                    currentAuthorId = state.currentAuthorId,
+                    currentAuthorName = state.currentAuthorName
+                )
                 onSuccess()
             },
             onError = ::handlePostError
         )
     }
 
+    private fun loadCurrentAuthor() {
+        val user = auth.currentUser ?: return
+        val fallbackName = user.displayName?.takeIf { it.isNotBlank() }
+            ?: user.email?.substringBefore("@")?.takeIf { it.isNotBlank() }
+            ?: "Bạn"
+
+        _uiState.update {
+            it.copy(currentAuthorId = user.uid, currentAuthorName = fallbackName)
+        }
+
+        firestore.collection("users")
+            .document(user.uid)
+            .get()
+            .addOnSuccessListener { document ->
+                val profileName = document.getString("displayName")?.takeIf { it.isNotBlank() }
+                _uiState.update {
+                    it.copy(
+                        currentAuthorId = user.uid,
+                        currentAuthorName = profileName ?: fallbackName
+                    )
+                }
+            }
+    }
+
     private fun handlePostError(throwable: Throwable) {
         _uiState.update {
             it.copy(
                 isPosting = false,
-                errorMessage = throwable.localizedMessage ?: "Khong the dang bai viet."
+                errorMessage = throwable.localizedMessage ?: "Không thể đăng bài viết."
             )
         }
     }

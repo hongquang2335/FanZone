@@ -10,6 +10,7 @@ data class CommunityPost(
     val topic: String,
     val content: String,
     val likes: Int,
+    val likedBy: List<String> = emptyList(),
     val comments: Int,
     val shareCount: Int = 0,
     @param:DrawableRes val imageRes: Int?,
@@ -22,7 +23,12 @@ data class CommunityPost(
     val sharedPost: SharedCommunityPost? = null,
     val createdAtMillis: Long? = null,
     val updatedAtMillis: Long? = null
-)
+) {
+    fun isLikedByUser(userId: String?): Boolean {
+        if (userId == null) return false
+        return likedBy.contains(userId)
+    }
+}
 
 data class CommunityMediaItem(
     val url: String,

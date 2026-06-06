@@ -34,7 +34,7 @@ class AuthViewModel(
 
     fun signIn(account: String, password: String, onSuccess: () -> Unit) {
         if (account.isBlank() || password.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Nhap email hoac so dien thoai va mat khau.") }
+            _uiState.update { it.copy(errorMessage = "Nhập email hoặc số điện thoại và mật khẩu.") }
             return
         }
         _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
@@ -50,7 +50,7 @@ class AuthViewModel(
             _uiState.update {
                 it.copy(
                     isLoading = false,
-                    errorMessage = "So dien thoai phai gom 10 so."
+                    errorMessage = "Số điện thoại phải gồm 10 số."
                 )
             }
             return
@@ -67,7 +67,7 @@ class AuthViewModel(
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                errorMessage = "Khong tim thay tai khoan co so dien thoai nay."
+                                errorMessage = "Không tìm thấy tài khoản có số điện thoại này."
                             )
                         }
                     }
@@ -75,7 +75,7 @@ class AuthViewModel(
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                errorMessage = "So dien thoai nay dang gan voi nhieu tai khoan. Vui long dang nhap bang email."
+                                errorMessage = "Số điện thoại này đang gắn với nhiều tài khoản. Vui lòng đăng nhập bằng email."
                             )
                         }
                     }
@@ -85,7 +85,7 @@ class AuthViewModel(
                             _uiState.update {
                                 it.copy(
                                     isLoading = false,
-                                    errorMessage = "Tai khoan nay chua co email dang nhap."
+                                    errorMessage = "Tài khoản này chưa có email đăng nhập."
                                 )
                             }
                         } else {
@@ -98,7 +98,7 @@ class AuthViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = throwable.localizedMessage ?: "Khong the kiem tra so dien thoai."
+                        errorMessage = throwable.localizedMessage ?: "Không thể kiểm tra số điện thoại."
                     )
                 }
             }
@@ -114,7 +114,7 @@ class AuthViewModel(
                         isLoading = false,
                         errorMessage = null,
                         infoMessage = if (result.user?.isEmailVerified == false) {
-                            "Tai khoan chua xac nhan email."
+                            "Tài khoản chưa xác nhận email."
                         } else {
                             null
                         }
@@ -126,7 +126,7 @@ class AuthViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = throwable.toAuthMessage("Khong the dang nhap.")
+                        errorMessage = throwable.toAuthMessage("Không thể đăng nhập.")
                     )
                 }
             }
@@ -137,7 +137,7 @@ class AuthViewModel(
             _uiState.update {
                 it.copy(
                     showRegisterPasswordRules = true,
-                    errorMessage = if (password != repeatPassword) "Mat khau nhap lai khong khop." else null
+                    errorMessage = if (password != repeatPassword) "Mật khẩu nhập lại không khớp." else null
                 )
             }
             return
@@ -159,7 +159,7 @@ class AuthViewModel(
                             it.copy(
                                 user = result.user?.toAuthUser(),
                                 isLoading = false,
-                                infoMessage = "Da gui email xac nhan. Hay kiem tra hop thu cua ban.",
+                                infoMessage = "Đã gửi email xác nhận. Hãy kiểm tra hộp thư của bạn.",
                                 errorMessage = null
                             )
                         }
@@ -171,7 +171,7 @@ class AuthViewModel(
                     it.copy(
                         isLoading = false,
                         showRegisterPasswordRules = true,
-                        errorMessage = throwable.toAuthMessage("Khong the tao tai khoan.")
+                        errorMessage = throwable.toAuthMessage("Không thể tạo tài khoản.")
                     )
                 }
             }
@@ -192,7 +192,7 @@ class AuthViewModel(
         val user = auth.currentUser ?: return
         val normalizedPhone = phone.filter { it.isDigit() }
         if (normalizedPhone.isNotEmpty() && normalizedPhone.length != 10) {
-            _uiState.update { it.copy(errorMessage = "So dien thoai phai gom 10 so.") }
+            _uiState.update { it.copy(errorMessage = "Số điện thoại phải gồm 10 số.") }
             return
         }
         _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
@@ -223,20 +223,20 @@ class AuthViewModel(
                         accountProfile = profile.copy(pinSet = it.accountProfile.pinSet),
                         user = it.user?.copy(displayName = profile.fullName.takeIf { name -> name.isNotBlank() }),
                         isLoading = false,
-                        infoMessage = "Da luu thong tin tai khoan."
+                        infoMessage = "Đã lưu thông tin tài khoản."
                     )
                 }
                 onSuccess()
             }
             .addOnFailureListener { throwable ->
-                _uiState.update { it.copy(isLoading = false, errorMessage = throwable.localizedMessage ?: "Khong the luu thong tin.") }
+                _uiState.update { it.copy(isLoading = false, errorMessage = throwable.localizedMessage ?: "Không thể lưu thông tin.") }
             }
     }
 
     fun savePin(pin: String, onSuccess: () -> Unit) {
         val user = auth.currentUser ?: return
         if (pin.length != 6 || pin.any { !it.isDigit() }) {
-            _uiState.update { it.copy(errorMessage = "Ma PIN phai gom 6 so.") }
+            _uiState.update { it.copy(errorMessage = "Mã PIN phải gồm 6 số.") }
             return
         }
         _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
@@ -255,13 +255,13 @@ class AuthViewModel(
                     it.copy(
                         accountProfile = it.accountProfile.copy(pinSet = true),
                         isLoading = false,
-                        infoMessage = "Da thiet lap ma PIN."
+                        infoMessage = "Đã thiết lập mã PIN."
                     )
                 }
                 onSuccess()
             }
             .addOnFailureListener { throwable ->
-                _uiState.update { it.copy(isLoading = false, errorMessage = throwable.localizedMessage ?: "Khong the luu ma PIN.") }
+                _uiState.update { it.copy(isLoading = false, errorMessage = throwable.localizedMessage ?: "Không thể lưu mã PIN.") }
             }
     }
 
@@ -331,12 +331,12 @@ private fun Throwable.toAuthMessage(fallback: String): String {
     val code = (this as? FirebaseAuthException)?.errorCode
     return when (code) {
         "ERROR_CONFIGURATION_NOT_FOUND" ->
-            "Firebase Auth chua duoc cau hinh. Hay bat Authentication > Sign-in method > Email/Password trong Firebase console."
-        "ERROR_EMAIL_ALREADY_IN_USE" -> "Email nay da duoc dang ky."
-        "ERROR_INVALID_EMAIL" -> "Email khong hop le."
-        "ERROR_WEAK_PASSWORD" -> "Mat khau qua yeu."
-        "ERROR_WRONG_PASSWORD", "ERROR_INVALID_CREDENTIAL" -> "Email hoac mat khau khong dung."
-        "ERROR_USER_NOT_FOUND" -> "Tai khoan khong ton tai."
+            "Firebase Auth chưa được cấu hình. Hãy bật Authentication > Sign-in method > Email/Password trong Firebase console."
+        "ERROR_EMAIL_ALREADY_IN_USE" -> "Email này đã được đăng ký."
+        "ERROR_INVALID_EMAIL" -> "Email không hợp lệ."
+        "ERROR_WEAK_PASSWORD" -> "Mật khẩu quá yếu."
+        "ERROR_WRONG_PASSWORD", "ERROR_INVALID_CREDENTIAL" -> "Email hoặc mật khẩu không đúng."
+        "ERROR_USER_NOT_FOUND" -> "Tài khoản không tồn tại."
         else -> localizedMessage ?: fallback
     }
 }

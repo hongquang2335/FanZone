@@ -70,16 +70,16 @@ fun LoginScreen(
 
     AuthScaffold(
         modifier = modifier,
-        title = "Dang nhap",
+        title = "Đăng nhập",
         navigation = {
-            CircleHeaderButton(icon = Icons.Default.Close, contentDescription = "Dong", onClick = onClose)
+            CircleHeaderButton(icon = Icons.Default.Close, contentDescription = "Đóng", onClick = onClose)
         },
         mascot = false
     ) {
         AuthTextField(
             value = account,
             onValueChange = { account = it },
-            placeholder = "Nhap email hoac so dien thoai",
+            placeholder = "Nhập email hoặc số điện thoại",
             trailingIcon = {
                 Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF7E7E86))
             },
@@ -88,7 +88,7 @@ fun LoginScreen(
         AuthTextField(
             value = password,
             onValueChange = { password = it },
-            placeholder = "Nhap mat khau",
+            placeholder = "Nhập mật khẩu",
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -112,11 +112,11 @@ fun LoginScreen(
                 disabledContentColor = Color(0xFF8C8B92)
             )
         ) {
-            Text(if (authState.isLoading) "Dang xu ly..." else "Dang nhap", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Text(if (authState.isLoading) "Đang xử lý..." else "Đăng nhập", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
         }
         AuthMessage(error = authState.errorMessage, info = authState.infoMessage)
         Text(
-            text = "Quen mat khau?",
+            text = "Quên mật khẩu?",
             modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
             color = Color(0xFF7D7B82),
             style = MaterialTheme.typography.bodyMedium,
@@ -125,7 +125,7 @@ fun LoginScreen(
         )
         Spacer(modifier = Modifier.height(18.dp))
         Text(
-            text = "Chua co tai khoan?",
+            text = "Chưa có tài khoản?",
             modifier = Modifier.fillMaxWidth(),
             color = Color(0xFFAAA8AF),
             style = MaterialTheme.typography.bodyMedium,
@@ -133,7 +133,7 @@ fun LoginScreen(
             textAlign = TextAlign.Center
         )
         Text(
-            text = "Tao tai khoan ngay",
+            text = "Tạo tài khoản ngay",
             modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenRegister).padding(top = 8.dp),
             color = Evergreen,
             style = MaterialTheme.typography.bodyMedium,
@@ -160,22 +160,22 @@ fun RegisterScreen(
 
     AuthScaffold(
         modifier = modifier,
-        title = "Dang ky tai khoan",
+        title = "Đăng ký tài khoản",
         navigation = {
-            CircleHeaderButton(icon = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lai", onClick = onBack)
+            CircleHeaderButton(icon = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", onClick = onBack)
         },
         compactHeader = false
     ) {
         AuthTextField(
             value = email,
             onValueChange = { email = it },
-            placeholder = "Nhap email cua ban",
+            placeholder = "Nhập email của bạn",
             keyboardType = KeyboardType.Email
         )
         AuthTextField(
             value = password,
             onValueChange = { password = it },
-            placeholder = "Nhap mat khau",
+            placeholder = "Nhập mật khẩu",
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -191,7 +191,7 @@ fun RegisterScreen(
         AuthTextField(
             value = repeatPassword,
             onValueChange = { repeatPassword = it },
-            placeholder = "Nhap lai mat khau",
+            placeholder = "Nhập lại mật khẩu",
             visualTransformation = if (repeatVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { repeatVisible = !repeatVisible }) {
@@ -218,11 +218,11 @@ fun RegisterScreen(
                 disabledContentColor = Color(0xFF8C8B92)
             )
         ) {
-            Text(if (authState.isLoading) "Dang xu ly..." else "Tiep tuc", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Text(if (authState.isLoading) "Đang xử lý..." else "Tiếp tục", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
         }
         AuthMessage(error = authState.errorMessage, info = authState.infoMessage)
         Text(
-            text = "Da co tai khoan?",
+            text = "Đã có tài khoản?",
             modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
             color = Color(0xFFAAA8AF),
             style = MaterialTheme.typography.bodyMedium,
@@ -230,7 +230,7 @@ fun RegisterScreen(
             textAlign = TextAlign.Center
         )
         Text(
-            text = "Dang nhap ngay",
+            text = "Đăng nhập ngay",
             modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenLogin).padding(top = 8.dp),
             color = Evergreen,
             style = MaterialTheme.typography.bodyMedium,
@@ -377,7 +377,7 @@ private fun PasswordRules() {
         border = BorderStroke(1.dp, Color(0xFFE95868))
     ) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Mat khau chua hop le", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+            Text("Mật khẩu chưa hợp lệ", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
             listOf(
                 "Tu 8 - 32 ky tu",
                 "Bao gom chu thuong va so",

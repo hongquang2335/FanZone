@@ -102,4 +102,26 @@ class CommunityRepositoryImpl(
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener(onError)
     }
+
+    override fun likeCommunityPost(
+        postId: String,
+        userId: String,
+        onSuccess: () -> Unit,
+        onError: (Throwable) -> Unit
+    ) {
+        firestoreDataSource.likeCommunityPost(postId, userId)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener(onError)
+    }
+
+    override fun unlikeCommunityPost(
+        postId: String,
+        userId: String,
+        onSuccess: () -> Unit,
+        onError: (Throwable) -> Unit
+    ) {
+        firestoreDataSource.unlikeCommunityPost(postId, userId)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener(onError)
+    }
 }
