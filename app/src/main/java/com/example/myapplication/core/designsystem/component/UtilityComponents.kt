@@ -99,9 +99,13 @@ fun EmptyStateCard(title: String, body: String) {
 }
 
 @Composable
-fun TicketStatusFilter(selected: TicketStatus, onSelect: (TicketStatus) -> Unit) {
+fun TicketStatusFilter(
+    selected: TicketStatus,
+    onSelect: (TicketStatus) -> Unit,
+    statuses: List<TicketStatus> = listOf(TicketStatus.UPCOMING, TicketStatus.COMPLETED, TicketStatus.CANCELLED)
+) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        TicketStatus.values().forEach { status ->
+        statuses.forEach { status ->
             FilterChip(
                 selected = selected == status,
                 onClick = { onSelect(status) },
@@ -109,8 +113,9 @@ fun TicketStatusFilter(selected: TicketStatus, onSelect: (TicketStatus) -> Unit)
                     Text(
                         when (status) {
                             TicketStatus.UPCOMING -> "Sap dien ra"
-                            TicketStatus.COMPLETED -> "Da dung"
+                            TicketStatus.COMPLETED -> "Da ket thuc"
                             TicketStatus.CANCELLED -> "Da huy"
+                            TicketStatus.RESELLING -> "Dang ban lai"
                         }
                     )
                 }
@@ -152,4 +157,4 @@ fun IconText(icon: ImageVector, label: String) {
     }
 }
 
-fun formatPrice(price: Int): String = formatVnd(price)
+fun formatPrice(price: Int): String = price.formatVnd()

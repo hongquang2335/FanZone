@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">FanZone</string>
+    <string name="prompt">FanZone</string>
+
 </resources>

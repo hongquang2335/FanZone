@@ -28,7 +28,7 @@ import com.example.myapplication.feature.profile.ProfileOptionsScreen
 import com.example.myapplication.feature.profile.ProfileScreen
 import com.example.myapplication.feature.profile.RegisterScreen
 import com.example.myapplication.feature.success.PurchaseSuccessScreen
-import com.example.myapplication.feature.support.SupportScreen
+import com.example.myapplication.feature.support.ChatbotScreen
 import com.example.myapplication.feature.tickets.TicketWalletRoute
 import com.example.myapplication.ui.state.FanZoneUiState
 import com.example.myapplication.ui.state.FanZoneViewModel
@@ -107,7 +107,6 @@ fun FanZoneNavHost(
         }
         composable(AppDestination.Tickets.route) {
             TicketWalletRoute(
-                tickets = uiState.walletItems,
                 onOpenEvent = { eventId ->
                     viewModel.selectEvent(eventId)
                     navController.navigate(AppDestination.EventDetail.create(eventId))
@@ -206,11 +205,8 @@ fun FanZoneNavHost(
             )
         }
         composable(AppDestination.Support.route) {
-            SupportScreen(
-                supportShortcuts = uiState.supportShortcuts,
-                unreadSupport = uiState.unreadSupportCount,
-                onBack = { navController.popBackStack() },
-                modifier = Modifier.fillMaxSize()
+            ChatbotScreen(
+                onBackClick = { navController.popBackStack() }
             )
         }
         composable(
