@@ -1,7 +1,5 @@
 package com.example.myapplication.feature.support
 
-import android.R.attr.prompt
-import android.R.attr.text
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.domain.model.ChatMessage
@@ -21,16 +19,18 @@ class ChatViewModel : ViewModel() {
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
 
-    private val model = Firebase.ai(backend = GenerativeBackend.googleAI())
+    private val model by lazy {
+        Firebase.ai(backend = GenerativeBackend.googleAI())
         .generativeModel(
             modelName = "gemini-2.5-flash",
             systemInstruction = content {
                 text(prompt.trimIndent())
             }
         )
+    }
 
     // 2. Khởi tạo chat (multi turn0)
-    private val chat = model.startChat()
+    private val chat by lazy { model.startChat() }
     init {
         // Initial bot greeting
         addBotGreeting()
