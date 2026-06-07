@@ -6,6 +6,7 @@ import com.example.myapplication.app.AppDependencies
 import com.example.myapplication.domain.repository.CreateCommunityPostRequest
 import com.example.myapplication.domain.repository.SelectedCommunityMedia
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,8 +22,18 @@ class CommunityPostViewModel(
     private val _uiState = MutableStateFlow(CommunityPostUiState())
     val uiState: StateFlow<CommunityPostUiState> = _uiState.asStateFlow()
 
+    private val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+        val user = firebaseAuth.currentUser
+        if (user == null) {
+            clearCurrentAuthor()
+        } else {
+            loadCurrentAuthor(user)
+        }
+    }
+
     init {
-        loadCurrentAuthor()
+        auth.addAuthStateListener(authListener)
+        auth.currentUser?.let(::loadCurrentAuthor)
     }
 
     fun updateDraft(value: String) {
@@ -64,11 +75,17 @@ class CommunityPostViewModel(
         val content = state.draft.trim()
         if (state.isPosting || (content.isBlank() && state.selectedMedia.isEmpty())) return
 
+        val authorId = state.currentAuthorId
+        if (authorId == null) {
+            _uiState.update { it.copy(errorMessage = "Ban can dang nhap de tao bai viet.") }
+            return
+        }
+
         _uiState.update { it.copy(isPosting = true, errorMessage = null) }
 
         repository.createCommunityPost(
             request = CreateCommunityPostRequest(
-                authorId = state.currentAuthorId,
+                authorId = authorId,
                 author = state.currentAuthorName,
                 anonymous = state.anonymous,
                 content = content,
@@ -78,7 +95,7 @@ class CommunityPostViewModel(
             ),
             onSuccess = {
                 _uiState.value = CommunityPostUiState(
-                    currentAuthorId = state.currentAuthorId,
+                    currentAuthorId = authorId,
                     currentAuthorName = state.currentAuthorName
                 )
                 onSuccess()
@@ -87,11 +104,21 @@ class CommunityPostViewModel(
         )
     }
 
-    private fun loadCurrentAuthor() {
-        val user = auth.currentUser ?: return
+    private fun clearCurrentAuthor() {
+        _uiState.update {
+            CommunityPostUiState(
+                draft = it.draft,
+                selectedMedia = it.selectedMedia,
+                anonymous = it.anonymous,
+                feeling = it.feeling
+            )
+        }
+    }
+
+    private fun loadCurrentAuthor(user: FirebaseUser) {
         val fallbackName = user.displayName?.takeIf { it.isNotBlank() }
             ?: user.email?.substringBefore("@")?.takeIf { it.isNotBlank() }
-            ?: "Bạn"
+            ?: "Ban"
 
         _uiState.update {
             it.copy(currentAuthorId = user.uid, currentAuthorName = fallbackName)
@@ -101,6 +128,7 @@ class CommunityPostViewModel(
             .document(user.uid)
             .get()
             .addOnSuccessListener { document ->
+                if (auth.currentUser?.uid != user.uid) return@addOnSuccessListener
                 val profileName = document.getString("displayName")?.takeIf { it.isNotBlank() }
                 _uiState.update {
                     it.copy(
@@ -115,8 +143,13 @@ class CommunityPostViewModel(
         _uiState.update {
             it.copy(
                 isPosting = false,
-                errorMessage = throwable.localizedMessage ?: "Không thể đăng bài viết."
+                errorMessage = throwable.localizedMessage ?: "Khong the dang bai viet."
             )
         }
+    }
+
+    override fun onCleared() {
+        auth.removeAuthStateListener(authListener)
+        super.onCleared()
     }
 }

@@ -14,5 +14,5 @@ data class CommunityPostUiState(
     val errorMessage: String? = null
 ) {
     val canPost: Boolean
-        get() = !isPosting && (draft.isNotBlank() || selectedMedia.isNotEmpty())
+        get() = currentAuthorId != null && !isPosting && (draft.isNotBlank() || selectedMedia.isNotEmpty())
 }
