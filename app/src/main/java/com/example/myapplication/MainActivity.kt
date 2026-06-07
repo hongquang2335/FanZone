@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
 
         // Chạy migration dữ liệu (Có thể comment lại sau khi chạy xong 1 lần)
         //lifecycleScope.launch {
-        //    FirestoreMigrator.migrateTicketData()
+        //    FirestoreMigrator.seedEventSeats()
         //}
 
         setContent {

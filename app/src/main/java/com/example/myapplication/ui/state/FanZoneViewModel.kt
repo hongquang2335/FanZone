@@ -6,8 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.example.myapplication.app.AppDependencies
 import com.example.myapplication.domain.model.Artist
 import com.example.myapplication.domain.model.Event
+import com.example.myapplication.domain.model.EventSeat
+import com.example.myapplication.domain.model.TicketTier
 import com.example.myapplication.domain.model.TicketStatus
 import com.example.myapplication.domain.model.TicketWalletItem
+import com.example.myapplication.domain.model.TierStatus
 import com.example.myapplication.domain.repository.FanZoneRepository
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
@@ -19,7 +22,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 class FanZoneViewModel(
-    private val repository: FanZoneRepository = AppDependencies.fanZoneRepository
+    private val repository: FanZoneRepository = AppDependencies.fanZoneRepository,
+    loadRemoteEvents: Boolean = true
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
         FanZoneUiState(
@@ -40,7 +44,9 @@ class FanZoneViewModel(
     val uiState: StateFlow<FanZoneUiState> = _uiState.asStateFlow()
 
     init {
-        fetchEvents()
+        if (loadRemoteEvents) {
+            fetchEvents()
+        }
     }
 
     private fun fetchEvents() {
@@ -150,6 +156,30 @@ class FanZoneViewModel(
     fun setTierQuantities(quantities: Map<String, Int>) {
         _uiState.update { state ->
             state.copy(tierQuantities = quantities.mapValues { it.value.coerceAtLeast(0) })
+        }
+    }
+
+    fun setSelectedSeats(seats: List<EventSeat>) {
+        _uiState.update { state ->
+            val eventId = state.selectedEvent.id
+            val selectedSeatTiers = seats.map { seat ->
+                TicketTier(
+                    id = seat.id,
+                    eventId = eventId,
+                    name = buildString {
+                        append("Ghế ${seat.seatId}")
+                        append(if (seat.isVip) " (VIP)" else " (Thường)")
+                    },
+                    benefits = seat.zoneId,
+                    price = seat.price,
+                    status = TierStatus.AVAILABLE
+                )
+            }
+
+            state.copy(
+                tiers = state.tiers.filterNot { it.eventId == eventId } + selectedSeatTiers,
+                tierQuantities = selectedSeatTiers.associate { it.id to 1 }
+            )
         }
     }
 

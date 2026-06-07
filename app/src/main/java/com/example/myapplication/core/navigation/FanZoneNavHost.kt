@@ -2,6 +2,7 @@ package com.example.myapplication.core.navigation
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -112,14 +113,17 @@ fun FanZoneNavHost(
             route = AppDestination.Booking.route,
             arguments = listOf(navArgument("eventId") { type = NavType.StringType })
         ) { entry ->
-            entry.arguments?.getString("eventId")?.let(viewModel::selectEvent)
+            val eventId = entry.arguments?.getString("eventId")
+            LaunchedEffect(eventId) {
+                eventId?.let(viewModel::selectEvent)
+            }
             BookingRoute(
                 event = uiState.selectedEvent,
-                tiers = uiState.tiersForSelectedEvent,
-                initialQuantities = uiState.tierQuantities,
                 onBack = { navController.popBackStack() },
-                onCommitQuantities = viewModel::setTierQuantities,
-                onContinue = { navController.navigate(AppDestination.Checkout.create(uiState.selectedEvent.id)) },
+                onContinue = { selectedSeats ->
+                    viewModel.setSelectedSeats(selectedSeats)
+                    navController.navigate(AppDestination.Checkout.create(uiState.selectedEvent.id))
+                },
                 modifier = Modifier.fillMaxSize()
             )
         }

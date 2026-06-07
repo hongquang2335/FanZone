@@ -7,21 +7,18 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.domain.model.Event
-import com.example.myapplication.domain.model.TicketTier
+import com.example.myapplication.domain.model.EventSeat
 
 @Composable
 fun BookingRoute(
     event: Event,
-    tiers: List<TicketTier>,
-    initialQuantities: Map<String, Int>,
     onBack: () -> Unit,
-    onCommitQuantities: (Map<String, Int>) -> Unit,
-    onContinue: () -> Unit,
+    onContinue: (List<EventSeat>) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: BookingViewModel = viewModel()
 ) {
-    LaunchedEffect(event.id, tiers, initialQuantities) {
-        viewModel.load(event, tiers, initialQuantities)
+    LaunchedEffect(event.id) {
+        viewModel.load(event)
     }
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -29,14 +26,14 @@ fun BookingRoute(
 
     BookingScreen(
         event = loadedEvent,
-        tiers = state.tiers,
-        quantities = state.quantities,
+        seats = state.seats,
+        selectedSeatIds = state.selectedSeatIds,
+        isLoading = state.isLoading,
+        error = state.error,
         onBack = onBack,
-        onChangeQuantity = viewModel::setQuantity,
-        onContinue = {
-            onCommitQuantities(state.quantities)
-            onContinue()
-        },
+        onToggleSeat = viewModel::toggleSeat,
+        onRemoveSeat = viewModel::removeSeat,
+        onContinue = { onContinue(state.selectedSeats) },
         modifier = modifier
     )
 }

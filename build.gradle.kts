@@ -4,3 +4,6 @@ plugins {
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.google.services) apply false
 }
+
+// Trình kích hoạt làm mới cache cho IDE
+// Last sync attempt: ${System.currentTimeMillis()}

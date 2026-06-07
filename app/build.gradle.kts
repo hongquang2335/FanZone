@@ -63,6 +63,7 @@ dependencies {
     
     // Coroutines Play Services for .await()
     implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.google.play.services.tasks)
 
     implementation("io.coil-kt:coil-compose:2.6.0")
 }
