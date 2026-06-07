@@ -48,10 +48,6 @@ fun FanZoneNavHost(
     val communityFeedState by communityFeedViewModel.uiState.collectAsStateWithLifecycle()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(uiState.posts) {
-        communityFeedViewModel.setFallbackPosts(uiState.posts)
-    }
-
     NavHost(
         navController = navController,
         startDestination = AppDestination.Home.route,

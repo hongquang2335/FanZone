@@ -15,7 +15,7 @@ import com.google.firebase.firestore.SetOptions
 class CommunityFirestoreDataSource(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
-    private val postsCollection = firestore.collection(COMMUNITY_POSTS_COLLECTION)
+    private val postsCollection = firestore.collection(POSTS_COLLECTION)
 
     fun observeCommunityPosts(
         onPosts: (List<CommunityPost>) -> Unit,
@@ -148,7 +148,7 @@ class CommunityFirestoreDataSource(
                 }
                 onResult(
                     CommunityStorageCheck(
-                        collection = COMMUNITY_POSTS_COLLECTION,
+                        collection = POSTS_COLLECTION,
                         totalDocuments = snapshot.size(),
                         documents = documentChecks
                     )
@@ -216,7 +216,7 @@ class CommunityFirestoreDataSource(
     }
 
     companion object {
-        const val COMMUNITY_POSTS_COLLECTION = "communityPosts"
+        const val POSTS_COLLECTION = "posts"
 
         const val FIELD_AUTHOR_ID = "authorId"
         const val FIELD_AUTHOR = "author"

@@ -45,10 +45,6 @@ class CommunityFeedViewModel(
         observePosts()
     }
 
-    fun setFallbackPosts(posts: List<CommunityPost>) {
-        _uiState.update { it.copy(fallbackPosts = posts) }
-    }
-
     fun sharePost(post: CommunityPost, caption: String) {
         if (_uiState.value.currentUserId == null) {
             _uiState.update { it.copy(errorMessage = "Ban can dang nhap de chia se bai viet.") }
