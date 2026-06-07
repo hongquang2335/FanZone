@@ -1,17 +1,17 @@
 package com.example.myapplication.core.designsystem.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 
 private val LightColors = lightColorScheme(
     primary = Evergreen,
     onPrimary = MintWash,
     background = SurfaceCard,
     onBackground = Ink,
-    surface = SurfaceCard,
+    surface = Color.White,
     onSurface = Ink,
     secondary = PeachWash,
     tertiary = LavenderWash,
@@ -32,7 +32,7 @@ private val DarkColors = darkColorScheme(
 
 @Composable
 fun FanZoneTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
     MaterialTheme(

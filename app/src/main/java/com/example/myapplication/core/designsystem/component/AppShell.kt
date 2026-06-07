@@ -6,25 +6,34 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.NotificationsNone
+import androidx.compose.material.ripple.RippleAlpha
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.RippleConfiguration
+import androidx.compose.material3.ripple
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,16 +47,26 @@ fun AppBottomBar(
     currentRoute: String?,
     onSelect: (BottomDestination) -> Unit
 ) {
-    NavigationBar(
-        containerColor = Color.White,
-        tonalElevation = 8.dp
+    val customRipple = ripple(bounded = false, color = Evergreen)
+    val customRippleConfig = RippleConfiguration(
+        rippleAlpha = RippleAlpha(0.05f, 0.05f, 0.05f, 0.05f)
+    )
+
+    CompositionLocalProvider(
+        LocalIndication provides customRipple,
+        LocalRippleConfiguration provides customRippleConfig
     ) {
-        items.forEach { destination ->
-            BottomBarItem(
-                destination = destination,
-                selected = currentRoute == destination.route,
-                onSelect = onSelect
-            )
+        NavigationBar(
+            containerColor = Color.White,
+            tonalElevation = 8.dp
+        ) {
+            items.forEach { destination ->
+                BottomBarItem(
+                    destination = destination,
+                    selected = currentRoute == destination.route,
+                    onSelect = onSelect
+                )
+            }
         }
     }
 }
@@ -62,7 +81,20 @@ private fun RowScope.BottomBarItem(
         selected = selected,
         onClick = { onSelect(destination) },
         icon = { Icon(destination.icon, contentDescription = destination.label) },
-        label = { Text(destination.label, maxLines = 1) }
+        label = {
+            Text(
+                text = destination.label,
+                maxLines = 1,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+            )
+        },
+        colors = NavigationBarItemDefaults.colors(
+            selectedIconColor = Evergreen,
+            selectedTextColor = Evergreen,
+            unselectedIconColor = SoftText,
+            unselectedTextColor = SoftText,
+            indicatorColor = Color.Transparent
+        )
     )
 }
 
@@ -137,3 +169,4 @@ fun BookingFooter(
         }
     }
 }
+

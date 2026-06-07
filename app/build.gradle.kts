@@ -49,6 +49,13 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.compose.foundation.layout)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
+    implementation(libs.okhttp)
+    implementation(libs.coil.compose)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -56,14 +63,13 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-    
-    // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.firestore)
-    
+
     // Coroutines Play Services for .await()
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.google.play.services.tasks)
 
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation(libs.firebase.ai)
 }
