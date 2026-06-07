@@ -68,7 +68,11 @@ fun AccountInfoScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val darkBackground = Color(0xFF232323)
+    val screenBackground = Color.White
+    val primaryText = Color(0xFF232323)
+    val secondaryText = Color(0xFF5B5961)
+    val fieldBackground = Color(0xFFF8F7FC)
+    val fieldBorder = Color(0xFFD9D7E0)
     var fullName by remember(authUser?.uid, accountProfile.fullName) { mutableStateOf(accountProfile.fullName.ifBlank { authUser?.displayName.orEmpty() }) }
     var phone by remember(authUser?.uid, accountProfile.phone) { mutableStateOf(accountProfile.phone) }
     var birthday by remember(authUser?.uid, accountProfile.birthday) { mutableStateOf(accountProfile.birthday) }
@@ -79,7 +83,7 @@ fun AccountInfoScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(darkBackground)
+            .background(screenBackground)
             .navigationBarsPadding()
     ) {
         SettingsHeader(title = "Thông tin tài khoản", onBack = onBack)
@@ -117,44 +121,50 @@ fun AccountInfoScreen(
             Text(
                 text = "Cung cấp thông tin chính xác sẽ hỗ trợ bạn trong quá trình mua vé, hoặc khi cần xác thực vé",
                 modifier = Modifier.fillMaxWidth(),
-                color = Color.White,
+                color = secondaryText,
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
             )
 
-            FieldLabel("Họ và tên")
-            ProfileTextField(value = fullName, onValueChange = { fullName = it })
+            FieldLabel("Họ và tên", color = primaryText)
+            ProfileTextField(value = fullName, onValueChange = { fullName = it }, borderColor = fieldBorder, containerColor = fieldBackground)
 
-            FieldLabel("Số điện thoại")
+            FieldLabel("Số điện thoại", color = primaryText)
             ProfileTextField(
                 value = phone,
                 onValueChange = { value -> phone = value.filter { it.isDigit() }.take(10) },
-                keyboardType = KeyboardType.Phone
+                keyboardType = KeyboardType.Phone,
+                borderColor = fieldBorder,
+                containerColor = fieldBackground
             )
 
-            FieldLabel("Email")
+            FieldLabel("Email", color = primaryText)
             ProfileTextField(
                 value = authUser?.email.orEmpty(),
                 onValueChange = {},
                 readOnly = true,
                 enabled = false,
+                borderColor = fieldBorder,
+                containerColor = fieldBackground,
                 trailingIcon = {
                     Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Evergreen)
                 }
             )
 
-            FieldLabel("Ngay sinh *")
+            FieldLabel("Ngay sinh *", color = primaryText)
             ProfileTextField(
                 value = birthday,
                 onValueChange = {},
                 readOnly = true,
                 onClick = { showBirthdayPicker = true },
+                borderColor = fieldBorder,
+                containerColor = fieldBackground,
                 trailingIcon = {
                     Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = Evergreen)
                 }
             )
 
-            FieldLabel("Giới tính")
+            FieldLabel("Giới tính", color = primaryText)
             Row(horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
                 listOf("Nam", "Nữ", "Khác").forEach { option ->
                     Row(
@@ -167,7 +177,7 @@ fun AccountInfoScreen(
                             onClick = { gender = option },
                             colors = RadioButtonDefaults.colors(selectedColor = Evergreen)
                         )
-                        Text(option, color = Color.White, style = MaterialTheme.typography.bodyLarge)
+                        Text(option, color = primaryText, style = MaterialTheme.typography.bodyLarge)
                     }
                 }
             }
@@ -376,8 +386,8 @@ private fun SettingsHeader(title: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun FieldLabel(text: String) {
-    Text(text, color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+private fun FieldLabel(text: String, color: Color = Color.White) {
+    Text(text, color = color, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
 }
 
 @Composable
@@ -389,6 +399,8 @@ private fun ProfileTextField(
     enabled: Boolean = true,
     keyboardType: KeyboardType = KeyboardType.Text,
     onClick: (() -> Unit)? = null,
+    borderColor: Color = Color.White,
+    containerColor: Color = Color(0xFFF8F7FC),
     trailingIcon: @Composable (() -> Unit)? = null
 ) {
     Box(modifier = modifier.fillMaxWidth().height(58.dp)) {
@@ -403,13 +415,13 @@ private fun ProfileTextField(
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             shape = RoundedCornerShape(6.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.White,
-                unfocusedBorderColor = Color.White,
-                focusedContainerColor = Color(0xFFF8F7FC),
-                unfocusedContainerColor = Color(0xFFF8F7FC),
-                disabledContainerColor = Color(0xFF6F6E75),
-                disabledTextColor = Color(0xFFC8C6CE),
-                disabledBorderColor = Color(0xFFC8C6CE)
+                focusedBorderColor = Evergreen,
+                unfocusedBorderColor = borderColor,
+                focusedContainerColor = containerColor,
+                unfocusedContainerColor = containerColor,
+                disabledContainerColor = containerColor,
+                disabledTextColor = Color(0xFF6B6870),
+                disabledBorderColor = borderColor
             )
         )
         if (onClick != null) {
