@@ -24,5 +24,6 @@ data class AccountProfile(
     val phone: String = "",
     val birthday: String = "",
     val gender: String = "",
+    val avatarUri: String? = null,
     val pinSet: Boolean = false
 )

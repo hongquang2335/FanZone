@@ -26,6 +26,7 @@ import com.example.myapplication.feature.profile.NotificationSettingsScreen
 import com.example.myapplication.feature.profile.PinSetupScreen
 import com.example.myapplication.feature.profile.ProfileOptionsScreen
 import com.example.myapplication.feature.profile.ProfileScreen
+import com.example.myapplication.feature.profile.PublicProfileScreen
 import com.example.myapplication.feature.profile.RegisterScreen
 import com.example.myapplication.feature.success.PurchaseSuccessScreen
 import com.example.myapplication.feature.support.ChatbotScreen
@@ -72,11 +73,15 @@ fun FanZoneNavHost(
         composable(AppDestination.Community.route) {
             CommunityScreen(
                 posts = communityFeedState.posts,
+                profiles = communityFeedState.profiles,
                 currentAuthorName = communityFeedState.currentAuthorName,
                 currentUserId = communityFeedState.currentUserId,
                 onOpenEvent = { eventId ->
                     viewModel.selectEvent(eventId)
                     navController.navigate(AppDestination.EventCommunity.create(eventId))
+                },
+                onOpenProfile = { profileId ->
+                    navController.navigate(AppDestination.ViewedProfile.create(profileId))
                 },
                 onSharePost = communityFeedViewModel::sharePost,
                 onToggleLike = communityFeedViewModel::toggleLike,
@@ -96,10 +101,14 @@ fun FanZoneNavHost(
             EventCommunityScreen(
                 event = event,
                 posts = communityFeedState.posts.filter { it.eventId == eventId },
+                profiles = communityFeedState.profiles,
                 currentAuthorName = communityFeedState.currentAuthorName,
                 currentUserId = communityFeedState.currentUserId,
                 onSharePost = communityFeedViewModel::sharePost,
                 onToggleLike = communityFeedViewModel::toggleLike,
+                onOpenProfile = { profileId ->
+                    navController.navigate(AppDestination.ViewedProfile.create(profileId))
+                },
                 onOpenAuth = { navController.navigate(AppDestination.Login.route) },
                 onBack = { navController.popBackStack() },
                 modifier = Modifier.fillMaxSize()
@@ -126,9 +135,38 @@ fun FanZoneNavHost(
                 onOpenPinSetup = { navController.navigate(AppDestination.PinSetup.route) },
                 onOpenNotificationSettings = { navController.navigate(AppDestination.NotificationSettings.route) },
                 onOpenProfileOptions = { navController.navigate(AppDestination.ProfileOptions.route) },
+                onChangeAvatar = authViewModel::saveAvatarUri,
                 onSignOut = authViewModel::signOut,
                 modifier = Modifier.fillMaxSize()
             )
+        }
+        composable(
+            route = AppDestination.ViewedProfile.route,
+            arguments = listOf(navArgument("profileId") { type = NavType.StringType })
+        ) { entry ->
+            val profileId = entry.arguments?.getString("profileId")
+            val profile = communityFeedState.profileById(profileId)
+            if (profile != null) {
+                PublicProfileScreen(
+                    profile = profile,
+                    posts = communityFeedState.posts,
+                    isFollowing = communityFeedState.followedProfileIds.contains(profile.id),
+                    isCurrentUser = profile.id == authState.user?.uid,
+                    onBack = { navController.popBackStack() },
+                    onToggleFollow = {
+                        if (authState.isSignedIn) {
+                            communityFeedViewModel.toggleFollow(profile.id)
+                        } else {
+                            navController.navigate(AppDestination.Login.route)
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                LaunchedEffect(profileId) {
+                    navController.popBackStack()
+                }
+            }
         }
         composable(AppDestination.ProfileOptions.route) {
             ProfileOptionsScreen(
@@ -183,6 +221,15 @@ fun FanZoneNavHost(
                         }
                     }
                 },
+                onGoogleLogin = { idToken ->
+                    authViewModel.signInWithGoogle(idToken) {
+                        navController.navigate(AppDestination.Profile.route) {
+                            popUpTo(AppDestination.Profile.route) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                },
+                onGoogleLoginError = authViewModel::setAuthError,
                 modifier = Modifier.fillMaxSize()
             )
         }

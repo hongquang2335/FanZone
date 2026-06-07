@@ -58,6 +58,17 @@ class CommunityFeedViewModel(
         }
     }
 
+    fun toggleFollow(profileId: String) {
+        _uiState.update { state ->
+            val nextFollowed = if (state.followedProfileIds.contains(profileId)) {
+                state.followedProfileIds - profileId
+            } else {
+                state.followedProfileIds + profileId
+            }
+            state.copy(followedProfileIds = nextFollowed)
+        }
+    }
+
     private fun loadCurrentAuthor() {
         val user = auth.currentUser ?: return
         val fallbackName = user.displayName?.takeIf { it.isNotBlank() }

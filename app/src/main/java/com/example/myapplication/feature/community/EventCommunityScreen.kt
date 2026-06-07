@@ -48,15 +48,18 @@ import com.example.myapplication.core.designsystem.component.CommunityCard
 import com.example.myapplication.core.designsystem.theme.SoftText
 import com.example.myapplication.domain.model.CommunityPost
 import com.example.myapplication.domain.model.Event
+import com.example.myapplication.domain.model.SocialProfile
 
 @Composable
 fun EventCommunityScreen(
     event: Event,
     posts: List<CommunityPost>,
+    profiles: List<SocialProfile>,
     currentAuthorName: String,
     currentUserId: String?,
     onSharePost: (CommunityPost, String) -> Unit,
     onToggleLike: (String) -> Unit,
+    onOpenProfile: (String) -> Unit,
     onOpenAuth: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
@@ -102,10 +105,12 @@ fun EventCommunityScreen(
                             selectedTab = selectedTab,
                             onSelectTab = { selectedTab = it },
                             visiblePosts = visiblePosts,
+                            profiles = profiles,
                             currentAuthorName = currentAuthorName,
                             currentUserId = currentUserId,
                             onSharePost = onSharePost,
                             onToggleLike = onToggleLike,
+                            onOpenProfile = onOpenProfile,
                             onOpenAuth = onOpenAuth
                         )
                     }
@@ -132,11 +137,13 @@ fun EventCommunityScreen(
                     items(visiblePosts) { post ->
                         CommunityCard(
                             post = post,
+                            authorProfile = profiles.firstOrNull { it.id == post.authorId },
                             currentAuthorName = currentAuthorName,
                             currentUserId = currentUserId,
                             modifier = Modifier.padding(horizontal = 16.dp),
                             onSharePost = onSharePost,
                             onToggleLike = { onToggleLike(post.id) },
+                            onOpenProfile = onOpenProfile,
                             onOpenAuth = onOpenAuth
                         )
                     }
@@ -159,10 +166,12 @@ private fun ExpandedEventCommunityContent(
     selectedTab: String,
     onSelectTab: (String) -> Unit,
     visiblePosts: List<CommunityPost>,
+    profiles: List<SocialProfile>,
     currentAuthorName: String,
     currentUserId: String?,
     onSharePost: (CommunityPost, String) -> Unit,
     onToggleLike: (String) -> Unit,
+    onOpenProfile: (String) -> Unit,
     onOpenAuth: () -> Unit
 ) {
     Row(
@@ -198,10 +207,12 @@ private fun ExpandedEventCommunityContent(
                 visiblePosts.forEach { post ->
                     CommunityCard(
                         post = post,
+                        authorProfile = profiles.firstOrNull { it.id == post.authorId },
                         currentAuthorName = currentAuthorName,
                         currentUserId = currentUserId,
                         onSharePost = onSharePost,
                         onToggleLike = { onToggleLike(post.id) },
+                        onOpenProfile = onOpenProfile,
                         onOpenAuth = onOpenAuth
                     )
                 }

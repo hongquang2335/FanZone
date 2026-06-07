@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -132,6 +133,41 @@ class AuthViewModel(
             }
     }
 
+    fun signInWithGoogle(idToken: String, onSuccess: () -> Unit) {
+        if (idToken.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "Khong the lay thong tin Google account.") }
+            return
+        }
+        _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        auth.signInWithCredential(credential)
+            .addOnSuccessListener { result ->
+                upsertUserDocument(result.user)
+                _uiState.update {
+                    it.copy(
+                        user = result.user?.toAuthUser(),
+                        isLoading = false,
+                        errorMessage = null,
+                        infoMessage = null
+                    )
+                }
+                result.user?.uid?.let(::loadUserProfile)
+                onSuccess()
+            }
+            .addOnFailureListener { throwable ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = throwable.toAuthMessage("Khong the dang nhap bang Google.")
+                    )
+                }
+            }
+    }
+
+    fun setAuthError(message: String) {
+        _uiState.update { it.copy(isLoading = false, errorMessage = message, infoMessage = null) }
+    }
+
     fun register(email: String, password: String, repeatPassword: String, onSuccess: () -> Unit) {
         if (!isValidPassword(password) || password != repeatPassword || email.isBlank()) {
             _uiState.update {
@@ -200,7 +236,8 @@ class AuthViewModel(
             fullName = fullName.trim(),
             phone = normalizedPhone,
             birthday = birthday.trim(),
-            gender = gender
+            gender = gender,
+            avatarUri = _uiState.value.accountProfile.avatarUri
         )
         firestore.collection("users")
             .document(user.uid)
@@ -212,6 +249,7 @@ class AuthViewModel(
                     "phone" to profile.phone,
                     "birthday" to profile.birthday,
                     "gender" to profile.gender,
+                    "avatarUri" to profile.avatarUri,
                     "emailVerified" to user.isEmailVerified,
                     "updatedAt" to System.currentTimeMillis()
                 ),
@@ -265,6 +303,34 @@ class AuthViewModel(
             }
     }
 
+    fun saveAvatarUri(uri: String) {
+        val user = auth.currentUser ?: return
+        _uiState.update {
+            it.copy(
+                accountProfile = it.accountProfile.copy(avatarUri = uri),
+                errorMessage = null,
+                infoMessage = null
+            )
+        }
+        firestore.collection("users")
+            .document(user.uid)
+            .set(
+                mapOf(
+                    "avatarUri" to uri,
+                    "updatedAt" to System.currentTimeMillis()
+                ),
+                com.google.firebase.firestore.SetOptions.merge()
+            )
+            .addOnSuccessListener {
+                _uiState.update { it.copy(infoMessage = "Da cap nhat anh dai dien.") }
+            }
+            .addOnFailureListener { throwable ->
+                _uiState.update {
+                    it.copy(errorMessage = throwable.localizedMessage ?: "Khong the cap nhat anh dai dien.")
+                }
+            }
+    }
+
     fun clearMessages() {
         _uiState.update { it.copy(errorMessage = null, infoMessage = null) }
     }
@@ -293,6 +359,7 @@ class AuthViewModel(
                     phone = document.getString("phone").orEmpty(),
                     birthday = document.getString("birthday").orEmpty(),
                     gender = document.getString("gender").orEmpty(),
+                    avatarUri = document.getString("avatarUri"),
                     pinSet = document.getBoolean("pinSet") ?: false
                 )
                 _uiState.update { state ->

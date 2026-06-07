@@ -13,15 +13,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.myapplication.domain.model.CommunityPost
+import com.example.myapplication.domain.model.SocialProfile
 import com.example.myapplication.core.designsystem.component.CommunityCard
 import com.example.myapplication.core.designsystem.component.SectionHeader
 
 @Composable
 fun CommunityScreen(
     posts: List<CommunityPost>,
+    profiles: List<SocialProfile>,
     currentAuthorName: String,
     currentUserId: String?,
     onOpenEvent: (String) -> Unit,
+    onOpenProfile: (String) -> Unit,
     onSharePost: (CommunityPost, String) -> Unit,
     onToggleLike: (String) -> Unit,
     onOpenAuth: () -> Unit,
@@ -50,9 +53,11 @@ fun CommunityScreen(
                                 group.forEach { post ->
                                     CommunityCard(
                                         post = post,
+                                        authorProfile = profiles.firstOrNull { it.id == post.authorId },
                                         currentAuthorName = currentAuthorName,
                                         currentUserId = currentUserId,
                                         onOpenEventCommunity = onOpenEvent,
+                                        onOpenProfile = onOpenProfile,
                                         onSharePost = onSharePost,
                                         onToggleLike = { onToggleLike(post.id) },
                                         onOpenAuth = onOpenAuth
@@ -66,9 +71,11 @@ fun CommunityScreen(
                 items(posts) { post ->
                     CommunityCard(
                         post = post,
+                        authorProfile = profiles.firstOrNull { it.id == post.authorId },
                         currentAuthorName = currentAuthorName,
                         currentUserId = currentUserId,
                         onOpenEventCommunity = onOpenEvent,
+                        onOpenProfile = onOpenProfile,
                         onSharePost = onSharePost,
                         onToggleLike = { onToggleLike(post.id) },
                         onOpenAuth = onOpenAuth

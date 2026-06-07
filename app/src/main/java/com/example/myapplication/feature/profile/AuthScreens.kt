@@ -1,5 +1,9 @@
 package com.example.myapplication.feature.profile
 
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialException
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -34,6 +38,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -42,10 +47,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -53,7 +61,11 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplication.R
 import com.example.myapplication.core.designsystem.theme.Evergreen
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
@@ -61,12 +73,17 @@ fun LoginScreen(
     onClose: () -> Unit,
     onOpenRegister: () -> Unit,
     onLogin: (String, String) -> Unit,
+    onGoogleLogin: (String) -> Unit,
+    onGoogleLoginError: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var account by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     val canSubmit = account.isNotBlank() && password.isNotBlank()
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val googleWebClientId = stringResource(R.string.google_web_client_id)
 
     AuthScaffold(
         modifier = modifier,
@@ -114,6 +131,38 @@ fun LoginScreen(
         ) {
             Text(if (authState.isLoading) "Đang xử lý..." else "Đăng nhập", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
         }
+        GoogleSignInButton(
+            enabled = !authState.isLoading,
+            onClick = {
+                if (googleWebClientId.isBlank() || googleWebClientId.startsWith("YOUR_WEB_CLIENT_ID")) {
+                    onGoogleLoginError("Chua cau hinh Google Web Client ID trong strings.xml.")
+                    return@GoogleSignInButton
+                }
+                coroutineScope.launch {
+                    try {
+                        val googleIdOption = GetGoogleIdOption.Builder()
+                            .setFilterByAuthorizedAccounts(false)
+                            .setServerClientId(googleWebClientId)
+                            .build()
+                        val request = GetCredentialRequest.Builder()
+                            .addCredentialOption(googleIdOption)
+                            .build()
+                        val result = CredentialManager.create(context).getCredential(
+                            context = context,
+                            request = request
+                        )
+                        val googleCredential = GoogleIdTokenCredential.createFrom(result.credential.data)
+                        onGoogleLogin(googleCredential.idToken)
+                    } catch (_: GetCredentialCancellationException) {
+                        onGoogleLoginError("Ban da huy dang nhap bang Google.")
+                    } catch (throwable: GetCredentialException) {
+                        onGoogleLoginError(throwable.localizedMessage ?: "Khong the mo Google account.")
+                    } catch (throwable: IllegalArgumentException) {
+                        onGoogleLoginError(throwable.localizedMessage ?: "Google account khong hop le.")
+                    }
+                }
+            }
+        )
         AuthMessage(error = authState.errorMessage, info = authState.infoMessage)
         Text(
             text = "Quên mật khẩu?",
@@ -316,7 +365,6 @@ private fun AuthScaffold(
             if (!shouldScroll) {
                 Spacer(modifier = Modifier.weight(1f))
             }
-            TermsText(horizontalPadding = horizontalPadding)
         }
     }
 }
@@ -369,6 +417,43 @@ private fun AuthTextField(
 }
 
 @Composable
+private fun GoogleSignInButton(
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.fillMaxWidth().height(56.dp),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, Color(0xFFDADCE0))
+    ) {
+        Surface(
+            modifier = Modifier.size(24.dp),
+            shape = CircleShape,
+            color = Color.White,
+            border = BorderStroke(1.dp, Color(0xFFDADCE0))
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = "G",
+                    color = Color(0xFF4285F4),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
+        }
+        Text(
+            text = "Dang nhap bang Google",
+            modifier = Modifier.padding(start = 10.dp),
+            color = Color(0xFF202124),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
 private fun PasswordRules() {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -410,13 +495,3 @@ private fun AuthMessage(error: String?, info: String?) {
     )
 }
 
-@Composable
-private fun TermsText(horizontalPadding: androidx.compose.ui.unit.Dp) {
-    Text(
-        text = "Bang viec tiep tuc, ban da doc va dong y voi Dieu khoan su dung va Chinh sach bao mat thong tin ca nhan cua Ticketbox",
-        modifier = Modifier.fillMaxWidth().padding(horizontal = horizontalPadding, vertical = 18.dp),
-        color = Color(0xFF222222),
-        style = MaterialTheme.typography.bodyMedium,
-        textAlign = TextAlign.Start
-    )
-}

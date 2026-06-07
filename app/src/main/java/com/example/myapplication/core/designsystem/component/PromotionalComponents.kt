@@ -109,6 +109,7 @@ import com.example.myapplication.domain.model.CommunityPost
 import com.example.myapplication.domain.model.Event
 import com.example.myapplication.domain.model.EventMoment
 import com.example.myapplication.domain.model.SharedCommunityPost
+import com.example.myapplication.domain.model.SocialProfile
 import com.example.myapplication.domain.model.TicketStatus
 import com.example.myapplication.domain.model.TicketTier
 import com.example.myapplication.domain.model.TicketWalletItem
@@ -230,12 +231,64 @@ fun GradientPanel(title: String, body: String, action: String, onAction: () -> U
 }
 
 @Composable
+private fun FeedProfileAvatar(
+    profile: SocialProfile?,
+    size: Dp = 44.dp,
+    onOpenProfile: (String) -> Unit
+) {
+    if (profile == null) {
+        CircleAvatar(size = size)
+        return
+    }
+
+    Box(
+        modifier = Modifier
+            .size(size + 4.dp)
+            .clickable { onOpenProfile(profile.id) },
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            modifier = Modifier.size(size),
+            shape = CircleShape,
+            color = profile.avatarComposeColor
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = profile.avatarInitial,
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        if (profile.verified) {
+            Surface(
+                modifier = Modifier.align(Alignment.TopEnd).size((size.value * 0.38f).dp),
+                shape = CircleShape,
+                color = Color.White
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = "Tai khoan da xac minh",
+                        tint = Color(0xFF1D9BF0),
+                        modifier = Modifier.size((size.value * 0.32f).dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun CommunityCard(
     post: CommunityPost,
     modifier: Modifier = Modifier,
+    authorProfile: SocialProfile? = null,
     currentAuthorName: String = "Bạn",
     currentUserId: String? = null,
     onOpenEventCommunity: (String) -> Unit = {},
+    onOpenProfile: (String) -> Unit = {},
     onSharePost: (CommunityPost, String) -> Unit = { _, _ -> },
     onToggleLike: () -> Unit = {},
     onOpenAuth: () -> Unit = {}
@@ -257,6 +310,8 @@ fun CommunityCard(
             SharedPostPreview(
                 post = post,
                 share = sharedPost,
+                authorProfile = authorProfile,
+                onOpenProfile = onOpenProfile,
                 onCommentClick = { commentOpen = true },
                 onShareClick = { shareOpen = true }
             )
@@ -268,7 +323,7 @@ fun CommunityCard(
             ) {
                 Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        CircleAvatar()
+                        FeedProfileAvatar(profile = authorProfile, onOpenProfile = onOpenProfile)
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             if (post.eventTitle != null) {
                                 Text(
@@ -284,11 +339,16 @@ fun CommunityCard(
                                 PostMetaLine(
                                     author = post.author,
                                     timeLabel = post.postTimeLabel(),
-                                    textStyle = MaterialTheme.typography.bodyMedium
+                                    textStyle = MaterialTheme.typography.bodyMedium,
+                                    onAuthorClick = post.authorId?.let { { onOpenProfile(it) } },
+                                    verified = authorProfile?.verified == true
                                 )
                             } else {
                                 Text(
                                     text = post.author,
+                                    modifier = Modifier.clickable(enabled = post.authorId != null) {
+                                        post.authorId?.let(onOpenProfile)
+                                    },
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1,
@@ -382,6 +442,8 @@ fun CommunityCard(
 private fun SharedPostPreview(
     post: CommunityPost,
     share: SharedCommunityPost,
+    authorProfile: SocialProfile?,
+    onOpenProfile: (String) -> Unit,
     onCommentClick: () -> Unit,
     onShareClick: () -> Unit
 ) {
@@ -392,10 +454,13 @@ private fun SharedPostPreview(
     ) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                CircleAvatar()
+                FeedProfileAvatar(profile = authorProfile, onOpenProfile = onOpenProfile)
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         text = share.author,
+                        modifier = Modifier.clickable(enabled = post.authorId != null) {
+                            post.authorId?.let(onOpenProfile)
+                        },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -427,7 +492,11 @@ private fun SharedPostPreview(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            CircleAvatar(size = 36.dp)
+                            FeedProfileAvatar(
+                                profile = authorProfile,
+                                size = 36.dp,
+                                onOpenProfile = onOpenProfile
+                            )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = post.eventTitle ?: post.author,
@@ -723,7 +792,9 @@ private fun CommunityMediaItem.toDisplayItem(): DisplayCommunityMediaItem {
 private fun PostMetaLine(
     timeLabel: String,
     textStyle: androidx.compose.ui.text.TextStyle,
-    author: String? = null
+    author: String? = null,
+    onAuthorClick: (() -> Unit)? = null,
+    verified: Boolean = false
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -732,6 +803,7 @@ private fun PostMetaLine(
         if (!author.isNullOrBlank()) {
             Text(
                 text = author,
+                modifier = Modifier.clickable(enabled = onAuthorClick != null) { onAuthorClick?.invoke() },
                 color = SoftText,
                 style = textStyle,
                 fontWeight = FontWeight.SemiBold,
