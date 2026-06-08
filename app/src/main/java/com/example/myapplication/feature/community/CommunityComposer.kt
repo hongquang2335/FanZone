@@ -73,7 +73,7 @@ fun ComposerCard(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            CircleAvatar(size = 44.dp)
+            CircleAvatar(size = 44.dp, imageUrl = state.currentAuthorAvatarUrl)
             Surface(
                 modifier = Modifier
                     .weight(1f)
@@ -213,7 +213,7 @@ private fun NewPostDialog(
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    CircleAvatar(size = 64.dp)
+                    CircleAvatar(size = 64.dp, imageUrl = state.currentAuthorAvatarUrl)
                     Text(state.currentAuthorName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
                 }
 

@@ -1,0 +1,23 @@
+{
+  "collection": "users",
+  "documentId": "__user_schema_seed__",
+  "data": {
+    "uid": null,
+    "email": null,
+    "displayName": null,
+    "phone": null,
+    "birthday": null,
+    "gender": null,
+    "avatarUrl": null,
+    "followers": null,
+    "following": null,
+    "followerIds": null,
+    "followingIds": null,
+    "emailVerified": null,
+    "authProviders": null,
+    "schemaVersion": 1,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  "note": "Seed this document once to show the full users schema. The app deletes it after the first real user document is saved."
+}

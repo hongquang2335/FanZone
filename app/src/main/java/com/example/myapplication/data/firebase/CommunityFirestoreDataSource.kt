@@ -1,6 +1,7 @@
 package com.example.myapplication.data.firebase
 
 import com.example.myapplication.domain.model.CommunityPost
+import com.example.myapplication.domain.model.CommunityComment
 import com.example.myapplication.domain.model.CommunityMediaItem
 import com.example.myapplication.domain.model.SharedCommunityPost
 import com.google.android.gms.tasks.Task
@@ -40,6 +41,10 @@ class CommunityFirestoreDataSource(
     fun createCommunityPost(
         authorId: String?,
         author: String,
+        authorAvatarUrl: String?,
+        authorFollowerCount: Int,
+        authorFollowingCount: Int,
+        isAuthorFollowed: Boolean,
         role: String,
         topic: String,
         content: String,
@@ -52,7 +57,12 @@ class CommunityFirestoreDataSource(
     ): Task<DocumentReference> {
         val data = mutableMapOf<String, Any?>(
             FIELD_AUTHOR_ID to authorId,
+            FIELD_TYPE to TYPE_POST,
             FIELD_AUTHOR to author,
+            FIELD_AUTHOR_AVATAR_URL to authorAvatarUrl,
+            FIELD_AUTHOR_FOLLOWER_COUNT to authorFollowerCount,
+            FIELD_AUTHOR_FOLLOWING_COUNT to authorFollowingCount,
+            FIELD_IS_AUTHOR_FOLLOWED to isAuthorFollowed,
             FIELD_ROLE to role,
             FIELD_TOPIC to topic,
             FIELD_CONTENT to content,
@@ -74,33 +84,110 @@ class CommunityFirestoreDataSource(
 
     fun createSharedPost(
         originalPost: CommunityPost,
+        shareAuthorId: String,
         shareAuthor: String,
+        shareAuthorAvatarUrl: String?,
         caption: String
-    ): Task<DocumentReference> {
+    ): Task<Void> {
+        val originalPostId = originalPost.originalPostId ?: originalPost.id
+        val shareDocument = postsCollection.document()
+        val shareRecordDocument = postsCollection
+            .document(originalPostId)
+            .collection(SHARES_COLLECTION)
+            .document(shareDocument.id)
+        val originalSnapshot = originalPost.sharedPost ?: originalPost.toOriginalShareSnapshot(originalPostId)
         val data = mutableMapOf<String, Any?>(
-            FIELD_AUTHOR_ID to originalPost.authorId,
-            FIELD_AUTHOR to originalPost.author,
-            FIELD_ROLE to originalPost.role,
-            FIELD_TOPIC to originalPost.topic,
-            FIELD_CONTENT to originalPost.content,
+            FIELD_TYPE to TYPE_SHARE,
+            FIELD_AUTHOR_ID to shareAuthorId,
+            FIELD_AUTHOR to shareAuthor,
+            FIELD_AUTHOR_AVATAR_URL to shareAuthorAvatarUrl,
+            FIELD_AUTHOR_FOLLOWER_COUNT to 0,
+            FIELD_AUTHOR_FOLLOWING_COUNT to 0,
+            FIELD_IS_AUTHOR_FOLLOWED to false,
+            FIELD_ROLE to "Thanh vien cong dong",
+            FIELD_TOPIC to "Bai viet chia se",
+            FIELD_CONTENT to caption,
             FIELD_LIKES to 0,
             FIELD_LIKED_BY to emptyList<String>(),
             FIELD_COMMENTS to 0,
             FIELD_SHARE_COUNT to 0,
-            FIELD_IMAGE_URL to originalPost.imageUrl,
-            FIELD_MEDIA_URL to originalPost.mediaUrl,
-            FIELD_MEDIA_TYPE to originalPost.mediaType,
-            FIELD_MEDIA_ITEMS to originalPost.mediaItems.map { it.toFirestoreMap() },
-            FIELD_EVENT_ID to originalPost.eventId,
-            FIELD_EVENT_TITLE to originalPost.eventTitle,
-            FIELD_SHARED_POST to mapOf(
-                FIELD_SHARED_AUTHOR to shareAuthor,
-                FIELD_SHARED_CAPTION to caption
-            ),
+            FIELD_IMAGE_URL to null,
+            FIELD_MEDIA_URL to null,
+            FIELD_MEDIA_TYPE to null,
+            FIELD_MEDIA_ITEMS to emptyList<Map<String, Any?>>(),
+            FIELD_EVENT_ID to originalSnapshot.eventId,
+            FIELD_EVENT_TITLE to originalSnapshot.eventTitle,
+            FIELD_ORIGINAL_POST_ID to originalPostId,
+            FIELD_RESHARED_FROM_POST_ID to originalPost.id.takeIf { it != originalPostId },
+            FIELD_SHARED_POST to originalSnapshot.toFirestoreMap(),
             FIELD_CREATED_AT to FieldValue.serverTimestamp(),
             FIELD_UPDATED_AT to FieldValue.serverTimestamp()
         )
-        return postsCollection.add(data)
+        val shareRecord = mapOf(
+            FIELD_SHARE_ID to shareDocument.id,
+            FIELD_POST_ID to originalPostId,
+            FIELD_AUTHOR_ID to shareAuthorId,
+            FIELD_AUTHOR to shareAuthor,
+            FIELD_AUTHOR_AVATAR_URL to shareAuthorAvatarUrl,
+            FIELD_SHARED_CAPTION to caption,
+            FIELD_RESHARED_FROM_POST_ID to originalPost.id.takeIf { it != originalPostId },
+            FIELD_CREATED_AT to FieldValue.serverTimestamp()
+        )
+        return firestore.runBatch { batch ->
+            batch.set(shareDocument, data)
+            batch.set(shareRecordDocument, shareRecord)
+            batch.update(postsCollection.document(originalPostId), FIELD_SHARE_COUNT, FieldValue.increment(1))
+        }
+    }
+
+    fun observeComments(
+        postId: String,
+        onComments: (List<CommunityComment>) -> Unit,
+        onError: (Throwable) -> Unit
+    ): ListenerRegistration {
+        return postsCollection
+            .document(postId)
+            .collection(COMMENTS_COLLECTION)
+            .orderBy(FIELD_CREATED_AT, Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onError(error)
+                    return@addSnapshotListener
+                }
+                onComments(snapshot?.documents?.mapNotNull { it.toCommunityComment(postId) }.orEmpty())
+            }
+    }
+
+    fun addComment(
+        postId: String,
+        authorId: String,
+        authorName: String,
+        authorAvatarUrl: String?,
+        text: String,
+        mediaUrl: String? = null,
+        mediaType: String? = null,
+        mediaItems: List<CommunityMediaItem> = emptyList()
+    ): Task<Void> {
+        val commentDocument = postsCollection.document(postId).collection(COMMENTS_COLLECTION).document()
+        val data = mapOf(
+            FIELD_COMMENT_ID to commentDocument.id,
+            FIELD_POST_ID to postId,
+            FIELD_AUTHOR_ID to authorId,
+            FIELD_AUTHOR to authorName,
+            FIELD_AUTHOR_AVATAR_URL to authorAvatarUrl,
+            FIELD_TEXT to text,
+            FIELD_MEDIA_URL to mediaUrl,
+            FIELD_MEDIA_TYPE to mediaType,
+            FIELD_MEDIA_ITEMS to mediaItems.map { it.toFirestoreMap() },
+            FIELD_LIKES to 0,
+            FIELD_LIKED_BY to emptyList<String>(),
+            FIELD_CREATED_AT to FieldValue.serverTimestamp(),
+            FIELD_UPDATED_AT to FieldValue.serverTimestamp()
+        )
+        return firestore.runBatch { batch ->
+            batch.set(commentDocument, data)
+            batch.update(postsCollection.document(postId), FIELD_COMMENTS, FieldValue.increment(1))
+        }
     }
 
     fun upsertCommunityPost(post: CommunityPost): Task<Void> {
@@ -165,8 +252,13 @@ class CommunityFirestoreDataSource(
 
         return CommunityPost(
             id = document.id,
+            type = document.getString(FIELD_TYPE) ?: TYPE_POST,
             authorId = document.getString(FIELD_AUTHOR_ID),
             author = author,
+            authorAvatarUrl = document.getString(FIELD_AUTHOR_AVATAR_URL),
+            authorFollowerCount = document.getLong(FIELD_AUTHOR_FOLLOWER_COUNT)?.toInt() ?: 0,
+            authorFollowingCount = document.getLong(FIELD_AUTHOR_FOLLOWING_COUNT)?.toInt() ?: 0,
+            isAuthorFollowed = document.getBoolean(FIELD_IS_AUTHOR_FOLLOWED) ?: false,
             role = role,
             topic = topic,
             content = content,
@@ -181,6 +273,8 @@ class CommunityFirestoreDataSource(
             mediaItems = document.get(FIELD_MEDIA_ITEMS)?.let(::toMediaItems).orEmpty(),
             eventId = document.getString(FIELD_EVENT_ID),
             eventTitle = document.getString(FIELD_EVENT_TITLE),
+            originalPostId = document.getString(FIELD_ORIGINAL_POST_ID),
+            resharedFromPostId = document.getString(FIELD_RESHARED_FROM_POST_ID),
             sharedPost = document.get(FIELD_SHARED_POST)?.let(::toSharedPost),
             createdAtMillis = document.getTimestamp(FIELD_CREATED_AT)?.toDate()?.time,
             updatedAtMillis = document.getTimestamp(FIELD_UPDATED_AT)?.toDate()?.time
@@ -203,7 +297,16 @@ class CommunityFirestoreDataSource(
     private fun toSharedPost(value: Any): SharedCommunityPost? {
         val data = value as? Map<String, Any?> ?: return null
         return SharedCommunityPost(
-            author = data[FIELD_SHARED_AUTHOR] as? String ?: return null,
+            postId = data[FIELD_POST_ID] as? String,
+            authorId = data[FIELD_AUTHOR_ID] as? String,
+            author = data[FIELD_SHARED_AUTHOR] as? String
+                ?: data[FIELD_AUTHOR] as? String
+                ?: return null,
+            authorAvatarUrl = data[FIELD_AUTHOR_AVATAR_URL] as? String,
+            content = data[FIELD_CONTENT] as? String ?: "",
+            mediaItems = data[FIELD_MEDIA_ITEMS]?.let(::toMediaItems).orEmpty(),
+            eventId = data[FIELD_EVENT_ID] as? String,
+            eventTitle = data[FIELD_EVENT_TITLE] as? String,
             caption = data[FIELD_SHARED_CAPTION] as? String ?: ""
         )
     }
@@ -217,9 +320,21 @@ class CommunityFirestoreDataSource(
 
     companion object {
         const val POSTS_COLLECTION = "posts"
+        const val COMMENTS_COLLECTION = "comments"
+        const val SHARES_COLLECTION = "shares"
+        const val TYPE_POST = "post"
+        const val TYPE_SHARE = "share"
 
+        const val FIELD_TYPE = "type"
+        const val FIELD_POST_ID = "postId"
+        const val FIELD_COMMENT_ID = "commentId"
+        const val FIELD_SHARE_ID = "shareId"
         const val FIELD_AUTHOR_ID = "authorId"
         const val FIELD_AUTHOR = "author"
+        const val FIELD_AUTHOR_AVATAR_URL = "authorAvatarUrl"
+        const val FIELD_AUTHOR_FOLLOWER_COUNT = "authorFollowerCount"
+        const val FIELD_AUTHOR_FOLLOWING_COUNT = "authorFollowingCount"
+        const val FIELD_IS_AUTHOR_FOLLOWED = "isAuthorFollowed"
         const val FIELD_ROLE = "role"
         const val FIELD_TOPIC = "topic"
         const val FIELD_CONTENT = "content"
@@ -235,7 +350,10 @@ class CommunityFirestoreDataSource(
         const val FIELD_MEDIA_ITEM_TYPE = "type"
         const val FIELD_EVENT_ID = "eventId"
         const val FIELD_EVENT_TITLE = "eventTitle"
+        const val FIELD_ORIGINAL_POST_ID = "originalPostId"
+        const val FIELD_RESHARED_FROM_POST_ID = "resharedFromPostId"
         const val FIELD_SHARED_POST = "sharedPost"
+        const val FIELD_TEXT = "text"
         const val FIELD_CREATED_AT = "createdAt"
         const val FIELD_UPDATED_AT = "updatedAt"
         const val FIELD_SHARED_AUTHOR = "author"
@@ -243,7 +361,12 @@ class CommunityFirestoreDataSource(
 
         val requiredFields = listOf(
             FIELD_AUTHOR_ID,
+            FIELD_TYPE,
             FIELD_AUTHOR,
+            FIELD_AUTHOR_AVATAR_URL,
+            FIELD_AUTHOR_FOLLOWER_COUNT,
+            FIELD_AUTHOR_FOLLOWING_COUNT,
+            FIELD_IS_AUTHOR_FOLLOWED,
             FIELD_ROLE,
             FIELD_TOPIC,
             FIELD_CONTENT,
@@ -261,15 +384,51 @@ class CommunityFirestoreDataSource(
             FIELD_MEDIA_TYPE,
             FIELD_MEDIA_ITEMS,
             FIELD_EVENT_ID,
-            FIELD_EVENT_TITLE
+            FIELD_EVENT_TITLE,
+            FIELD_ORIGINAL_POST_ID,
+            FIELD_RESHARED_FROM_POST_ID
         )
     }
 }
 
+private fun DocumentSnapshot.toCommunityComment(postId: String): CommunityComment? {
+    val authorId = getString(CommunityFirestoreDataSource.FIELD_AUTHOR_ID) ?: return null
+    val author = getString(CommunityFirestoreDataSource.FIELD_AUTHOR) ?: return null
+    return CommunityComment(
+        id = id,
+        postId = postId,
+        authorId = authorId,
+        authorName = author,
+        authorAvatarUrl = getString(CommunityFirestoreDataSource.FIELD_AUTHOR_AVATAR_URL),
+        text = getString(CommunityFirestoreDataSource.FIELD_TEXT).orEmpty(),
+        mediaUrl = getString(CommunityFirestoreDataSource.FIELD_MEDIA_URL),
+        mediaType = getString(CommunityFirestoreDataSource.FIELD_MEDIA_TYPE),
+        mediaItems = get(CommunityFirestoreDataSource.FIELD_MEDIA_ITEMS)?.let { value ->
+            (value as? List<Map<String, Any?>>)
+                ?.mapNotNull { item ->
+                    CommunityMediaItem(
+                        url = item[CommunityFirestoreDataSource.FIELD_MEDIA_ITEM_URL] as? String ?: return@mapNotNull null,
+                        type = item[CommunityFirestoreDataSource.FIELD_MEDIA_ITEM_TYPE] as? String ?: "application/octet-stream"
+                    )
+                }
+                .orEmpty()
+        }.orEmpty(),
+        likes = getLong(CommunityFirestoreDataSource.FIELD_LIKES)?.toInt() ?: 0,
+        likedBy = (get(CommunityFirestoreDataSource.FIELD_LIKED_BY) as? List<*>)?.mapNotNull { it as? String }.orEmpty(),
+        createdAtMillis = getTimestamp(CommunityFirestoreDataSource.FIELD_CREATED_AT)?.toDate()?.time,
+        updatedAtMillis = getTimestamp(CommunityFirestoreDataSource.FIELD_UPDATED_AT)?.toDate()?.time
+    )
+}
+
 private fun CommunityPost.toFirestoreMap(): Map<String, Any?> {
     return mapOf(
+        CommunityFirestoreDataSource.FIELD_TYPE to type,
         CommunityFirestoreDataSource.FIELD_AUTHOR_ID to authorId,
         CommunityFirestoreDataSource.FIELD_AUTHOR to author,
+        CommunityFirestoreDataSource.FIELD_AUTHOR_AVATAR_URL to authorAvatarUrl,
+        CommunityFirestoreDataSource.FIELD_AUTHOR_FOLLOWER_COUNT to authorFollowerCount,
+        CommunityFirestoreDataSource.FIELD_AUTHOR_FOLLOWING_COUNT to authorFollowingCount,
+        CommunityFirestoreDataSource.FIELD_IS_AUTHOR_FOLLOWED to isAuthorFollowed,
         CommunityFirestoreDataSource.FIELD_ROLE to role,
         CommunityFirestoreDataSource.FIELD_TOPIC to topic,
         CommunityFirestoreDataSource.FIELD_CONTENT to content,
@@ -283,14 +442,40 @@ private fun CommunityPost.toFirestoreMap(): Map<String, Any?> {
         CommunityFirestoreDataSource.FIELD_MEDIA_ITEMS to mediaItems.map { it.toFirestoreMap() },
         CommunityFirestoreDataSource.FIELD_EVENT_ID to eventId,
         CommunityFirestoreDataSource.FIELD_EVENT_TITLE to eventTitle,
+        CommunityFirestoreDataSource.FIELD_ORIGINAL_POST_ID to originalPostId,
+        CommunityFirestoreDataSource.FIELD_RESHARED_FROM_POST_ID to resharedFromPostId,
         CommunityFirestoreDataSource.FIELD_SHARED_POST to sharedPost?.let { share ->
-            mapOf(
-                CommunityFirestoreDataSource.FIELD_SHARED_AUTHOR to share.author,
-                CommunityFirestoreDataSource.FIELD_SHARED_CAPTION to share.caption
-            )
+            share.toFirestoreMap()
         },
         CommunityFirestoreDataSource.FIELD_CREATED_AT to FieldValue.serverTimestamp(),
         CommunityFirestoreDataSource.FIELD_UPDATED_AT to FieldValue.serverTimestamp()
+    )
+}
+
+private fun CommunityPost.toOriginalShareSnapshot(originalPostId: String): SharedCommunityPost {
+    return SharedCommunityPost(
+        postId = originalPostId,
+        authorId = authorId,
+        author = author,
+        authorAvatarUrl = authorAvatarUrl,
+        content = content,
+        mediaItems = mediaItems,
+        eventId = eventId,
+        eventTitle = eventTitle
+    )
+}
+
+private fun SharedCommunityPost.toFirestoreMap(): Map<String, Any?> {
+    return mapOf(
+        CommunityFirestoreDataSource.FIELD_POST_ID to postId,
+        CommunityFirestoreDataSource.FIELD_AUTHOR_ID to authorId,
+        CommunityFirestoreDataSource.FIELD_SHARED_AUTHOR to author,
+        CommunityFirestoreDataSource.FIELD_AUTHOR_AVATAR_URL to authorAvatarUrl,
+        CommunityFirestoreDataSource.FIELD_CONTENT to content,
+        CommunityFirestoreDataSource.FIELD_MEDIA_ITEMS to mediaItems.map { it.toFirestoreMap() },
+        CommunityFirestoreDataSource.FIELD_EVENT_ID to eventId,
+        CommunityFirestoreDataSource.FIELD_EVENT_TITLE to eventTitle,
+        CommunityFirestoreDataSource.FIELD_SHARED_CAPTION to caption
     )
 }
 

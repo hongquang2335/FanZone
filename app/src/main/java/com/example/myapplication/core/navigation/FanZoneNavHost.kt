@@ -14,20 +14,22 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.myapplication.feature.booking.BookingRoute
 import com.example.myapplication.feature.checkout.CheckoutRoute
-import com.example.myapplication.feature.community.CommunityFeedViewModel
-import com.example.myapplication.feature.community.CommunityScreen
-import com.example.myapplication.feature.community.EventCommunityScreen
+import com.example.myapplication.feature.community.CommunityRoute
+import com.example.myapplication.feature.community.CommunityViewModel
+import com.example.myapplication.feature.community.EventCommunityRoute
 import com.example.myapplication.feature.event.EventDetailRoute
 import com.example.myapplication.feature.event.EventDetailScreen
 import com.example.myapplication.feature.home.HomeScreen
-import com.example.myapplication.feature.profile.AccountInfoScreen
-import com.example.myapplication.feature.profile.AuthViewModel
-import com.example.myapplication.feature.profile.LoginScreen
-import com.example.myapplication.feature.profile.NotificationSettingsScreen
-import com.example.myapplication.feature.profile.PinSetupScreen
-import com.example.myapplication.feature.profile.ProfileOptionsScreen
-import com.example.myapplication.feature.profile.ProfileScreen
-import com.example.myapplication.feature.profile.RegisterScreen
+import com.example.myapplication.feature.authentication.AuthViewModel
+import com.example.myapplication.feature.authentication.ForgotPasswordScreen
+import com.example.myapplication.feature.authentication.LoginScreen
+import com.example.myapplication.feature.authentication.NewPasswordScreen
+import com.example.myapplication.feature.authentication.RegisterScreen
+import com.example.myapplication.feature.authentication.ResetPasswordCodeScreen
+import com.example.myapplication.feature.profile.AccountInfoRoute
+import com.example.myapplication.feature.profile.NotificationSettingsRoute
+import com.example.myapplication.feature.profile.ProfileOptionsRoute
+import com.example.myapplication.feature.profile.ProfileRoute
 import com.example.myapplication.feature.success.PurchaseSuccessScreen
 import com.example.myapplication.feature.support.ChatbotScreen
 import com.example.myapplication.feature.tickets.TicketWalletRoute
@@ -42,10 +44,10 @@ fun FanZoneNavHost(
     darkTheme: Boolean,
     onDarkThemeChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    communityFeedViewModel: CommunityFeedViewModel = composeViewModel(),
+    communityViewModel: CommunityViewModel = composeViewModel(),
     authViewModel: AuthViewModel = composeViewModel()
 ) {
-    val communityFeedState by communityFeedViewModel.uiState.collectAsStateWithLifecycle()
+    val communityState by communityViewModel.uiState.collectAsStateWithLifecycle()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
 
     NavHost(
@@ -67,17 +69,13 @@ fun FanZoneNavHost(
             )
         }
         composable(AppDestination.Community.route) {
-            CommunityScreen(
-                posts = communityFeedState.posts,
-                currentAuthorName = communityFeedState.currentAuthorName,
-                currentUserId = communityFeedState.currentUserId,
+            CommunityRoute(
                 onOpenEvent = { eventId ->
                     viewModel.selectEvent(eventId)
                     navController.navigate(AppDestination.EventCommunity.create(eventId))
                 },
-                onSharePost = communityFeedViewModel::sharePost,
-                onToggleLike = communityFeedViewModel::toggleLike,
                 onOpenAuth = { navController.navigate(AppDestination.Login.route) },
+                viewModel = communityViewModel,
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -90,15 +88,12 @@ fun FanZoneNavHost(
             LaunchedEffect(eventId) {
                 eventId?.let(viewModel::selectEvent)
             }
-            EventCommunityScreen(
+            EventCommunityRoute(
                 event = event,
-                posts = communityFeedState.posts.filter { it.eventId == eventId },
-                currentAuthorName = communityFeedState.currentAuthorName,
-                currentUserId = communityFeedState.currentUserId,
-                onSharePost = communityFeedViewModel::sharePost,
-                onToggleLike = communityFeedViewModel::toggleLike,
+                eventId = eventId,
                 onOpenAuth = { navController.navigate(AppDestination.Login.route) },
                 onBack = { navController.popBackStack() },
+                viewModel = communityViewModel,
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -113,15 +108,17 @@ fun FanZoneNavHost(
             )
         }
         composable(AppDestination.Profile.route) {
-            ProfileScreen(
+            ProfileRoute(
                 user = uiState.user,
                 authState = authState,
                 unreadSupport = uiState.unreadSupportCount,
-                posts = communityFeedState.posts,
+                posts = communityState.posts,
                 onOpenSupport = { navController.navigate(AppDestination.Support.route) },
                 onOpenAuth = { navController.navigate(AppDestination.Login.route) },
-                onOpenAccountInfo = { navController.navigate(AppDestination.AccountInfo.route) },
-                onOpenPinSetup = { navController.navigate(AppDestination.PinSetup.route) },
+                onOpenAccountInfo = {
+                    authViewModel.clearMessages()
+                    navController.navigate(AppDestination.AccountInfo.route)
+                },
                 onOpenNotificationSettings = { navController.navigate(AppDestination.NotificationSettings.route) },
                 onOpenProfileOptions = { navController.navigate(AppDestination.ProfileOptions.route) },
                 onSignOut = authViewModel::signOut,
@@ -129,10 +126,12 @@ fun FanZoneNavHost(
             )
         }
         composable(AppDestination.ProfileOptions.route) {
-            ProfileOptionsScreen(
+            ProfileOptionsRoute(
                 onBack = { navController.popBackStack() },
-                onOpenAccountInfo = { navController.navigate(AppDestination.AccountInfo.route) },
-                onOpenPinSetup = { navController.navigate(AppDestination.PinSetup.route) },
+                onOpenAccountInfo = {
+                    authViewModel.clearMessages()
+                    navController.navigate(AppDestination.AccountInfo.route)
+                },
                 onOpenNotificationSettings = { navController.navigate(AppDestination.NotificationSettings.route) },
                 onOpenSupport = { navController.navigate(AppDestination.Support.route) },
                 onSignOut = {
@@ -143,25 +142,24 @@ fun FanZoneNavHost(
             )
         }
         composable(AppDestination.AccountInfo.route) {
-            AccountInfoScreen(
-                authUser = authState.user,
-                accountProfile = authState.accountProfile,
+            LaunchedEffect(Unit) {
+                authViewModel.clearMessages()
+            }
+            AccountInfoRoute(
                 authState = authState,
                 onSave = authViewModel::saveAccountProfile,
-                onBack = { navController.popBackStack() },
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-        composable(AppDestination.PinSetup.route) {
-            PinSetupScreen(
-                authState = authState,
-                onSavePin = authViewModel::savePin,
+                onLinkGoogle = { idToken ->
+                    authViewModel.signInWithGoogle(idToken) {
+                        navController.popBackStack()
+                    }
+                },
+                onGoogleError = authViewModel::showError,
                 onBack = { navController.popBackStack() },
                 modifier = Modifier.fillMaxSize()
             )
         }
         composable(AppDestination.NotificationSettings.route) {
-            NotificationSettingsScreen(
+            NotificationSettingsRoute(
                 darkTheme = darkTheme,
                 onDarkThemeChange = onDarkThemeChange,
                 onBack = { navController.popBackStack() },
@@ -171,10 +169,51 @@ fun FanZoneNavHost(
         composable(AppDestination.Login.route) {
             LoginScreen(
                 authState = authState,
-                onClose = { navController.popBackStack() },
-                onOpenRegister = { navController.navigate(AppDestination.Register.route) },
+                onClose = {
+                    authViewModel.clearMessages()
+                    navController.popBackStack()
+                },
+                onOpenRegister = {
+                    authViewModel.clearMessages()
+                    navController.navigate(AppDestination.Register.route)
+                },
                 onLogin = { email, password ->
                     authViewModel.signIn(email, password) {
+                        navController.navigate(AppDestination.Profile.route) {
+                            popUpTo(AppDestination.Profile.route) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                },
+                onForgotPassword = {
+                    authViewModel.clearMessages()
+                    navController.navigate(AppDestination.ForgotPassword.route)
+                },
+                onGoogleLogin = { idToken ->
+                    authViewModel.signInWithGoogle(idToken) {
+                        navController.navigate(AppDestination.Profile.route) {
+                            popUpTo(AppDestination.Profile.route) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                },
+                onGoogleLoginError = authViewModel::showError,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        composable(AppDestination.Register.route) {
+            RegisterScreen(
+                authState = authState,
+                onBack = {
+                    authViewModel.clearMessages()
+                    navController.popBackStack()
+                },
+                onOpenLogin = {
+                    authViewModel.clearMessages()
+                    navController.popBackStack(AppDestination.Login.route, inclusive = false)
+                },
+                onRegister = { email, password, repeatPassword ->
+                    authViewModel.register(email, password, repeatPassword) {
                         navController.navigate(AppDestination.Profile.route) {
                             popUpTo(AppDestination.Profile.route) { inclusive = true }
                             launchSingleTop = true
@@ -184,17 +223,50 @@ fun FanZoneNavHost(
                 modifier = Modifier.fillMaxSize()
             )
         }
-        composable(AppDestination.Register.route) {
-            RegisterScreen(
+        composable(AppDestination.ForgotPassword.route) {
+            ForgotPasswordScreen(
                 authState = authState,
-                onBack = { navController.popBackStack() },
-                onOpenLogin = {
-                    navController.popBackStack(AppDestination.Login.route, inclusive = false)
+                onBack = {
+                    authViewModel.clearMessages()
+                    navController.popBackStack()
                 },
-                onRegister = { email, password, repeatPassword ->
-                    authViewModel.register(email, password, repeatPassword) {
-                        navController.navigate(AppDestination.Profile.route) {
-                            popUpTo(AppDestination.Profile.route) { inclusive = true }
+                onSendResetLink = { email ->
+                    authViewModel.sendPasswordResetLink(email) {
+                        authViewModel.clearMessages()
+                        navController.navigate(AppDestination.ResetPasswordCode.create())
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        composable(AppDestination.ResetPasswordCode.route) {
+            ResetPasswordCodeScreen(
+                authState = authState,
+                onBack = {
+                    authViewModel.clearMessages()
+                    navController.popBackStack()
+                },
+                onVerifyCode = { codeOrLink ->
+                    authViewModel.verifyPasswordResetCode(codeOrLink) {
+                        authViewModel.clearMessages()
+                        navController.navigate(AppDestination.ResetPasswordNew.create())
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        composable(AppDestination.ResetPasswordNew.route) {
+            NewPasswordScreen(
+                authState = authState,
+                onBack = {
+                    authViewModel.clearMessages()
+                    navController.popBackStack()
+                },
+                onConfirmPasswordReset = { password, repeatPassword ->
+                    authViewModel.confirmVerifiedPasswordReset(password, repeatPassword) {
+                        authViewModel.clearMessages()
+                        navController.navigate(AppDestination.Login.route) {
+                            popUpTo(AppDestination.Login.route) { inclusive = true }
                             launchSingleTop = true
                         }
                     }

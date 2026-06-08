@@ -1,6 +1,5 @@
 package com.example.myapplication.feature.community
 
-import android.net.Uri
 import com.example.myapplication.domain.repository.SelectedCommunityMedia
 
 data class CommunityPostUiState(
@@ -10,7 +9,11 @@ data class CommunityPostUiState(
     val feeling: Boolean = false,
     val isPosting: Boolean = false,
     val currentAuthorId: String? = null,
-    val currentAuthorName: String = "Bạn",
+    val currentAuthorName: String = "Ban",
+    val currentAuthorAvatarUrl: String? = null,
+    val currentAuthorFollowerCount: Int = 0,
+    val currentAuthorFollowingCount: Int = 0,
+    val isCurrentAuthorFollowed: Boolean = false,
     val errorMessage: String? = null
 ) {
     val canPost: Boolean

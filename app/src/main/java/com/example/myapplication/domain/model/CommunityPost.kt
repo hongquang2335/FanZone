@@ -4,8 +4,13 @@ import androidx.annotation.DrawableRes
 
 data class CommunityPost(
     val id: String,
+    val type: String = "post",
     val authorId: String? = null,
     val author: String,
+    val authorAvatarUrl: String? = null,
+    val authorFollowerCount: Int = 0,
+    val authorFollowingCount: Int = 0,
+    val isAuthorFollowed: Boolean = false,
     val role: String,
     val topic: String,
     val content: String,
@@ -20,6 +25,8 @@ data class CommunityPost(
     val mediaItems: List<CommunityMediaItem> = emptyList(),
     val eventId: String? = null,
     val eventTitle: String? = null,
+    val originalPostId: String? = null,
+    val resharedFromPostId: String? = null,
     val sharedPost: SharedCommunityPost? = null,
     val createdAtMillis: Long? = null,
     val updatedAtMillis: Long? = null
@@ -36,6 +43,29 @@ data class CommunityMediaItem(
 )
 
 data class SharedCommunityPost(
+    val postId: String? = null,
+    val authorId: String? = null,
     val author: String,
-    val caption: String
+    val authorAvatarUrl: String? = null,
+    val content: String = "",
+    val mediaItems: List<CommunityMediaItem> = emptyList(),
+    val eventId: String? = null,
+    val eventTitle: String? = null,
+    val caption: String = ""
+)
+
+data class CommunityComment(
+    val id: String,
+    val postId: String,
+    val authorId: String,
+    val authorName: String,
+    val authorAvatarUrl: String? = null,
+    val text: String = "",
+    val mediaUrl: String? = null,
+    val mediaType: String? = null,
+    val mediaItems: List<CommunityMediaItem> = emptyList(),
+    val likes: Int = 0,
+    val likedBy: List<String> = emptyList(),
+    val createdAtMillis: Long? = null,
+    val updatedAtMillis: Long? = null
 )

@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.myapplication.core.designsystem.component.CommunityCard
 import com.example.myapplication.core.designsystem.theme.SoftText
+import com.example.myapplication.domain.model.CommunityComment
 import com.example.myapplication.domain.model.CommunityPost
 import com.example.myapplication.domain.model.Event
 
@@ -53,10 +54,14 @@ import com.example.myapplication.domain.model.Event
 fun EventCommunityScreen(
     event: Event,
     posts: List<CommunityPost>,
+    commentsByPostId: Map<String, List<CommunityComment>> = emptyMap(),
     currentAuthorName: String,
     currentUserId: String?,
     onSharePost: (CommunityPost, String) -> Unit,
     onToggleLike: (String) -> Unit,
+    onToggleFollow: (String) -> Unit,
+    onOpenComments: (String) -> Unit,
+    onAddComment: (String, String) -> Unit,
     onOpenAuth: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
@@ -104,8 +109,12 @@ fun EventCommunityScreen(
                             visiblePosts = visiblePosts,
                             currentAuthorName = currentAuthorName,
                             currentUserId = currentUserId,
+                            commentsByPostId = commentsByPostId,
                             onSharePost = onSharePost,
                             onToggleLike = onToggleLike,
+                            onToggleFollow = onToggleFollow,
+                            onOpenComments = onOpenComments,
+                            onAddComment = onAddComment,
                             onOpenAuth = onOpenAuth
                         )
                     }
@@ -137,6 +146,10 @@ fun EventCommunityScreen(
                             modifier = Modifier.padding(horizontal = 16.dp),
                             onSharePost = onSharePost,
                             onToggleLike = { onToggleLike(post.id) },
+                            onToggleFollow = onToggleFollow,
+                            comments = commentsByPostId[post.id].orEmpty(),
+                            onOpenComments = { onOpenComments(post.id) },
+                            onAddComment = { text -> onAddComment(post.id, text) },
                             onOpenAuth = onOpenAuth
                         )
                     }
@@ -161,8 +174,12 @@ private fun ExpandedEventCommunityContent(
     visiblePosts: List<CommunityPost>,
     currentAuthorName: String,
     currentUserId: String?,
+    commentsByPostId: Map<String, List<CommunityComment>>,
     onSharePost: (CommunityPost, String) -> Unit,
     onToggleLike: (String) -> Unit,
+    onToggleFollow: (String) -> Unit,
+    onOpenComments: (String) -> Unit,
+    onAddComment: (String, String) -> Unit,
     onOpenAuth: () -> Unit
 ) {
     Row(
@@ -202,6 +219,10 @@ private fun ExpandedEventCommunityContent(
                         currentUserId = currentUserId,
                         onSharePost = onSharePost,
                         onToggleLike = { onToggleLike(post.id) },
+                        onToggleFollow = onToggleFollow,
+                        comments = commentsByPostId[post.id].orEmpty(),
+                        onOpenComments = { onOpenComments(post.id) },
+                        onAddComment = { text -> onAddComment(post.id, text) },
                         onOpenAuth = onOpenAuth
                     )
                 }

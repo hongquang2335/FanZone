@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.myapplication.domain.model.CommunityComment
 import com.example.myapplication.domain.model.CommunityPost
 import com.example.myapplication.core.designsystem.component.CommunityCard
 import com.example.myapplication.core.designsystem.component.SectionHeader
@@ -19,11 +20,15 @@ import com.example.myapplication.core.designsystem.component.SectionHeader
 @Composable
 fun CommunityScreen(
     posts: List<CommunityPost>,
+    commentsByPostId: Map<String, List<CommunityComment>> = emptyMap(),
     currentAuthorName: String,
     currentUserId: String?,
     onOpenEvent: (String) -> Unit,
     onSharePost: (CommunityPost, String) -> Unit,
     onToggleLike: (String) -> Unit,
+    onToggleFollow: (String) -> Unit,
+    onOpenComments: (String) -> Unit,
+    onAddComment: (String, String) -> Unit,
     onOpenAuth: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -55,6 +60,10 @@ fun CommunityScreen(
                                         onOpenEventCommunity = onOpenEvent,
                                         onSharePost = onSharePost,
                                         onToggleLike = { onToggleLike(post.id) },
+                                        onToggleFollow = onToggleFollow,
+                                        comments = commentsByPostId[post.id].orEmpty(),
+                                        onOpenComments = { onOpenComments(post.id) },
+                                        onAddComment = { text -> onAddComment(post.id, text) },
                                         onOpenAuth = onOpenAuth
                                     )
                                 }
@@ -71,6 +80,10 @@ fun CommunityScreen(
                         onOpenEventCommunity = onOpenEvent,
                         onSharePost = onSharePost,
                         onToggleLike = { onToggleLike(post.id) },
+                        onToggleFollow = onToggleFollow,
+                        comments = commentsByPostId[post.id].orEmpty(),
+                        onOpenComments = { onOpenComments(post.id) },
+                        onAddComment = { text -> onAddComment(post.id, text) },
                         onOpenAuth = onOpenAuth
                     )
                 }

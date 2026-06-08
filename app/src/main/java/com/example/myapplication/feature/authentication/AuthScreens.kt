@@ -1,4 +1,4 @@
-package com.example.myapplication.feature.profile
+package com.example.myapplication.feature.authentication
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -34,6 +34,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -42,10 +43,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -53,7 +57,15 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialException
+import com.example.myapplication.R
 import com.example.myapplication.core.designsystem.theme.Evergreen
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
@@ -61,12 +73,15 @@ fun LoginScreen(
     onClose: () -> Unit,
     onOpenRegister: () -> Unit,
     onLogin: (String, String) -> Unit,
+    onForgotPassword: () -> Unit,
+    onGoogleLogin: (String) -> Unit,
+    onGoogleLoginError: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var account by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    val canSubmit = account.isNotBlank() && password.isNotBlank()
+    val canSubmit = email.isNotBlank() && password.isNotBlank()
 
     AuthScaffold(
         modifier = modifier,
@@ -77,9 +92,9 @@ fun LoginScreen(
         mascot = false
     ) {
         AuthTextField(
-            value = account,
-            onValueChange = { account = it },
-            placeholder = "Nhập email hoặc số điện thoại",
+            value = email,
+            onValueChange = { email = it },
+            placeholder = "Nhập email",
             trailingIcon = {
                 Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF7E7E86))
             },
@@ -102,7 +117,7 @@ fun LoginScreen(
             keyboardType = KeyboardType.Password
         )
         Button(
-            onClick = { onLogin(account, password) },
+            onClick = { onLogin(email, password) },
             enabled = canSubmit && !authState.isLoading,
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(8.dp),
@@ -114,24 +129,24 @@ fun LoginScreen(
         ) {
             Text(if (authState.isLoading) "Đang xử lý..." else "Đăng nhập", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
         }
+        GoogleSignInButton(
+            enabled = !authState.isLoading,
+            onGoogleLogin = onGoogleLogin,
+            onGoogleLoginError = onGoogleLoginError
+        )
         AuthMessage(error = authState.errorMessage, info = authState.infoMessage)
         Text(
             text = "Quên mật khẩu?",
-            modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = !authState.isLoading) { onForgotPassword() }
+                .padding(top = 10.dp),
             color = Color(0xFF7D7B82),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(18.dp))
-        Text(
-            text = "Chưa có tài khoản?",
-            modifier = Modifier.fillMaxWidth(),
-            color = Color(0xFFAAA8AF),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
         Text(
             text = "Tạo tài khoản ngay",
             modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenRegister).padding(top = 8.dp),
@@ -141,6 +156,70 @@ fun LoginScreen(
             textAlign = TextAlign.Center
         )
     }
+}
+
+@Composable
+fun GoogleSignInButton(
+    enabled: Boolean,
+    onGoogleLogin: (String) -> Unit,
+    onGoogleLoginError: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    text: String = "Tiếp tục với Google"
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val credentialManager = remember(context) { CredentialManager.create(context) }
+    val googleWebClientId = stringResource(R.string.google_web_client_id)
+
+    OutlinedButton(
+        onClick = {
+            if (googleWebClientId.startsWith("YOUR_WEB_CLIENT_ID")) {
+                onGoogleLoginError("Thiếu Google Web Client ID. Hãy cập nhật google_web_client_id trong strings.xml.")
+                return@OutlinedButton
+            }
+            scope.launch {
+                try {
+                    val googleIdOption = GetGoogleIdOption.Builder()
+                        .setServerClientId(googleWebClientId)
+                        .setFilterByAuthorizedAccounts(false)
+                        .setAutoSelectEnabled(false)
+                        .build()
+                    val request = GetCredentialRequest.Builder()
+                        .addCredentialOption(googleIdOption)
+                        .build()
+                    val result = credentialManager.getCredential(context, request)
+                    val googleCredential = GoogleIdTokenCredential.createFrom(result.credential.data)
+                    onGoogleLogin(googleCredential.idToken)
+                } catch (_: GetCredentialCancellationException) {
+                    onGoogleLoginError("Bạn đã hủy đăng nhập Google.")
+                } catch (throwable: GetCredentialException) {
+                    onGoogleLoginError(throwable.toGoogleSignInMessage())
+                } catch (throwable: Throwable) {
+                    onGoogleLoginError(throwable.toGoogleSignInMessage())
+                }
+            }
+        },
+        enabled = enabled,
+        modifier = modifier.fillMaxWidth().height(54.dp),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, Color(0xFFD9D7E0))
+    ) {
+        Text(text, color = Color(0xFF232323), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+    }
+}
+
+private fun Throwable.toGoogleSignInMessage(): String {
+    val detail = localizedMessage.orEmpty()
+    val normalized = detail.lowercase()
+    if (
+        normalized.contains("developer console") ||
+        normalized.contains("not set up correctly") ||
+        normalized.contains("10:") ||
+        normalized.contains("configuration")
+    ) {
+        return "Google Sign-In chưa sẵn sàng. Cần thêm Android OAuth client cho com.example.myapplication với SHA-1 debug trong Google Cloud/Firebase rồi tải lại google-services.json."
+    }
+    return detail.ifBlank { "Không thể đăng nhập Google." }
 }
 
 @Composable
@@ -222,21 +301,179 @@ fun RegisterScreen(
         }
         AuthMessage(error = authState.errorMessage, info = authState.infoMessage)
         Text(
-            text = "Đã có tài khoản?",
-            modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
-            color = Color(0xFFAAA8AF),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
-        Text(
             text = "Đăng nhập ngay",
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenLogin).padding(top = 8.dp),
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenLogin).padding(top = 10.dp),
             color = Evergreen,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.ExtraBold,
             textAlign = TextAlign.Center
         )
+    }
+}
+
+@Composable
+fun ForgotPasswordScreen(
+    authState: AuthUiState,
+    onBack: () -> Unit,
+    onSendResetLink: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var email by remember { mutableStateOf("") }
+    val canSubmit = email.isNotBlank() && !authState.isLoading
+
+    AuthScaffold(
+        modifier = modifier,
+        title = "Quên mật khẩu",
+        navigation = {
+            CircleHeaderButton(icon = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", onClick = onBack)
+        },
+        compactHeader = false
+    ) {
+        Text(
+            text = "Nhập email tài khoản. App sẽ kiểm tra email tồn tại rồi gửi email đặt lại mật khẩu. Sau đó bạn nhập mã oobCode trong link email.",
+            modifier = Modifier.fillMaxWidth(),
+            color = Color(0xFF5B5961),
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center
+        )
+        AuthTextField(
+            value = email,
+            onValueChange = { email = it },
+            placeholder = "Nhập email",
+            keyboardType = KeyboardType.Email
+        )
+        Button(
+            onClick = { onSendResetLink(email) },
+            enabled = canSubmit,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Evergreen,
+                disabledContainerColor = Color(0xFFE0E0E0),
+                disabledContentColor = Color(0xFF8C8B92)
+            )
+        ) {
+            Text(if (authState.isLoading) "Đang gửi..." else "Gửi email đặt lại mật khẩu", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+        }
+        AuthMessage(error = authState.errorMessage, info = authState.infoMessage)
+    }
+}
+
+@Composable
+fun ResetPasswordCodeScreen(
+    authState: AuthUiState,
+    onBack: () -> Unit,
+    onVerifyCode: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var codeOrLink by remember { mutableStateOf("") }
+
+    AuthScaffold(
+        modifier = modifier,
+        title = "Xác nhận mã",
+        navigation = {
+            CircleHeaderButton(icon = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", onClick = onBack)
+        },
+        compactHeader = false
+    ) {
+        Text(
+            text = "Mở email đặt lại mật khẩu, copy link hoặc riêng phần oobCode rồi dán vào đây.",
+            modifier = Modifier.fillMaxWidth(),
+            color = Color(0xFF5B5961),
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center
+        )
+        AuthTextField(
+            value = codeOrLink,
+            onValueChange = { codeOrLink = it },
+            placeholder = "Nhập link email hoặc mã oobCode"
+        )
+        Button(
+            onClick = { onVerifyCode(codeOrLink) },
+            enabled = codeOrLink.isNotBlank() && !authState.isLoading,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Evergreen,
+                disabledContainerColor = Color(0xFFE0E0E0),
+                disabledContentColor = Color(0xFF8C8B92)
+            )
+        ) {
+            Text(if (authState.isLoading) "Đang kiểm tra..." else "Xác nhận mã", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+        }
+        AuthMessage(error = authState.errorMessage, info = authState.infoMessage)
+    }
+}
+
+@Composable
+fun NewPasswordScreen(
+    authState: AuthUiState,
+    onBack: () -> Unit,
+    onConfirmPasswordReset: (String, String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var password by remember { mutableStateOf("") }
+    var repeatPassword by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var repeatVisible by remember { mutableStateOf(false) }
+    val canSubmit = password.isNotBlank() && repeatPassword.isNotBlank() && !authState.isLoading
+
+    AuthScaffold(
+        modifier = modifier,
+        title = "Mật khẩu mới",
+        navigation = {
+            CircleHeaderButton(icon = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", onClick = onBack)
+        },
+        compactHeader = false
+    ) {
+        Text(
+            text = "Mã đã được xác nhận. Hãy tạo mật khẩu mới cho tài khoản.",
+            modifier = Modifier.fillMaxWidth(),
+            color = Color(0xFF5B5961),
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center
+        )
+        AuthTextField(
+            value = password,
+            onValueChange = { password = it },
+            placeholder = "Nhập mật khẩu mới",
+            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, contentDescription = null, tint = Color(0xFF7E7E86))
+                }
+            },
+            keyboardType = KeyboardType.Password
+        )
+        AuthTextField(
+            value = repeatPassword,
+            onValueChange = { repeatPassword = it },
+            placeholder = "Nhập lại mật khẩu mới",
+            visualTransformation = if (repeatVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = { repeatVisible = !repeatVisible }) {
+                    Icon(if (repeatVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, contentDescription = null, tint = Color(0xFF7E7E86))
+                }
+            },
+            keyboardType = KeyboardType.Password
+        )
+        if (authState.showRegisterPasswordRules) {
+            PasswordRules()
+        }
+        Button(
+            onClick = { onConfirmPasswordReset(password, repeatPassword) },
+            enabled = canSubmit,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Evergreen,
+                disabledContainerColor = Color(0xFFE0E0E0),
+                disabledContentColor = Color(0xFF8C8B92)
+            )
+        ) {
+            Text(if (authState.isLoading) "Đang đổi..." else "Đổi mật khẩu", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+        }
+        AuthMessage(error = authState.errorMessage, info = authState.infoMessage)
     }
 }
 
@@ -316,7 +553,6 @@ private fun AuthScaffold(
             if (!shouldScroll) {
                 Spacer(modifier = Modifier.weight(1f))
             }
-            TermsText(horizontalPadding = horizontalPadding)
         }
     }
 }
@@ -410,13 +646,4 @@ private fun AuthMessage(error: String?, info: String?) {
     )
 }
 
-@Composable
-private fun TermsText(horizontalPadding: androidx.compose.ui.unit.Dp) {
-    Text(
-        text = "Bang viec tiep tuc, ban da doc va dong y voi Dieu khoan su dung va Chinh sach bao mat thong tin ca nhan cua Ticketbox",
-        modifier = Modifier.fillMaxWidth().padding(horizontal = horizontalPadding, vertical = 18.dp),
-        color = Color(0xFF222222),
-        style = MaterialTheme.typography.bodyMedium,
-        textAlign = TextAlign.Start
-    )
-}
+

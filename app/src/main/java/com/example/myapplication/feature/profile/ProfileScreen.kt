@@ -50,9 +50,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplication.core.designsystem.component.CircleAvatar
 import com.example.myapplication.core.designsystem.theme.Evergreen
 import com.example.myapplication.domain.model.CommunityPost
 import com.example.myapplication.domain.model.UserProfile
+import com.example.myapplication.feature.authentication.AuthUiState
+import com.example.myapplication.feature.authentication.AuthUser
 
 private data class ProfileColors(
     val background: Color,
@@ -85,10 +88,12 @@ fun ProfileScreen(
     authState: AuthUiState,
     unreadSupport: Int,
     posts: List<CommunityPost>,
+    avatarUrl: String? = null,
+    followerCount: Int = 0,
+    followingCount: Int = 0,
     onOpenSupport: () -> Unit,
     onOpenAuth: () -> Unit,
     onOpenAccountInfo: () -> Unit,
-    onOpenPinSetup: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
     onOpenProfileOptions: () -> Unit,
     onSignOut: () -> Unit,
@@ -98,6 +103,9 @@ fun ProfileScreen(
         SignedInProfileScreen(
             authUser = authState.user,
             posts = posts,
+            avatarUrl = avatarUrl ?: authState.accountProfile.avatarUrl,
+            followerCount = followerCount,
+            followingCount = followingCount,
             onOpenProfileOptions = onOpenProfileOptions,
             modifier = modifier
         )
@@ -207,6 +215,9 @@ fun ProfileScreen(
 private fun SignedInProfileScreen(
     authUser: AuthUser?,
     posts: List<CommunityPost>,
+    avatarUrl: String?,
+    followerCount: Int,
+    followingCount: Int,
     onOpenProfileOptions: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -263,13 +274,17 @@ private fun SignedInProfileScreen(
                     shape = CircleShape,
                     color = Color(0xFF078E81)
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = initial?.uppercaseChar()?.toString().orEmpty(),
-                            color = Color.White,
-                            style = MaterialTheme.typography.displayMedium,
-                            fontWeight = FontWeight.Normal
-                        )
+                    if (!avatarUrl.isNullOrBlank()) {
+                        CircleAvatar(size = avatarSize, imageUrl = avatarUrl)
+                    } else {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = initial?.uppercaseChar()?.toString().orEmpty(),
+                                color = Color.White,
+                                style = MaterialTheme.typography.displayMedium,
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
                     }
                 }
             }
@@ -284,8 +299,8 @@ private fun SignedInProfileScreen(
             )
 
             ProfileStatsRow(
-                following = 0,
-                followers = 0,
+                following = followingCount,
+                followers = followerCount,
                 likes = totalLikes,
                 colors = profileColors,
                 modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 20.dp)
@@ -320,7 +335,6 @@ private fun SignedInProfileScreen(
 fun ProfileOptionsScreen(
     onBack: () -> Unit,
     onOpenAccountInfo: () -> Unit,
-    onOpenPinSetup: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
     onOpenSupport: () -> Unit,
     onSignOut: () -> Unit,
@@ -345,8 +359,6 @@ fun ProfileOptionsScreen(
             Surface(shape = RoundedCornerShape(18.dp), color = profileColors.panel) {
                 Column {
                     AccountRow("Thông tin tài khoản", colors = profileColors, onClick = onOpenAccountInfo)
-                    AccountDivider(colors = profileColors)
-                    AccountRow("Thiết lập mã PIN", colors = profileColors, onClick = onOpenPinSetup)
                     AccountDivider(colors = profileColors)
                     AccountRow("Cài đặt", colors = profileColors, onClick = onOpenNotificationSettings)
                 }

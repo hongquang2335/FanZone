@@ -87,6 +87,10 @@ class CommunityPostViewModel(
             request = CreateCommunityPostRequest(
                 authorId = authorId,
                 author = state.currentAuthorName,
+                authorAvatarUrl = state.currentAuthorAvatarUrl,
+                authorFollowerCount = state.currentAuthorFollowerCount,
+                authorFollowingCount = state.currentAuthorFollowingCount,
+                isAuthorFollowed = state.isCurrentAuthorFollowed,
                 anonymous = state.anonymous,
                 content = content,
                 eventId = eventId,
@@ -96,7 +100,11 @@ class CommunityPostViewModel(
             onSuccess = {
                 _uiState.value = CommunityPostUiState(
                     currentAuthorId = authorId,
-                    currentAuthorName = state.currentAuthorName
+                    currentAuthorName = state.currentAuthorName,
+                    currentAuthorAvatarUrl = state.currentAuthorAvatarUrl,
+                    currentAuthorFollowerCount = state.currentAuthorFollowerCount,
+                    currentAuthorFollowingCount = state.currentAuthorFollowingCount,
+                    isCurrentAuthorFollowed = state.isCurrentAuthorFollowed
                 )
                 onSuccess()
             },
@@ -121,7 +129,11 @@ class CommunityPostViewModel(
             ?: "Ban"
 
         _uiState.update {
-            it.copy(currentAuthorId = user.uid, currentAuthorName = fallbackName)
+            it.copy(
+                currentAuthorId = user.uid,
+                currentAuthorName = fallbackName,
+                currentAuthorAvatarUrl = user.photoUrl?.toString()
+            )
         }
 
         firestore.collection("users")
@@ -130,10 +142,21 @@ class CommunityPostViewModel(
             .addOnSuccessListener { document ->
                 if (auth.currentUser?.uid != user.uid) return@addOnSuccessListener
                 val profileName = document.getString("displayName")?.takeIf { it.isNotBlank() }
+                val avatarUrl = document.getString("avatarUrl")?.takeIf { it.isNotBlank() }
+                val followers = document.getLong("followers")?.toInt()
+                    ?: (document.get("followerIds") as? List<*>)?.size
+                    ?: 0
+                val following = document.getLong("following")?.toInt()
+                    ?: (document.get("followingIds") as? List<*>)?.size
+                    ?: 0
                 _uiState.update {
                     it.copy(
                         currentAuthorId = user.uid,
-                        currentAuthorName = profileName ?: fallbackName
+                        currentAuthorName = profileName ?: fallbackName,
+                        currentAuthorAvatarUrl = avatarUrl ?: user.photoUrl?.toString(),
+                        currentAuthorFollowerCount = followers,
+                        currentAuthorFollowingCount = following,
+                        isCurrentAuthorFollowed = false
                     )
                 }
             }

@@ -61,6 +61,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.myapplication.R
 import com.example.myapplication.core.designsystem.theme.Danger
 import com.example.myapplication.core.designsystem.theme.Evergreen
@@ -103,15 +104,25 @@ fun SectionHeader(title: String, subtitle: String?) {
 }
 
 @Composable
-fun CircleAvatar(size: Dp = 44.dp) {
-    Image(
-        painter = painterResource(R.drawable.fan_zone_avatar),
-        contentDescription = "Avatar",
-        contentScale = ContentScale.Crop,
-        modifier = Modifier
-            .size(size)
-            .clip(CircleShape)
-    )
+fun CircleAvatar(size: Dp = 44.dp, imageUrl: String? = null) {
+    val modifier = Modifier
+        .size(size)
+        .clip(CircleShape)
+    if (imageUrl.isNullOrBlank()) {
+        Image(
+            painter = painterResource(R.drawable.fan_zone_avatar),
+            contentDescription = "Avatar",
+            contentScale = ContentScale.Crop,
+            modifier = modifier
+        )
+    } else {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = "Avatar",
+            contentScale = ContentScale.Crop,
+            modifier = modifier
+        )
+    }
 }
 
 @Composable

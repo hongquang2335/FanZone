@@ -4,6 +4,8 @@ Community now uses only Firestore collection:
 
 ```text
 posts
+posts/{postId}/comments
+posts/{postId}/shares
 ```
 
 The old collection `communityPosts` is deprecated and should be deleted after migration/reset.
@@ -13,8 +15,13 @@ The old collection `communityPosts` is deprecated and should be deleted after mi
 Every document in `posts/{postId}` should contain these fields. If a value is not available, keep the field and set it to `null`, except arrays which should be empty arrays.
 
 ```text
+type: "post" | "share"
 authorId: string
 author: string
+authorAvatarUrl: string | null
+authorFollowerCount: number
+authorFollowingCount: number
+isAuthorFollowed: boolean
 role: string
 topic: string
 content: string
@@ -28,10 +35,41 @@ mediaType: string | null
 mediaItems: { url: string, type: string }[]
 eventId: string | null
 eventTitle: string | null
-sharedPost: { author: string, caption: string } | null
+originalPostId: string | null
+resharedFromPostId: string | null
+sharedPost: {
+  postId: string,
+  authorId: string,
+  author: string,
+  authorAvatarUrl: string | null,
+  content: string,
+  mediaItems: { url: string, type: string }[],
+  eventId: string | null,
+  eventTitle: string | null
+} | null
 createdAt: timestamp
 updatedAt: timestamp
 ```
+
+`comments` is only a counter. Comment data lives in `posts/{postId}/comments/{commentId}`:
+
+```text
+commentId: string
+postId: string
+authorId: string
+authorName: string
+authorAvatarUrl: string | null
+text: string
+mediaUrl: string | null
+mediaType: string | null
+mediaItems: { url: string, type: string }[]
+likes: number
+likedBy: string[]
+createdAt: timestamp
+updatedAt: timestamp
+```
+
+Each share creates a feed post with `type = "share"` and always points back to the root original post via `originalPostId`. The clicked shared post can be tracked with `resharedFromPostId`, but the rendered preview is still the original post.
 
 ## Required for UI rendering
 
