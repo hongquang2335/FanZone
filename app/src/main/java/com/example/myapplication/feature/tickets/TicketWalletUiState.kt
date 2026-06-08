@@ -4,6 +4,7 @@ import com.example.myapplication.domain.model.Event
 import com.example.myapplication.domain.model.MyTicket
 import com.example.myapplication.domain.model.Order
 import com.example.myapplication.domain.model.TicketStatus
+import com.example.myapplication.domain.model.TicketWalletItem
 
 data class TicketWalletUiState(
     val selectedTab: WalletTab = WalletTab.PURCHASED,
@@ -12,7 +13,10 @@ data class TicketWalletUiState(
     val myTickets: List<MyTicket> = emptyList(),
     val recommendations: List<Event> = emptyList(),
     val isLoading: Boolean = false
-)
+) {
+    fun filteredTickets(tickets: List<TicketWalletItem>): List<TicketWalletItem> =
+        tickets.filter { it.status == selectedStatus }
+}
 
 enum class WalletTab {
     PURCHASED,

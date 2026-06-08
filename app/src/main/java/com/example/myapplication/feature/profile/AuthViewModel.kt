@@ -182,6 +182,8 @@ class AuthViewModel(
         _uiState.value = AuthUiState()
     }
 
+    fun isUserSignedIn(): Boolean = auth.currentUser != null
+
     fun saveAccountProfile(
         fullName: String,
         phone: String,

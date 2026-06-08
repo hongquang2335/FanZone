@@ -31,6 +31,7 @@ import com.example.myapplication.feature.profile.RegisterScreen
 import com.example.myapplication.feature.success.PurchaseSuccessScreen
 import com.example.myapplication.feature.support.ChatbotScreen
 import com.example.myapplication.feature.tickets.TicketWalletRoute
+import com.example.myapplication.app.navigateToRootDestination
 import com.example.myapplication.ui.state.FanZoneUiState
 import com.example.myapplication.ui.state.FanZoneViewModel
 
@@ -215,6 +216,8 @@ fun FanZoneNavHost(
             EventDetailRoute(
                 eventId = eventId,
                 onBack = { navController.popBackStack() },
+                isUserSignedIn = authViewModel::isUserSignedIn,
+                onNavigateToLogin = { navController.navigate(AppDestination.Login.route) },
                 onNavigateToBooking = { id -> navController.navigate(AppDestination.Booking.create(id)) },
                 modifier = Modifier.fillMaxSize()
             )
@@ -251,6 +254,7 @@ fun FanZoneNavHost(
                 event = event,
                 tiers = tiers,
                 quantities = uiState.tierQuantities,
+                selectedSeats = uiState.selectedSeats,
                 paymentMethods = uiState.paymentMethods,
                 selectedPaymentMethod = uiState.selectedPaymentMethod,
                 onBack = { navController.popBackStack() },
@@ -265,23 +269,24 @@ fun FanZoneNavHost(
             )
         }
         composable(AppDestination.Success.route) {
+            val purchasedTicket = uiState.latestPurchasedTicket
+            val purchasedEvent = purchasedTicket?.let { ticket ->
+                uiState.events.firstOrNull { it.id == ticket.eventId }
+            } ?: uiState.selectedEvent
             PurchaseSuccessScreen(
-                ticket = uiState.latestPurchasedTicket,
+                ticket = purchasedTicket,
+                event = purchasedEvent,
                 onOpenEvent = { eventId ->
                     viewModel.selectEvent(eventId)
                     navController.navigate(AppDestination.EventDetail.create(eventId))
                 },
                 onOpenWallet = {
-                    navController.navigate(AppDestination.Tickets.route) {
-                        popUpTo(AppDestination.Home.route) { inclusive = false }
-                        launchSingleTop = true
-                    }
+                    navController.popBackStack(AppDestination.Home.route, inclusive = false)
+                    navController.navigateToRootDestination(AppDestination.Tickets.route)
                 },
                 onGoHome = {
-                    navController.navigate(AppDestination.Home.route) {
-                        popUpTo(AppDestination.Home.route) { inclusive = false }
-                        launchSingleTop = true
-                    }
+                    navController.popBackStack(AppDestination.Home.route, inclusive = false)
+                    navController.navigateToRootDestination(AppDestination.Home.route)
                 },
                 modifier = Modifier.fillMaxSize()
             )
