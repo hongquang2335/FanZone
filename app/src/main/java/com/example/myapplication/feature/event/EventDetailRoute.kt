@@ -17,6 +17,7 @@ fun EventDetailRoute(
     eventId: String?,
     onBack: () -> Unit,
     onNavigateToBooking: (String) -> Unit,
+    onOpenCommunity: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: EventDetailViewModel = viewModel()
 ) {
@@ -39,6 +40,7 @@ fun EventDetailRoute(
                 tiers = uiState.tiers,
                 onBack = onBack,
                 onBuyNow = { onNavigateToBooking(uiState.event!!.id) },
+                onOpenCommunity = { onOpenCommunity(uiState.event!!.id) },
                 modifier = Modifier.fillMaxSize()
             )
         }

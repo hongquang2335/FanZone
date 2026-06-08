@@ -22,6 +22,7 @@ fun CommunityScreen(
     posts: List<CommunityPost>,
     commentsByPostId: Map<String, List<CommunityComment>> = emptyMap(),
     currentAuthorName: String,
+    currentAuthorAvatarUrl: String?,
     currentUserId: String?,
     onOpenEvent: (String) -> Unit,
     onSharePost: (CommunityPost, String) -> Unit,
@@ -40,7 +41,7 @@ fun CommunityScreen(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            item { ComposerCard(onOpenAuth = onOpenAuth) }
+            item { ComposerCard(currentAuthorAvatarUrl = currentAuthorAvatarUrl, onOpenAuth = onOpenAuth) }
             if (isExpanded) {
                 item { SectionHeader("Dòng bài viết nổi bật", "Có sự kiện kèm tag") }
             }

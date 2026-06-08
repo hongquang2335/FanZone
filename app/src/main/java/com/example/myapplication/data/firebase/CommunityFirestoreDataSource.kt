@@ -5,6 +5,7 @@ import com.example.myapplication.domain.model.CommunityComment
 import com.example.myapplication.domain.model.CommunityMediaItem
 import com.example.myapplication.domain.model.SharedCommunityPost
 import com.google.android.gms.tasks.Task
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
@@ -17,6 +18,7 @@ class CommunityFirestoreDataSource(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
     private val postsCollection = firestore.collection(POSTS_COLLECTION)
+    private val usersCollection = firestore.collection(USERS_COLLECTION)
 
     fun observeCommunityPosts(
         onPosts: (List<CommunityPost>) -> Unit,
@@ -34,7 +36,7 @@ class CommunityFirestoreDataSource(
                     ?.documents
                     ?.mapNotNull(::toCommunityPost)
                     .orEmpty()
-                onPosts(posts)
+                hydratePostAuthorAvatars(posts, onPosts, onError)
             }
     }
 
@@ -42,9 +44,6 @@ class CommunityFirestoreDataSource(
         authorId: String?,
         author: String,
         authorAvatarUrl: String?,
-        authorFollowerCount: Int,
-        authorFollowingCount: Int,
-        isAuthorFollowed: Boolean,
         role: String,
         topic: String,
         content: String,
@@ -60,9 +59,6 @@ class CommunityFirestoreDataSource(
             FIELD_TYPE to TYPE_POST,
             FIELD_AUTHOR to author,
             FIELD_AUTHOR_AVATAR_URL to authorAvatarUrl,
-            FIELD_AUTHOR_FOLLOWER_COUNT to authorFollowerCount,
-            FIELD_AUTHOR_FOLLOWING_COUNT to authorFollowingCount,
-            FIELD_IS_AUTHOR_FOLLOWED to isAuthorFollowed,
             FIELD_ROLE to role,
             FIELD_TOPIC to topic,
             FIELD_CONTENT to content,
@@ -101,9 +97,6 @@ class CommunityFirestoreDataSource(
             FIELD_AUTHOR_ID to shareAuthorId,
             FIELD_AUTHOR to shareAuthor,
             FIELD_AUTHOR_AVATAR_URL to shareAuthorAvatarUrl,
-            FIELD_AUTHOR_FOLLOWER_COUNT to 0,
-            FIELD_AUTHOR_FOLLOWING_COUNT to 0,
-            FIELD_IS_AUTHOR_FOLLOWED to false,
             FIELD_ROLE to "Thanh vien cong dong",
             FIELD_TOPIC to "Bai viet chia se",
             FIELD_CONTENT to caption,
@@ -154,7 +147,8 @@ class CommunityFirestoreDataSource(
                     onError(error)
                     return@addSnapshotListener
                 }
-                onComments(snapshot?.documents?.mapNotNull { it.toCommunityComment(postId) }.orEmpty())
+                val comments = snapshot?.documents?.mapNotNull { it.toCommunityComment(postId) }.orEmpty()
+                hydrateCommentAuthorAvatars(comments, onComments, onError)
             }
     }
 
@@ -256,9 +250,6 @@ class CommunityFirestoreDataSource(
             authorId = document.getString(FIELD_AUTHOR_ID),
             author = author,
             authorAvatarUrl = document.getString(FIELD_AUTHOR_AVATAR_URL),
-            authorFollowerCount = document.getLong(FIELD_AUTHOR_FOLLOWER_COUNT)?.toInt() ?: 0,
-            authorFollowingCount = document.getLong(FIELD_AUTHOR_FOLLOWING_COUNT)?.toInt() ?: 0,
-            isAuthorFollowed = document.getBoolean(FIELD_IS_AUTHOR_FOLLOWED) ?: false,
             role = role,
             topic = topic,
             content = content,
@@ -279,6 +270,68 @@ class CommunityFirestoreDataSource(
             createdAtMillis = document.getTimestamp(FIELD_CREATED_AT)?.toDate()?.time,
             updatedAtMillis = document.getTimestamp(FIELD_UPDATED_AT)?.toDate()?.time
         )
+    }
+
+    private fun hydratePostAuthorAvatars(
+        posts: List<CommunityPost>,
+        onPosts: (List<CommunityPost>) -> Unit,
+        onError: (Throwable) -> Unit
+    ) {
+        val authorIds = posts
+            .flatMap { post -> listOfNotNull(post.authorId, post.sharedPost?.authorId) }
+            .distinct()
+
+        if (authorIds.isEmpty()) {
+            onPosts(posts.map { post -> post.copy(authorAvatarUrl = null) })
+            return
+        }
+
+        Tasks.whenAllSuccess<DocumentSnapshot>(
+            authorIds.map { authorId -> usersCollection.document(authorId).get() }
+        )
+            .addOnSuccessListener { documents ->
+                val avatars: Map<String, String?> = documents.associate { document ->
+                    document.id to document.getString(FIELD_USER_AVATAR_URL)?.takeIf { it.isNotBlank() }
+                }
+                onPosts(
+                    posts.map { post ->
+                        post.copy(
+                            authorAvatarUrl = post.authorId?.let { authorId -> avatars[authorId] },
+                            sharedPost = post.sharedPost?.let { share ->
+                                share.copy(authorAvatarUrl = share.authorId?.let { authorId -> avatars[authorId] })
+                            }
+                        )
+                    }
+                )
+            }
+            .addOnFailureListener(onError)
+    }
+
+    private fun hydrateCommentAuthorAvatars(
+        comments: List<CommunityComment>,
+        onComments: (List<CommunityComment>) -> Unit,
+        onError: (Throwable) -> Unit
+    ) {
+        val authorIds = comments.map { it.authorId }.distinct()
+        if (authorIds.isEmpty()) {
+            onComments(comments)
+            return
+        }
+
+        Tasks.whenAllSuccess<DocumentSnapshot>(
+            authorIds.map { authorId -> usersCollection.document(authorId).get() }
+        )
+            .addOnSuccessListener { documents ->
+                val avatars: Map<String, String?> = documents.associate { document ->
+                    document.id to document.getString(FIELD_USER_AVATAR_URL)?.takeIf { it.isNotBlank() }
+                }
+                onComments(
+                    comments.map { comment ->
+                        comment.copy(authorAvatarUrl = avatars[comment.authorId])
+                    }
+                )
+            }
+            .addOnFailureListener(onError)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -320,6 +373,7 @@ class CommunityFirestoreDataSource(
 
     companion object {
         const val POSTS_COLLECTION = "posts"
+        const val USERS_COLLECTION = "users"
         const val COMMENTS_COLLECTION = "comments"
         const val SHARES_COLLECTION = "shares"
         const val TYPE_POST = "post"
@@ -332,9 +386,6 @@ class CommunityFirestoreDataSource(
         const val FIELD_AUTHOR_ID = "authorId"
         const val FIELD_AUTHOR = "author"
         const val FIELD_AUTHOR_AVATAR_URL = "authorAvatarUrl"
-        const val FIELD_AUTHOR_FOLLOWER_COUNT = "authorFollowerCount"
-        const val FIELD_AUTHOR_FOLLOWING_COUNT = "authorFollowingCount"
-        const val FIELD_IS_AUTHOR_FOLLOWED = "isAuthorFollowed"
         const val FIELD_ROLE = "role"
         const val FIELD_TOPIC = "topic"
         const val FIELD_CONTENT = "content"
@@ -358,15 +409,12 @@ class CommunityFirestoreDataSource(
         const val FIELD_UPDATED_AT = "updatedAt"
         const val FIELD_SHARED_AUTHOR = "author"
         const val FIELD_SHARED_CAPTION = "caption"
+        const val FIELD_USER_AVATAR_URL = "avatarUrl"
 
         val requiredFields = listOf(
             FIELD_AUTHOR_ID,
             FIELD_TYPE,
             FIELD_AUTHOR,
-            FIELD_AUTHOR_AVATAR_URL,
-            FIELD_AUTHOR_FOLLOWER_COUNT,
-            FIELD_AUTHOR_FOLLOWING_COUNT,
-            FIELD_IS_AUTHOR_FOLLOWED,
             FIELD_ROLE,
             FIELD_TOPIC,
             FIELD_CONTENT,
@@ -379,6 +427,7 @@ class CommunityFirestoreDataSource(
         )
 
         val recommendedFields = listOf(
+            FIELD_AUTHOR_AVATAR_URL,
             FIELD_IMAGE_URL,
             FIELD_MEDIA_URL,
             FIELD_MEDIA_TYPE,
@@ -426,9 +475,6 @@ private fun CommunityPost.toFirestoreMap(): Map<String, Any?> {
         CommunityFirestoreDataSource.FIELD_AUTHOR_ID to authorId,
         CommunityFirestoreDataSource.FIELD_AUTHOR to author,
         CommunityFirestoreDataSource.FIELD_AUTHOR_AVATAR_URL to authorAvatarUrl,
-        CommunityFirestoreDataSource.FIELD_AUTHOR_FOLLOWER_COUNT to authorFollowerCount,
-        CommunityFirestoreDataSource.FIELD_AUTHOR_FOLLOWING_COUNT to authorFollowingCount,
-        CommunityFirestoreDataSource.FIELD_IS_AUTHOR_FOLLOWED to isAuthorFollowed,
         CommunityFirestoreDataSource.FIELD_ROLE to role,
         CommunityFirestoreDataSource.FIELD_TOPIC to topic,
         CommunityFirestoreDataSource.FIELD_CONTENT to content,

@@ -19,9 +19,6 @@ type: "post" | "share"
 authorId: string
 author: string
 authorAvatarUrl: string | null
-authorFollowerCount: number
-authorFollowingCount: number
-isAuthorFollowed: boolean
 role: string
 topic: string
 content: string
@@ -45,11 +42,13 @@ sharedPost: {
   content: string,
   mediaItems: { url: string, type: string }[],
   eventId: string | null,
-  eventTitle: string | null
+eventTitle: string | null
 } | null
 createdAt: timestamp
 updatedAt: timestamp
 ```
+
+`authorAvatarUrl` is only a nullable snapshot/fallback field. The active UI refreshes the avatar from `users/{authorId}.avatarUrl`, so changing a user avatar updates existing posts without rewriting every post document.
 
 `comments` is only a counter. Comment data lives in `posts/{postId}/comments/{commentId}`:
 
@@ -94,6 +93,7 @@ updatedAt
 These fields may be `null`:
 
 ```text
+authorAvatarUrl
 imageUrl
 mediaUrl
 mediaType
@@ -113,6 +113,7 @@ posts/{postId}.authorId -> users/{uid}
 ```
 
 So `authorId` must match the Firebase Authentication UID and Firestore user document ID.
+Follow state is computed from the viewer's `users/{uid}.followingIds`; it is not stored on post documents.
 
 ## Reset/seed script
 

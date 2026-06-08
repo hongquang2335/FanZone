@@ -1,6 +1,7 @@
 package com.example.myapplication.feature.event
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,6 +44,7 @@ fun EventDetailScreen(
     tiers: List<TicketTier>,
     onBack: () -> Unit,
     onBuyNow: () -> Unit,
+    onOpenCommunity: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -50,12 +52,18 @@ fun EventDetailScreen(
         topBar = { AppTopBar(title = "FanZone", onBack = onBack) },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-        EventDetailBody(event, tiers, onBuyNow, Modifier.fillMaxSize().padding(innerPadding))
+        EventDetailBody(event, tiers, onBuyNow, onOpenCommunity, Modifier.fillMaxSize().padding(innerPadding))
     }
 }
 
 @Composable
-private fun EventDetailBody(event: Event, tiers: List<TicketTier>, onBuyNow: () -> Unit, modifier: Modifier) {
+private fun EventDetailBody(
+    event: Event,
+    tiers: List<TicketTier>,
+    onBuyNow: () -> Unit,
+    onOpenCommunity: () -> Unit,
+    modifier: Modifier
+) {
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(bottom = 120.dp),
@@ -100,6 +108,8 @@ private fun EventDetailBody(event: Event, tiers: List<TicketTier>, onBuyNow: () 
                     // Info Grid
                     InfoGrid(event)
 
+                    FanCommunityButton(onClick = onOpenCommunity)
+
                     // Description
                     SectionHeader("Giới thiệu sự kiện", null)
                     Text(
@@ -125,6 +135,60 @@ private fun EventDetailBody(event: Event, tiers: List<TicketTier>, onBuyNow: () 
                         SectionHeader("Danh sách vé pass lại", "Cập nhật liên tục")
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FanCommunityButton(onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 76.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Color(0xFFF1F5F9), RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Groups,
+                    contentDescription = null,
+                    tint = Color(0xFF0F172A),
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = "Tham gia cộng đồng",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = Color(0xFF0F172A),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "Chia sẻ khoảnh khắc về sự kiện",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF0F172A),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }

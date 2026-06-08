@@ -8,8 +8,6 @@ data class CommunityPost(
     val authorId: String? = null,
     val author: String,
     val authorAvatarUrl: String? = null,
-    val authorFollowerCount: Int = 0,
-    val authorFollowingCount: Int = 0,
     val isAuthorFollowed: Boolean = false,
     val role: String,
     val topic: String,

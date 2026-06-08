@@ -40,13 +40,13 @@ class CommunityStorageDataSource(
             .post(body)
             .build()
 
-        Log.d(TAG, "Uploading community media to Cloudinary cloud=$cloudName preset=$uploadPreset file=$fileName contentType=$mediaType")
+        Log.d(TAG, "Uploading community media to Cloudinary cloud=$cloudName file=$fileName contentType=$mediaType")
 
         client.newCall(request).enqueue(
             object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
                     Log.e(TAG, "Failed to upload community media to Cloudinary", e)
-                    onError(IllegalStateException("Khong the tai tep len Cloudinary.", e))
+                    onError(IllegalStateException("Không thể tải tệp lên Cloudinary.", e))
                 }
 
                 override fun onResponse(call: Call, response: Response) {
@@ -54,7 +54,7 @@ class CommunityStorageDataSource(
                         val responseBody = it.body?.string().orEmpty()
                         if (!it.isSuccessful) {
                             Log.e(TAG, "Cloudinary upload failed code=${it.code} body=$responseBody")
-                            onError(IllegalStateException("Cloudinary upload loi ${it.code}: $responseBody"))
+                            onError(IllegalStateException("Cloudinary upload lỗi ${it.code}: $responseBody"))
                             return
                         }
 
@@ -62,7 +62,7 @@ class CommunityStorageDataSource(
                         val secureUrl = json.optString("secure_url")
                         val resourceType = json.optString("resource_type")
                         if (secureUrl.isBlank()) {
-                            onError(IllegalStateException("Cloudinary khong tra ve secure_url."))
+                            onError(IllegalStateException("Cloudinary không trả về secure_url."))
                             return
                         }
                         val normalizedMediaType = when (resourceType) {
@@ -105,7 +105,7 @@ class CommunityStorageDataSource(
                         if (read == -1) break
                         sink.write(buffer, 0, read)
                     }
-                } ?: throw IOException("Khong the doc tep da chon.")
+                } ?: throw IOException("Không thể đọc tệp đã chọn.")
             }
         }
     }

@@ -175,7 +175,7 @@ class CommunityViewModel(
         _uiState.update {
             it.copy(
                 currentAuthorName = fallbackName,
-                currentAuthorAvatarUrl = user.photoUrl?.toString(),
+                currentAuthorAvatarUrl = null,
                 currentUserId = user.uid
             )
         }
@@ -186,7 +186,7 @@ class CommunityViewModel(
             .addOnSuccessListener { document ->
                 if (auth.currentUser?.uid != user.uid) return@addOnSuccessListener
                 val profileName = document.getString("displayName")?.takeIf { it.isNotBlank() }
-                val avatarUrl = document.getString("avatarUrl")?.takeIf { it.isNotBlank() } ?: user.photoUrl?.toString()
+                val avatarUrl = document.getString("avatarUrl")?.takeIf { it.isNotBlank() }
                 val followingIds = (document.get("followingIds") as? List<*>)?.mapNotNull { it as? String }.orEmpty().toSet()
                 _uiState.update {
                     it.copy(

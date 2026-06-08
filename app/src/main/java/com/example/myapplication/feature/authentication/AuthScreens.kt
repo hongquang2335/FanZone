@@ -3,6 +3,7 @@ package com.example.myapplication.feature.authentication
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -63,6 +64,8 @@ import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import com.example.myapplication.R
 import com.example.myapplication.core.designsystem.theme.Evergreen
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
@@ -125,6 +128,13 @@ fun LoginScreen(
                 containerColor = Evergreen,
                 disabledContainerColor = Color(0xFFE0E0E0),
                 disabledContentColor = Color(0xFF8C8B92)
+            ),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 0.dp,
+                pressedElevation = 0.dp,
+                focusedElevation = 0.dp,
+                hoveredElevation = 0.dp,
+                disabledElevation = 0.dp
             )
         ) {
             Text(if (authState.isLoading) "Đang xử lý..." else "Đăng nhập", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
@@ -139,7 +149,11 @@ fun LoginScreen(
             text = "Quên mật khẩu?",
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(enabled = !authState.isLoading) { onForgotPassword() }
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    enabled = !authState.isLoading
+                ) { onForgotPassword() }
                 .padding(top = 10.dp),
             color = Color(0xFF7D7B82),
             style = MaterialTheme.typography.bodyMedium,
@@ -149,7 +163,11 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(18.dp))
         Text(
             text = "Tạo tài khoản ngay",
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenRegister).padding(top = 8.dp),
+            modifier = Modifier.fillMaxWidth().clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onOpenRegister
+            ).padding(top = 8.dp),
             color = Evergreen,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.ExtraBold,
@@ -175,6 +193,12 @@ fun GoogleSignInButton(
         onClick = {
             if (googleWebClientId.startsWith("YOUR_WEB_CLIENT_ID")) {
                 onGoogleLoginError("Thiếu Google Web Client ID. Hãy cập nhật google_web_client_id trong strings.xml.")
+                return@OutlinedButton
+            }
+            val googleApiAvailability = GoogleApiAvailability.getInstance()
+            val playServicesStatus = googleApiAvailability.isGooglePlayServicesAvailable(context)
+            if (playServicesStatus != ConnectionResult.SUCCESS) {
+                onGoogleLoginError("Google Play Services chua s?n s�ng tr�n thi?t b? n�y. H�y c?p nh?t Google Play Services ho?c d�ng emulator c� Play Store.")
                 return@OutlinedButton
             }
             scope.launch {
@@ -295,6 +319,13 @@ fun RegisterScreen(
                 containerColor = Evergreen,
                 disabledContainerColor = Color(0xFFE0E0E0),
                 disabledContentColor = Color(0xFF8C8B92)
+            ),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 0.dp,
+                pressedElevation = 0.dp,
+                focusedElevation = 0.dp,
+                hoveredElevation = 0.dp,
+                disabledElevation = 0.dp
             )
         ) {
             Text(if (authState.isLoading) "Đang xử lý..." else "Tiếp tục", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
@@ -302,7 +333,11 @@ fun RegisterScreen(
         AuthMessage(error = authState.errorMessage, info = authState.infoMessage)
         Text(
             text = "Đăng nhập ngay",
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenLogin).padding(top = 10.dp),
+            modifier = Modifier.fillMaxWidth().clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onOpenLogin
+            ).padding(top = 10.dp),
             color = Evergreen,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.ExtraBold,
@@ -351,6 +386,13 @@ fun ForgotPasswordScreen(
                 containerColor = Evergreen,
                 disabledContainerColor = Color(0xFFE0E0E0),
                 disabledContentColor = Color(0xFF8C8B92)
+            ),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 0.dp,
+                pressedElevation = 0.dp,
+                focusedElevation = 0.dp,
+                hoveredElevation = 0.dp,
+                disabledElevation = 0.dp
             )
         ) {
             Text(if (authState.isLoading) "Đang gửi..." else "Gửi email đặt lại mật khẩu", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
@@ -397,6 +439,13 @@ fun ResetPasswordCodeScreen(
                 containerColor = Evergreen,
                 disabledContainerColor = Color(0xFFE0E0E0),
                 disabledContentColor = Color(0xFF8C8B92)
+            ),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 0.dp,
+                pressedElevation = 0.dp,
+                focusedElevation = 0.dp,
+                hoveredElevation = 0.dp,
+                disabledElevation = 0.dp
             )
         ) {
             Text(if (authState.isLoading) "Đang kiểm tra..." else "Xác nhận mã", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
@@ -469,6 +518,13 @@ fun NewPasswordScreen(
                 containerColor = Evergreen,
                 disabledContainerColor = Color(0xFFE0E0E0),
                 disabledContentColor = Color(0xFF8C8B92)
+            ),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 0.dp,
+                pressedElevation = 0.dp,
+                focusedElevation = 0.dp,
+                hoveredElevation = 0.dp,
+                disabledElevation = 0.dp
             )
         ) {
             Text(if (authState.isLoading) "Đang đổi..." else "Đổi mật khẩu", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)

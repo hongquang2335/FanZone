@@ -317,7 +317,6 @@ fun CommunityCard(
                                     timeLabel = post.postTimeLabel(),
                                     textStyle = MaterialTheme.typography.bodyMedium
                                 )
-                                AuthorStatsLine(post = post)
                             } else {
                                 Text(
                                     text = post.author,
@@ -330,7 +329,6 @@ fun CommunityCard(
                                     timeLabel = post.postTimeLabel(),
                                     textStyle = MaterialTheme.typography.bodyMedium
                                 )
-                                AuthorStatsLine(post = post)
                             }
                         }
                         if (post.authorId != null && post.authorId != currentUserId) {
@@ -726,20 +724,27 @@ private fun CommunityMediaViewer(
 
 @Composable
 private fun CommunityVideoPlayer(url: String) {
+    if (url.isBlank()) {
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
+            Text("Video chưa sẵn sàng", color = Color.White, style = MaterialTheme.typography.titleMedium)
+        }
+        return
+    }
+
     AndroidView(
         factory = { context ->
             VideoView(context).apply {
-                setVideoURI(Uri.parse(url))
                 setOnPreparedListener { player ->
                     player.isLooping = true
                     start()
                 }
+                setOnCompletionListener { start() }
             }
         },
         update = { view ->
-            if (!view.isPlaying) {
+            if (view.getTag() != url) {
+                view.setTag(url)
                 view.setVideoURI(Uri.parse(url))
-                view.start()
             }
         },
         modifier = Modifier.fillMaxSize()
@@ -800,29 +805,6 @@ private fun PostMetaLine(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
-    }
-}
-
-@Composable
-private fun AuthorStatsLine(post: CommunityPost) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "${post.authorFollowerCount} follower",
-            color = SoftText,
-            style = MaterialTheme.typography.bodySmall
-        )
-        Text("Â·", color = SoftText, style = MaterialTheme.typography.bodySmall)
-        Text(
-            text = "${post.authorFollowingCount} da follow",
-            color = SoftText,
-            style = MaterialTheme.typography.bodySmall
-        )
-        if (post.isAuthorFollowed) {
-            Text("Â· Da follow", color = Evergreen, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-        }
     }
 }
 
@@ -957,161 +939,6 @@ private fun FirestoreCommentBubble(comment: CommunityComment) {
                 comment.mediaItems.firstOrNull()?.let { media ->
                     Text(media.type, color = SoftText, style = MaterialTheme.typography.bodySmall)
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CommentsDialog(
-    post: CommunityPost,
-    likeCount: Int,
-    shareCount: Int,
-    authorName: String,
-    onDismiss: () -> Unit,
-    onAddComment: () -> Unit
-) {
-    var draft by remember { mutableStateOf("") }
-    var dragDistance by remember { mutableStateOf(0f) }
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.White)
-                .navigationBarsPadding()
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp, bottom = 6.dp)
-                    .pointerInput(Unit) {
-                        detectVerticalDragGestures(
-                            onDragStart = { dragDistance = 0f },
-                            onVerticalDrag = { _, dragAmount ->
-                                dragDistance += dragAmount
-                                if (dragDistance > 90f) {
-                                    onDismiss()
-                                }
-                            },
-                            onDragEnd = { dragDistance = 0f },
-                            onDragCancel = { dragDistance = 0f }
-                        )
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Surface(
-                    modifier = Modifier
-                        .width(76.dp)
-                        .height(6.dp),
-                    shape = RoundedCornerShape(99.dp),
-                    color = SoftLine
-                ) {}
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Yêu thích $likeCount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("$shareCount lượt chia sẻ", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            }
-            Divider()
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 18.dp, vertical = 16.dp),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp)
-            ) {
-                item {
-                    CommentBubble(
-                        author = "Trịnh Hải Yến",
-                        body = "Xuất sắc thượng hạng"
-                    )
-                }
-                item {
-                    CommentBubble(
-                        author = "Hồng Quang",
-                        body = "Đúng là tiết mục đỉnh nhất đêm nay"
-                    )
-                }
-                item {
-                    CommentBubble(
-                        author = "Nguyễn Chinh",
-                        body = "thích quá aaa"
-                    )
-                }
-                item {
-                    CommentBubble(
-                        author = "Mã Anh Thu",
-                        body = "tui mê 2 MC này quá aa"
-                    )
-                }
-                item {
-                    CommentBubble(
-                        author = "Huy Hùng",
-                        body = "Mã Anh Thu mê 2"
-                    )
-                }
-                item {
-                    CommentBubble(
-                        author = "Nguyễn Vân Anh",
-                        body = "xinh đẹp tuyệt vời"
-                    )
-                }
-                item {
-                    CommentBubble(
-                        author = "Nghiêm Hòa",
-                        body = "Top MC tôi tin tưởng đây rồi"
-                    )
-                }
-            }
-            Divider()
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(14.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextField(
-                    value = draft,
-                    onValueChange = { draft = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("Bình luận dưới tên $authorName") },
-                    singleLine = true
-                )
-                TextButton(
-                    enabled = draft.isNotBlank(),
-                    onClick = {
-                        draft = ""
-                        onAddComment()
-                    }
-                ) {
-                    Text("Gửi")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CommentBubble(
-    author: String,
-    body: String
-) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        CircleAvatar(size = 46.dp)
-        Surface(shape = RoundedCornerShape(18.dp), color = Color(0xFFF0F3F6)) {
-            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-                Text(author, fontWeight = FontWeight.Bold)
-                Text(body, style = MaterialTheme.typography.bodyLarge)
             }
         }
     }

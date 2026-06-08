@@ -288,6 +288,7 @@ fun FanZoneNavHost(
                 eventId = eventId,
                 onBack = { navController.popBackStack() },
                 onNavigateToBooking = { id -> navController.navigate(AppDestination.Booking.create(id)) },
+                onOpenCommunity = { id -> navController.navigate(AppDestination.EventCommunity.create(id)) },
                 modifier = Modifier.fillMaxSize()
             )
         }

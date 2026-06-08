@@ -31,7 +31,7 @@ class FanZoneViewModel(
             categories = repository.categories,
             events = repository.events,
             tiers = repository.tiers,
-            posts = repository.posts,
+            posts = emptyList(),
             walletItems = repository.walletSeed,
             paymentMethods = repository.paymentMethods,
             supportShortcuts = repository.supportShortcuts,

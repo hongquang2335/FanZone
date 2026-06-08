@@ -3,6 +3,8 @@ package com.example.myapplication.feature.profile
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -154,7 +156,11 @@ fun ProfileScreen(
                 text = "Đăng nhập/Đăng ký",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = onOpenAuth)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onOpenAuth
+                    )
                     .padding(top = 4.dp),
                 color = Evergreen,
                 style = if (compactHeight) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
@@ -168,26 +174,7 @@ fun ProfileScreen(
                     .padding(horizontal = horizontalPadding, vertical = if (compactHeight) 22.dp else 32.dp),
                 verticalArrangement = Arrangement.spacedBy(if (compactHeight) 14.dp else 18.dp)
             ) {
-                SectionTitle(icon = Icons.Default.Settings, title = "Cài đặt ứng dụng", colors = profileColors)
 
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    color = profileColors.panel
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Thay đổi ngôn ngữ",
-                            color = profileColors.primaryText,
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        LanguageBadge(colors = profileColors)
-                    }
-                }
 
                 Row(
                     modifier = Modifier

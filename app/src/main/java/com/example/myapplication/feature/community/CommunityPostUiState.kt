@@ -11,9 +11,6 @@ data class CommunityPostUiState(
     val currentAuthorId: String? = null,
     val currentAuthorName: String = "Ban",
     val currentAuthorAvatarUrl: String? = null,
-    val currentAuthorFollowerCount: Int = 0,
-    val currentAuthorFollowingCount: Int = 0,
-    val isCurrentAuthorFollowed: Boolean = false,
     val errorMessage: String? = null
 ) {
     val canPost: Boolean

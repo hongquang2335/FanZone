@@ -7,7 +7,6 @@ import com.example.myapplication.domain.model.CommunityPost
 import com.example.myapplication.domain.model.Event
 import com.example.myapplication.domain.model.EventMoment
 import com.example.myapplication.domain.model.PaymentMethod
-import com.example.myapplication.domain.model.SharedCommunityPost
 import com.example.myapplication.domain.model.SupportShortcut
 import com.example.myapplication.domain.model.TicketStatus
 import com.example.myapplication.domain.model.TicketTier
@@ -90,67 +89,7 @@ object FakeFanZoneRepository : FanZoneRepository {
         TicketTier("expo-pass", "art-expo", "Pass Gallery", "Truy cap tron ngay va talkshow", 350_000, TierStatus.AVAILABLE)
     )
 
-    override val posts = listOf(
-        CommunityPost(
-            id = "p1",
-            authorId = "user-minh-tuan",
-            author = "Minh Tuấn",
-            role = "Fan cuồng Sơn Tùng",
-            topic = "Trao đổi cá nhân",
-            content = "Không thể tin được setlist đêm qua. Ai có video đoạn highnote cuối cùng thì chia sẻ với mình với.",
-            likes = 128,
-            comments = 24,
-            shareCount = 4,
-            imageRes = R.drawable.event_concert,
-            imageUrl = "android.resource://com.example.myapplication/drawable/event_concert",
-            mediaUrl = "android.resource://com.example.myapplication/drawable/event_concert",
-            mediaType = "image/png",
-            sharedPost = SharedCommunityPost(
-                author = "Hồng Quang",
-                caption = "a"
-            ),
-            createdAtMillis = 1_746_851_200_000,
-            updatedAtMillis = 1_746_851_200_000
-        ),
-        CommunityPost(
-            id = "p2",
-            authorId = "fanzone-official",
-            author = "FanZone Official",
-            role = "Thông báo cộng đồng",
-            topic = "Mở đợt pre-sale độc quyền",
-            content = "Tuần tới sẽ có đợt pre-sale độc quyền cho khách đã cập nhật hồ sơ thành viên. Nhớ kiểm tra profile trước 20:00 tối thứ Sáu.",
-            likes = 84,
-            comments = 18,
-            shareCount = 2,
-            imageRes = null,
-            imageUrl = null,
-            mediaUrl = null,
-            mediaType = null,
-            eventId = "neon-night",
-            eventTitle = "Neon Nights Festival 2024",
-            createdAtMillis = 1_778_393_600_000,
-            updatedAtMillis = 1_778_393_600_000
-        ),
-        CommunityPost(
-            id = "p3",
-            authorId = "user-hoang-lam",
-            author = "Hoàng Lâm",
-            role = "Thành viên đã mua vé",
-            topic = "Lập nhóm check-in",
-            content = "Mình lập nhóm chat để cùng trao đổi và cập nhật thông tin check-in. Bạn nào đi Neon Nights một mình thì vào chung cho vui nhé.",
-            likes = 37,
-            comments = 12,
-            shareCount = 1,
-            imageRes = null,
-            imageUrl = null,
-            mediaUrl = null,
-            mediaType = null,
-            eventId = "neon-night",
-            eventTitle = "Neon Nights Festival 2024",
-            createdAtMillis = 1_778_307_200_000,
-            updatedAtMillis = 1_778_307_200_000
-        )
-    )
+    override val posts = emptyList<CommunityPost>()
 
     override val walletSeed = listOf(
         TicketWalletItem(
