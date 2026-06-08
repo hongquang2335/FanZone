@@ -10,9 +10,17 @@ sealed class AppDestination(val route: String) {
     }
     data object Login : AppDestination("login")
     data object Register : AppDestination("register")
+    data object ForgotPassword : AppDestination("forgot-password")
+    data object ResetPasswordCode : AppDestination("reset-password/code") {
+        const val baseRoute = "reset-password/code"
+        fun create(): String = baseRoute
+    }
+    data object ResetPasswordNew : AppDestination("reset-password/new") {
+        const val baseRoute = "reset-password/new"
+        fun create(): String = baseRoute
+    }
     data object AccountInfo : AppDestination("profile/account-info")
     data object ProfileOptions : AppDestination("profile/options")
-    data object PinSetup : AppDestination("profile/pin-setup")
     data object NotificationSettings : AppDestination("profile/notification-settings")
     data object Support : AppDestination("support")
     data object EventCommunity : AppDestination("community/event/{eventId}") {

@@ -110,4 +110,3 @@ val celebrityProfiles = listOf(
         avatarColor = 0xFF0891B2
     )
 )
-

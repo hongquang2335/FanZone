@@ -1,13 +1,12 @@
 package com.example.myapplication.data.repository
 
 import com.example.myapplication.R
+import com.example.myapplication.domain.model.Artist
 import com.example.myapplication.domain.model.Category
 import com.example.myapplication.domain.model.CommunityPost
 import com.example.myapplication.domain.model.Event
 import com.example.myapplication.domain.model.EventMoment
 import com.example.myapplication.domain.model.PaymentMethod
-import com.example.myapplication.domain.model.SharedCommunityPost
-import com.example.myapplication.domain.model.celebrityProfiles
 import com.example.myapplication.domain.model.SupportShortcut
 import com.example.myapplication.domain.model.TicketStatus
 import com.example.myapplication.domain.model.TicketTier
@@ -40,7 +39,12 @@ object FakeFanZoneRepository : FanZoneRepository {
             venue = "San van dong My Dinh",
             city = "Ha Noi",
             description = "Dem nhac hoi mua he quy tu nhung ten tuoi hang dau cung san khau quy mo lon, khu trai nghiem fandom va khu am thuc ngoai troi.",
-            artists = listOf("Son Tung M-TP", "Den Vau", "Touliver", "Bich Phuong"),
+            artists = listOf(
+                Artist("1", "Son Tung M-TP", "https://i.pravatar.cc/150?u=sontung"),
+                Artist("2", "Den Vau", "https://i.pravatar.cc/150?u=denvau"),
+                Artist("3", "Touliver", "https://i.pravatar.cc/150?u=touliver"),
+                Artist("4", "Bich Phuong", "https://i.pravatar.cc/150?u=bichphuong")
+            ),
             timeline = listOf(
                 EventMoment("18:00", "Mo cua don khach va check-in"),
                 EventMoment("20:00", "Khai mac voi chuong trinh DJ set"),
@@ -60,7 +64,11 @@ object FakeFanZoneRepository : FanZoneRepository {
             venue = "Bao tang My thuat",
             city = "TP. Ho Chi Minh",
             description = "Bo suu tap nghe thuat duong dai gom tranh, installation va workshop giao luu voi curator tre.",
-            artists = listOf("Linh Dao", "Vu Hoang", "Khanh Nhi"),
+            artists = listOf(
+                Artist("5", "Linh Dao", "https://i.pravatar.cc/150?u=linhdao"),
+                Artist("6", "Vu Hoang", "https://i.pravatar.cc/150?u=vuhoang"),
+                Artist("7", "Khanh Nhi", "https://i.pravatar.cc/150?u=khanhnhi")
+            ),
             timeline = listOf(
                 EventMoment("09:00", "Mo cua phong trung bay"),
                 EventMoment("11:00", "Artist talk"),
@@ -81,207 +89,7 @@ object FakeFanZoneRepository : FanZoneRepository {
         TicketTier("expo-pass", "art-expo", "Pass Gallery", "Truy cap tron ngay va talkshow", 350_000, TierStatus.AVAILABLE)
     )
 
-    override val posts = listOf(
-        CommunityPost(
-            id = "p1",
-            authorId = "user-minh-tuan",
-            author = "Minh Tuấn",
-            role = "Fan cuồng Sơn Tùng",
-            topic = "Trao đổi cá nhân",
-            content = "Không thể tin được setlist đêm qua. Ai có video đoạn highnote cuối cùng thì chia sẻ với mình với.",
-            likes = 128,
-            comments = 24,
-            shareCount = 4,
-            imageRes = R.drawable.event_concert,
-            imageUrl = "android.resource://com.example.myapplication/drawable/event_concert",
-            mediaUrl = "android.resource://com.example.myapplication/drawable/event_concert",
-            mediaType = "image/png",
-            sharedPost = SharedCommunityPost(
-                author = "Hồng Quang",
-                caption = "a"
-            ),
-            createdAtMillis = 1_746_851_200_000,
-            updatedAtMillis = 1_746_851_200_000
-        ),
-        CommunityPost(
-            id = "p2",
-            authorId = "fanzone-official",
-            author = "FanZone Official",
-            role = "Thông báo cộng đồng",
-            topic = "Mở đợt pre-sale độc quyền",
-            content = "Tuần tới sẽ có đợt pre-sale độc quyền cho khách đã cập nhật hồ sơ thành viên. Nhớ kiểm tra profile trước 20:00 tối thứ Sáu.",
-            likes = 84,
-            comments = 18,
-            shareCount = 2,
-            imageRes = null,
-            imageUrl = null,
-            mediaUrl = null,
-            mediaType = null,
-            eventId = "neon-night",
-            eventTitle = "Neon Nights Festival 2024",
-            createdAtMillis = 1_778_393_600_000,
-            updatedAtMillis = 1_778_393_600_000
-        ),
-        CommunityPost(
-            id = "p3",
-            authorId = "user-hoang-lam",
-            author = "Hoàng Lâm",
-            role = "Thành viên đã mua vé",
-            topic = "Lập nhóm check-in",
-            content = "Mình lập nhóm chat để cùng trao đổi và cập nhật thông tin check-in. Bạn nào đi Neon Nights một mình thì vào chung cho vui nhé.",
-            likes = 37,
-            comments = 12,
-            shareCount = 1,
-            imageRes = null,
-            imageUrl = null,
-            mediaUrl = null,
-            mediaType = null,
-            eventId = "neon-night",
-            eventTitle = "Neon Nights Festival 2024",
-            createdAtMillis = 1_778_307_200_000,
-            updatedAtMillis = 1_778_307_200_000
-        ),
-        CommunityPost(
-            id = "celeb-post-son-tung",
-            authorId = celebrityProfiles[0].id,
-            author = celebrityProfiles[0].displayName,
-            role = celebrityProfiles[0].role,
-            topic = "San khau Neon Nights",
-            content = "Gap nhau o Neon Nights nhe. Team nao da san sang hat that lon cung minh?",
-            likes = 245_000,
-            comments = 18_200,
-            shareCount = 6_430,
-            imageRes = R.drawable.event_concert,
-            imageUrl = "android.resource://com.example.myapplication/drawable/event_concert",
-            mediaUrl = "android.resource://com.example.myapplication/drawable/event_concert",
-            mediaType = "image/png",
-            eventId = "neon-night",
-            eventTitle = "Neon Nights Festival 2024",
-            createdAtMillis = 1_778_652_000_000,
-            updatedAtMillis = 1_778_652_000_000
-        ),
-        CommunityPost(
-            id = "celeb-post-den-vau",
-            authorId = celebrityProfiles[1].id,
-            author = celebrityProfiles[1].displayName,
-            role = celebrityProfiles[1].role,
-            topic = "Loi hen voi fan",
-            content = "Co nhung cau rap chi that su song khi duoc nghe cung khan gia. Hen cac ban o dem nhac toi.",
-            likes = 189_500,
-            comments = 9_760,
-            shareCount = 4_110,
-            imageRes = null,
-            imageUrl = null,
-            mediaUrl = null,
-            mediaType = null,
-            eventId = "neon-night",
-            eventTitle = "Neon Nights Festival 2024",
-            createdAtMillis = 1_778_566_400_000,
-            updatedAtMillis = 1_778_566_400_000
-        ),
-        CommunityPost(
-            id = "celeb-post-my-tam",
-            authorId = celebrityProfiles[2].id,
-            author = celebrityProfiles[2].displayName,
-            role = celebrityProfiles[2].role,
-            topic = "Cam on fan",
-            content = "Moi lan gap khan gia la mot lan duoc tiep them nang luong. Cam on vi da luon o do.",
-            likes = 312_800,
-            comments = 21_430,
-            shareCount = 7_850,
-            imageRes = null,
-            imageUrl = null,
-            mediaUrl = null,
-            mediaType = null,
-            createdAtMillis = 1_778_480_000_000,
-            updatedAtMillis = 1_778_480_000_000
-        ),
-        CommunityPost(
-            id = "celeb-post-hoang-thuy-linh",
-            authorId = celebrityProfiles[3].id,
-            author = celebrityProfiles[3].displayName,
-            role = celebrityProfiles[3].role,
-            topic = "Y tuong san khau",
-            content = "Dang thu nghiem mot ban phoi moi cho san khau sap toi. Muon nghe fan doan bai nao nhat?",
-            likes = 98_400,
-            comments = 6_210,
-            shareCount = 2_340,
-            imageRes = null,
-            imageUrl = null,
-            mediaUrl = null,
-            mediaType = null,
-            createdAtMillis = 1_778_393_600_000,
-            updatedAtMillis = 1_778_393_600_000
-        ),
-        CommunityPost(
-            id = "celeb-post-toc-tien",
-            authorId = celebrityProfiles[4].id,
-            author = celebrityProfiles[4].displayName,
-            role = celebrityProfiles[4].role,
-            topic = "Behind the scenes",
-            content = "Dang chon outfit cho dem dien tiep theo. Nang luong phai that ruc ro moi hop vibe FanZone.",
-            likes = 124_700,
-            comments = 5_900,
-            shareCount = 3_020,
-            imageRes = R.drawable.event_gallery,
-            imageUrl = "android.resource://com.example.myapplication/drawable/event_gallery",
-            mediaUrl = "android.resource://com.example.myapplication/drawable/event_gallery",
-            mediaType = "image/png",
-            createdAtMillis = 1_778_307_200_000,
-            updatedAtMillis = 1_778_307_200_000
-        ),
-        CommunityPost(
-            id = "celeb-post-suboi",
-            authorId = celebrityProfiles[5].id,
-            author = celebrityProfiles[5].displayName,
-            role = celebrityProfiles[5].role,
-            topic = "Hip-hop corner",
-            content = "Ai co beat yeu thich thi comment thu. Biet dau minh dem len freestyle trong fan meeting.",
-            likes = 76_300,
-            comments = 4_840,
-            shareCount = 1_760,
-            imageRes = null,
-            imageUrl = null,
-            mediaUrl = null,
-            mediaType = null,
-            createdAtMillis = 1_778_220_800_000,
-            updatedAtMillis = 1_778_220_800_000
-        ),
-        CommunityPost(
-            id = "celeb-post-binz",
-            authorId = celebrityProfiles[6].id,
-            author = celebrityProfiles[6].displayName,
-            role = celebrityProfiles[6].role,
-            topic = "Rap show",
-            content = "FanZone co ai muon nghe mot track moi o san khau sap toi khong?",
-            likes = 88_900,
-            comments = 4_320,
-            shareCount = 1_980,
-            imageRes = null,
-            imageUrl = null,
-            mediaUrl = null,
-            mediaType = null,
-            createdAtMillis = 1_778_134_400_000,
-            updatedAtMillis = 1_778_134_400_000
-        ),
-        CommunityPost(
-            id = "celeb-post-bich-phuong",
-            authorId = celebrityProfiles[7].id,
-            author = celebrityProfiles[7].displayName,
-            role = celebrityProfiles[7].role,
-            topic = "Fan request",
-            content = "Dang lap playlist cho dem dien moi. Bai nao cac ban muon hat cung minh nhat?",
-            likes = 102_600,
-            comments = 6_780,
-            shareCount = 2_250,
-            imageRes = null,
-            imageUrl = null,
-            mediaUrl = null,
-            mediaType = null,
-            createdAtMillis = 1_778_048_000_000,
-            updatedAtMillis = 1_778_048_000_000
-        )
-    )
+    override val posts = emptyList<CommunityPost>()
 
     override val walletSeed = listOf(
         TicketWalletItem(

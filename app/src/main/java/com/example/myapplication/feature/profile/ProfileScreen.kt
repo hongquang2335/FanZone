@@ -1,12 +1,10 @@
 package com.example.myapplication.feature.profile
 
-import android.content.Intent
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -28,8 +26,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ConfirmationNumber
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Logout
@@ -40,8 +36,6 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SportsSoccer
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -54,17 +48,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import com.example.myapplication.core.designsystem.component.CircleAvatar
 import com.example.myapplication.core.designsystem.theme.Evergreen
 import com.example.myapplication.domain.model.CommunityPost
-import com.example.myapplication.domain.model.SocialProfile
 import com.example.myapplication.domain.model.UserProfile
+import com.example.myapplication.feature.authentication.AuthUiState
+import com.example.myapplication.feature.authentication.AuthUser
 
 private data class ProfileColors(
     val background: Color,
@@ -97,22 +90,24 @@ fun ProfileScreen(
     authState: AuthUiState,
     unreadSupport: Int,
     posts: List<CommunityPost>,
+    avatarUrl: String? = null,
+    followerCount: Int = 0,
+    followingCount: Int = 0,
     onOpenSupport: () -> Unit,
     onOpenAuth: () -> Unit,
     onOpenAccountInfo: () -> Unit,
-    onOpenPinSetup: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
     onOpenProfileOptions: () -> Unit,
-    onChangeAvatar: (String) -> Unit,
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (authState.isSignedIn) {
         SignedInProfileScreen(
             authUser = authState.user,
-            accountProfile = authState.accountProfile,
             posts = posts,
-            onChangeAvatar = onChangeAvatar,
+            avatarUrl = avatarUrl ?: authState.accountProfile.avatarUrl,
+            followerCount = followerCount,
+            followingCount = followingCount,
             onOpenProfileOptions = onOpenProfileOptions,
             modifier = modifier
         )
@@ -161,7 +156,11 @@ fun ProfileScreen(
                 text = "Đăng nhập/Đăng ký",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = onOpenAuth)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onOpenAuth
+                    )
                     .padding(top = 4.dp),
                 color = Evergreen,
                 style = if (compactHeight) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
@@ -175,26 +174,7 @@ fun ProfileScreen(
                     .padding(horizontal = horizontalPadding, vertical = if (compactHeight) 22.dp else 32.dp),
                 verticalArrangement = Arrangement.spacedBy(if (compactHeight) 14.dp else 18.dp)
             ) {
-                SectionTitle(icon = Icons.Default.Settings, title = "Cài đặt ứng dụng", colors = profileColors)
 
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    color = profileColors.panel
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Thay đổi ngôn ngữ",
-                            color = profileColors.primaryText,
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        LanguageBadge(colors = profileColors)
-                    }
-                }
 
                 Row(
                     modifier = Modifier
@@ -221,9 +201,10 @@ fun ProfileScreen(
 @Composable
 private fun SignedInProfileScreen(
     authUser: AuthUser?,
-    accountProfile: AccountProfile,
     posts: List<CommunityPost>,
-    onChangeAvatar: (String) -> Unit,
+    avatarUrl: String?,
+    followerCount: Int,
+    followingCount: Int,
     onOpenProfileOptions: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -272,15 +253,27 @@ private fun SignedInProfileScreen(
                         modifier = Modifier.size(30.dp)
                     )
                 }
-                EditableProfileAvatar(
-                    initial = initial?.uppercaseChar()?.toString().orEmpty(),
-                    avatarUri = accountProfile.avatarUri,
-                    size = avatarSize,
-                    onChangeAvatar = onChangeAvatar,
+                Surface(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .offset(y = (-2).dp)
-                )
+                        .size(avatarSize),
+                    shape = CircleShape,
+                    color = Color(0xFF078E81)
+                ) {
+                    if (!avatarUrl.isNullOrBlank()) {
+                        CircleAvatar(size = avatarSize, imageUrl = avatarUrl)
+                    } else {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = initial?.uppercaseChar()?.toString().orEmpty(),
+                                color = Color.White,
+                                style = MaterialTheme.typography.displayMedium,
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
+                    }
+                }
             }
 
             Text(
@@ -293,8 +286,8 @@ private fun SignedInProfileScreen(
             )
 
             ProfileStatsRow(
-                following = 0,
-                followers = 0,
+                following = followingCount,
+                followers = followerCount,
                 likes = totalLikes,
                 colors = profileColors,
                 modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 20.dp)
@@ -326,261 +319,9 @@ private fun SignedInProfileScreen(
 }
 
 @Composable
-fun PublicProfileScreen(
-    profile: SocialProfile,
-    posts: List<CommunityPost>,
-    isFollowing: Boolean,
-    isCurrentUser: Boolean,
-    onBack: () -> Unit,
-    onToggleFollow: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val profileColors = profileColors()
-    val profilePosts = posts.filter { it.authorId == profile.id }
-    val totalLikes = profilePosts.sumOf { it.likes }
-    val followers = profile.followerCount + if (isFollowing) 1 else 0
-
-    BoxWithConstraints(
-        modifier = modifier
-            .fillMaxSize()
-            .background(profileColors.background)
-            .navigationBarsPadding()
-    ) {
-        val compactHeight = maxHeight < 700.dp
-        val horizontalPadding = if (maxWidth < 360.dp) 18.dp else 24.dp
-        val headerHeight = if (compactHeight) 190.dp else 224.dp
-        val patternHeight = if (compactHeight) 132.dp else 156.dp
-        val avatarSize = if (compactHeight) 96.dp else 116.dp
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-        ) {
-            Box(modifier = Modifier.fillMaxWidth().height(headerHeight)) {
-                AccountHeaderPattern(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(patternHeight)
-                        .statusBarsPadding()
-                )
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .statusBarsPadding()
-                        .padding(top = 12.dp, start = horizontalPadding)
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Quay lai",
-                        tint = Color.White,
-                        modifier = Modifier.size(30.dp)
-                    )
-                }
-                VerifiedProfileAvatar(
-                    profile = profile,
-                    size = avatarSize,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .offset(y = (-2).dp)
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = horizontalPadding),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = profile.displayName,
-                    color = profileColors.primaryText,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-                if (profile.verified) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        contentDescription = "Tai khoan da xac minh",
-                        tint = Color(0xFF1D9BF0),
-                        modifier = Modifier.padding(start = 6.dp).size(22.dp)
-                    )
-                }
-            }
-
-            Text(
-                text = profile.handle,
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                color = profileColors.mutedText,
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = profile.bio,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = horizontalPadding, vertical = 12.dp),
-                color = profileColors.primaryText,
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
-            )
-
-            if (!isCurrentUser) {
-                Button(
-                    onClick = onToggleFollow,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = horizontalPadding)
-                        .height(48.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isFollowing) profileColors.panel else Evergreen,
-                        contentColor = if (isFollowing) profileColors.primaryText else Color.White
-                    )
-                ) {
-                    Text(if (isFollowing) "Dang follow" else "Follow", fontWeight = FontWeight.Bold)
-                }
-            }
-
-            ProfileStatsRow(
-                following = profile.followingCount,
-                followers = followers,
-                likes = totalLikes,
-                colors = profileColors,
-                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 20.dp)
-            )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = horizontalPadding, vertical = if (compactHeight) 14.dp else 20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Text(
-                    text = "Bai viet",
-                    color = profileColors.primaryText,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.ExtraBold
-                )
-                if (profilePosts.isEmpty()) {
-                    EmptyProfilePosts(colors = profileColors)
-                } else {
-                    profilePosts.forEach { post ->
-                        ProfilePostItem(post = post, colors = profileColors)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun EditableProfileAvatar(
-    initial: String,
-    avatarUri: String?,
-    size: androidx.compose.ui.unit.Dp,
-    onChangeAvatar: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        if (uri != null) {
-            context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            onChangeAvatar(uri.toString())
-        }
-    }
-
-    Box(modifier = modifier.size(size + 10.dp), contentAlignment = Alignment.Center) {
-        Surface(
-            modifier = Modifier.size(size),
-            shape = CircleShape,
-            color = Color(0xFF078E81),
-            border = BorderStroke(5.dp, Color.White)
-        ) {
-            if (avatarUri != null) {
-                AsyncImage(
-                    model = avatarUri,
-                    contentDescription = "Anh dai dien",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = initial,
-                        color = Color.White,
-                        style = MaterialTheme.typography.displayMedium,
-                        fontWeight = FontWeight.Normal
-                    )
-                }
-            }
-        }
-        Surface(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .size(38.dp)
-                .clickable { launcher.launch(arrayOf("image/*")) },
-            shape = CircleShape,
-            color = Evergreen,
-            border = BorderStroke(3.dp, Color.White)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    Icons.Default.CameraAlt,
-                    contentDescription = "Doi anh dai dien",
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun VerifiedProfileAvatar(
-    profile: SocialProfile,
-    size: androidx.compose.ui.unit.Dp,
-    modifier: Modifier = Modifier
-) {
-    Box(modifier = modifier.size(size + 12.dp), contentAlignment = Alignment.Center) {
-        Surface(
-            modifier = Modifier.size(size),
-            shape = CircleShape,
-            color = profile.avatarComposeColor,
-            border = BorderStroke(5.dp, Color.White)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = profile.avatarInitial,
-                    color = Color.White,
-                    style = MaterialTheme.typography.displayMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-        if (profile.verified) {
-            Surface(
-                modifier = Modifier.align(Alignment.TopEnd).size(32.dp),
-                shape = CircleShape,
-                color = Color.White
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        contentDescription = "Tai khoan da xac minh",
-                        tint = Color(0xFF1D9BF0),
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun ProfileOptionsScreen(
     onBack: () -> Unit,
     onOpenAccountInfo: () -> Unit,
-    onOpenPinSetup: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
     onOpenSupport: () -> Unit,
     onSignOut: () -> Unit,
@@ -605,8 +346,6 @@ fun ProfileOptionsScreen(
             Surface(shape = RoundedCornerShape(18.dp), color = profileColors.panel) {
                 Column {
                     AccountRow("Thông tin tài khoản", colors = profileColors, onClick = onOpenAccountInfo)
-                    AccountDivider(colors = profileColors)
-                    AccountRow("Thiết lập mã PIN", colors = profileColors, onClick = onOpenPinSetup)
                     AccountDivider(colors = profileColors)
                     AccountRow("Cài đặt", colors = profileColors, onClick = onOpenNotificationSettings)
                 }

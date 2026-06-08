@@ -7,7 +7,7 @@ import org.junit.Test
 class FanZoneViewModelTest {
     @Test
     fun selectEvent_ignoresUnknownEventIds() {
-        val viewModel = FanZoneViewModel()
+        val viewModel = FanZoneViewModel(loadRemoteEvents = false)
         val originalEventId = viewModel.uiState.value.selectedEventId
 
         viewModel.selectEvent("missing-event")
@@ -17,7 +17,7 @@ class FanZoneViewModelTest {
 
     @Test
     fun confirmPurchase_addsTicketAndClearsSelection() {
-        val viewModel = FanZoneViewModel()
+        val viewModel = FanZoneViewModel(loadRemoteEvents = false)
         viewModel.setTierQuantity("vip", 1)
 
         val ticket = viewModel.confirmPurchase()

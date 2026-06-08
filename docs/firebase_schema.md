@@ -26,3 +26,17 @@ Lưu trữ chi tiết từng vé của người dùng, kế thừa từ `TicketW
 ## 3. Quy tắc chung
 - Tất cả ID sự kiện (`eventId`) sử dụng kiểu dữ liệu `string`.
 - Mã QR check-in được lưu trong trường `qrCode`.
+
+## Community posts
+
+Trang Community hiện chỉ dùng Firestore collection:
+
+```text
+posts
+```
+
+Collection cũ `communityPosts` không còn được app đọc/ghi. Schema chuẩn chi tiết nằm ở:
+
+```text
+docs/community_post_schema.md
+```

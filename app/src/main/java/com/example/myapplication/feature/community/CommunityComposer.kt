@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Audiotrack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Image
@@ -58,6 +57,7 @@ import com.example.myapplication.domain.repository.SelectedCommunityMedia
 fun ComposerCard(
     eventId: String? = null,
     eventTitle: String? = null,
+    currentAuthorAvatarUrl: String? = null,
     onOpenAuth: () -> Unit = {},
     viewModel: CommunityPostViewModel = viewModel()
 ) {
@@ -73,7 +73,10 @@ fun ComposerCard(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            CircleAvatar(size = 44.dp)
+            CircleAvatar(
+                size = 44.dp,
+                imageUrl = currentAuthorAvatarUrl ?: state.currentAuthorAvatarUrl
+            )
             Surface(
                 modifier = Modifier
                     .weight(1f)
@@ -95,26 +98,13 @@ fun ComposerCard(
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
-            Icon(
-                Icons.Default.Image,
-                contentDescription = "Thêm ảnh",
-                tint = Evergreen,
-                modifier = Modifier
-                    .size(28.dp)
-                    .clickable {
-                        if (state.currentAuthorId == null) {
-                            showAuthPrompt = true
-                        } else {
-                            composerOpen = true
-                        }
-                    }
-            )
         }
     }
 
     if (composerOpen) {
         NewPostDialog(
             state = state,
+            currentAuthorAvatarUrl = currentAuthorAvatarUrl,
             onDraftChange = viewModel::updateDraft,
             onMediaSelected = viewModel::addMedia,
             onMediaRemoved = viewModel::removeMedia,
@@ -140,6 +130,7 @@ fun ComposerCard(
 @Composable
 private fun NewPostDialog(
     state: CommunityPostUiState,
+    currentAuthorAvatarUrl: String?,
     onDraftChange: (String) -> Unit,
     onMediaSelected: (List<SelectedCommunityMedia>) -> Unit,
     onMediaRemoved: (SelectedCommunityMedia) -> Unit,
@@ -213,7 +204,10 @@ private fun NewPostDialog(
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    CircleAvatar(size = 64.dp)
+                    CircleAvatar(
+                        size = 64.dp,
+                        imageUrl = currentAuthorAvatarUrl ?: state.currentAuthorAvatarUrl
+                    )
                     Text(state.currentAuthorName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
                 }
 
@@ -227,12 +221,6 @@ private fun NewPostDialog(
                     item {
                         ComposerActionChip(Icons.Default.Videocam, "Video") {
                             pendingTypes = arrayOf("video/*")
-                            mediaLauncher.launch(pendingTypes)
-                        }
-                    }
-                    item {
-                        ComposerActionChip(Icons.Default.Audiotrack, "Ghi âm") {
-                            pendingTypes = arrayOf("audio/*")
                             mediaLauncher.launch(pendingTypes)
                         }
                     }
@@ -312,7 +300,7 @@ private fun SelectedMediaRow(
                 imageVector = when {
                     media.type.startsWith("image/") -> Icons.Default.Image
                     media.type.startsWith("video/") -> Icons.Default.Videocam
-                    else -> Icons.Default.Audiotrack
+                    else -> Icons.Default.Image
                 },
                 contentDescription = null,
                 tint = Evergreen,

@@ -12,21 +12,24 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.myapplication.domain.model.CommunityComment
 import com.example.myapplication.domain.model.CommunityPost
-import com.example.myapplication.domain.model.SocialProfile
 import com.example.myapplication.core.designsystem.component.CommunityCard
 import com.example.myapplication.core.designsystem.component.SectionHeader
 
 @Composable
 fun CommunityScreen(
     posts: List<CommunityPost>,
-    profiles: List<SocialProfile>,
+    commentsByPostId: Map<String, List<CommunityComment>> = emptyMap(),
     currentAuthorName: String,
+    currentAuthorAvatarUrl: String?,
     currentUserId: String?,
     onOpenEvent: (String) -> Unit,
-    onOpenProfile: (String) -> Unit,
     onSharePost: (CommunityPost, String) -> Unit,
     onToggleLike: (String) -> Unit,
+    onToggleFollow: (String) -> Unit,
+    onOpenComments: (String) -> Unit,
+    onAddComment: (String, String) -> Unit,
     onOpenAuth: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -38,7 +41,7 @@ fun CommunityScreen(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            item { ComposerCard(onOpenAuth = onOpenAuth) }
+            item { ComposerCard(currentAuthorAvatarUrl = currentAuthorAvatarUrl, onOpenAuth = onOpenAuth) }
             if (isExpanded) {
                 item { SectionHeader("Dòng bài viết nổi bật", "Có sự kiện kèm tag") }
             }
@@ -53,13 +56,15 @@ fun CommunityScreen(
                                 group.forEach { post ->
                                     CommunityCard(
                                         post = post,
-                                        authorProfile = profiles.firstOrNull { it.id == post.authorId },
                                         currentAuthorName = currentAuthorName,
                                         currentUserId = currentUserId,
                                         onOpenEventCommunity = onOpenEvent,
-                                        onOpenProfile = onOpenProfile,
                                         onSharePost = onSharePost,
                                         onToggleLike = { onToggleLike(post.id) },
+                                        onToggleFollow = onToggleFollow,
+                                        comments = commentsByPostId[post.id].orEmpty(),
+                                        onOpenComments = { onOpenComments(post.id) },
+                                        onAddComment = { text -> onAddComment(post.id, text) },
                                         onOpenAuth = onOpenAuth
                                     )
                                 }
@@ -71,13 +76,15 @@ fun CommunityScreen(
                 items(posts) { post ->
                     CommunityCard(
                         post = post,
-                        authorProfile = profiles.firstOrNull { it.id == post.authorId },
                         currentAuthorName = currentAuthorName,
                         currentUserId = currentUserId,
                         onOpenEventCommunity = onOpenEvent,
-                        onOpenProfile = onOpenProfile,
                         onSharePost = onSharePost,
                         onToggleLike = { onToggleLike(post.id) },
+                        onToggleFollow = onToggleFollow,
+                        comments = commentsByPostId[post.id].orEmpty(),
+                        onOpenComments = { onOpenComments(post.id) },
+                        onAddComment = { text -> onAddComment(post.id, text) },
                         onOpenAuth = onOpenAuth
                     )
                 }

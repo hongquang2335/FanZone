@@ -16,15 +16,19 @@ object AppDependencies {
     private val communityFirestoreDataSource = CommunityFirestoreDataSource()
     @Volatile private var communityRepositoryInstance: CommunityRepository? = null
 
+    fun communityStorageDataSource(context: Context): CommunityStorageDataSource {
+        return CommunityStorageDataSource(
+            context = context.applicationContext,
+            cloudName = CLOUDINARY_CLOUD_NAME,
+            uploadPreset = CLOUDINARY_UPLOAD_PRESET
+        )
+    }
+
     fun communityRepository(context: Context): CommunityRepository {
         return communityRepositoryInstance ?: synchronized(this) {
             communityRepositoryInstance ?: CommunityRepositoryImpl(
                 firestoreDataSource = communityFirestoreDataSource,
-                storageDataSource = CommunityStorageDataSource(
-                    context = context.applicationContext,
-                    cloudName = CLOUDINARY_CLOUD_NAME,
-                    uploadPreset = CLOUDINARY_UPLOAD_PRESET
-                )
+                storageDataSource = communityStorageDataSource(context)
             ).also { communityRepositoryInstance = it }
         }
     }

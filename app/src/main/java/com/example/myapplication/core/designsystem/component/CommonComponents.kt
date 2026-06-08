@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.RemoveRedEye
 import androidx.compose.material.icons.filled.Schedule
@@ -61,6 +62,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.myapplication.R
 import com.example.myapplication.core.designsystem.theme.Danger
 import com.example.myapplication.core.designsystem.theme.Evergreen
@@ -103,15 +105,46 @@ fun SectionHeader(title: String, subtitle: String?) {
 }
 
 @Composable
-fun CircleAvatar(size: Dp = 44.dp) {
-    Image(
-        painter = painterResource(R.drawable.fan_zone_avatar),
-        contentDescription = "Avatar",
-        contentScale = ContentScale.Crop,
-        modifier = Modifier
-            .size(size)
-            .clip(CircleShape)
-    )
+fun CircleAvatar(size: Dp = 44.dp, imageUrl: String? = null, showPlaceholder: Boolean = true) {
+    val modifier = Modifier
+        .size(size)
+        .clip(CircleShape)
+    if (imageUrl.isNullOrBlank()) {
+        if (showPlaceholder) {
+            Surface(
+                modifier = modifier,
+                shape = CircleShape,
+                color = Color(0xFFF7F7FA)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Surface(
+                        modifier = Modifier.size(size * 0.7f),
+                        shape = CircleShape,
+                        color = Color(0xFFEDEDF1),
+                        border = BorderStroke(1.dp, Color(0xFFB7B6BE))
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Avatar",
+                                tint = Color(0xFF8D8C94),
+                                modifier = Modifier.size(size * 0.46f)
+                            )
+                        }
+                    }
+                }
+            }
+        } else {
+            Box(modifier = modifier.background(Color.Transparent))
+        }
+    } else {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = "Avatar",
+            contentScale = ContentScale.Crop,
+            modifier = modifier
+        )
+    }
 }
 
 @Composable

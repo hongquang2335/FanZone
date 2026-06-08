@@ -1,49 +1,42 @@
 package com.example.myapplication.feature.event
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Schedule
-import com.example.myapplication.domain.model.Event
-import com.example.myapplication.domain.model.TicketTier
+import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.myapplication.core.designsystem.component.AppTopBar
-import com.example.myapplication.core.designsystem.component.ArtistRow
-import com.example.myapplication.core.designsystem.component.BookingFooter
-import com.example.myapplication.core.designsystem.component.InfoPanel
-import com.example.myapplication.core.designsystem.component.NoticeCard
 import com.example.myapplication.core.designsystem.component.SectionHeader
-import com.example.myapplication.core.designsystem.component.TimelineColumn
-import com.example.myapplication.core.designsystem.component.VenueMapCard
 import com.example.myapplication.core.designsystem.component.formatPrice
 import com.example.myapplication.core.designsystem.theme.Evergreen
-import com.example.myapplication.core.designsystem.theme.SoftText
-import com.example.myapplication.core.designsystem.theme.SurfaceCard
+import com.example.myapplication.domain.model.Artist
+import com.example.myapplication.domain.model.Event
+import com.example.myapplication.domain.model.PerformanceSchedule
+import com.example.myapplication.domain.model.TicketTier
 
 @Composable
 fun EventDetailScreen(
@@ -51,115 +44,498 @@ fun EventDetailScreen(
     tiers: List<TicketTier>,
     onBack: () -> Unit,
     onBuyNow: () -> Unit,
+    onOpenCommunity: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val isExpanded = maxWidth >= 720.dp
-        val minPrice = tiers.minOfOrNull { it.price }?.let(::formatPrice)
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = { AppTopBar(title = "FanZone", onBack = onBack) },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
+        EventDetailBody(event, tiers, onBuyNow, onOpenCommunity, Modifier.fillMaxSize().padding(innerPadding))
+    }
+}
 
-        Scaffold(
-            topBar = { AppTopBar(title = event.title, onBack = onBack) },
-            bottomBar = { if (!isExpanded) BookingFooter("Dat ve ngay", minPrice, onClick = onBuyNow) },
-            containerColor = MaterialTheme.colorScheme.background
-        ) { innerPadding ->
-            if (isExpanded) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(horizontal = 24.dp, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(24.dp)
+@Composable
+private fun EventDetailBody(
+    event: Event,
+    tiers: List<TicketTier>,
+    onBuyNow: () -> Unit,
+    onOpenCommunity: () -> Unit,
+    modifier: Modifier
+) {
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = PaddingValues(bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        item {
+            EventHeroBanner(event)
+        }
+        
+        item {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                // Categories với thanh cuộn ngang
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    EventDetailBody(event, tiers, Modifier.weight(1.4f))
-                    SideBookingPanel(event, tiers, Modifier.weight(1f), onBuyNow)
+                    // Nếu category trống, hiển thị nhãn mặc định là "Khác"
+                    val categories = event.category.ifEmpty { listOf("Khác") }
+                    items(categories) { cat ->
+                        BadgeItem(cat)
+                    }
                 }
-            } else {
-                EventDetailBody(event, tiers, Modifier.fillMaxSize().padding(innerPadding))
+                
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    // Title
+                    Text(
+                        text = event.title,
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            lineHeight = 40.sp
+                        ),
+                        color = Color(0xFF1E293B)
+                    )
+
+                    // Info Grid
+                    InfoGrid(event)
+
+                    FanCommunityButton(onClick = onOpenCommunity)
+
+                    // Description
+                    SectionHeader("Giới thiệu sự kiện", null)
+                    Text(
+                        text = event.description,
+                        color = Color(0xFF64748B),
+                        style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp)
+                    )
+
+                    // Artists
+                    SectionHeader("Nghệ sĩ tham gia", null)
+                    ArtistAvatars(event.artists)
+                    
+                    // Performances & Tickets
+                    SectionHeader("Lịch biểu diễn & Đặt vé", null)
+                    PerformanceList(event, tiers, onBuyNow)
+
+                    // Organizer
+                    SectionHeader("Ban tổ chức", null)
+                    OrganizerSection(event)
+                    
+                    // Resale
+                    if (event.resaleTickets.isNotEmpty()) {
+                        SectionHeader("Danh sách vé pass lại", "Cập nhật liên tục")
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun EventDetailBody(event: Event, tiers: List<TicketTier>, modifier: Modifier) {
-    LazyColumn(
-        modifier = modifier,
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp, top = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+private fun FanCommunityButton(onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 76.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
     ) {
-        item {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Color(0xFFF1F5F9), RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Groups,
+                    contentDescription = null,
+                    tint = Color(0xFF0F172A),
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = "Tham gia cộng đồng",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = Color(0xFF0F172A),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "Chia sẻ khoảnh khắc về sự kiện",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF0F172A),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EventHeroBanner(event: Event) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(300.dp)
+    ) {
+        if (!event.imageUrl.isNullOrEmpty()) {
+            AsyncImage(
+                model = event.imageUrl,
+                contentDescription = event.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
             Image(
                 painter = painterResource(event.imageRes),
                 contentDescription = event.title,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().height(260.dp).clip(RoundedCornerShape(30.dp))
+                modifier = Modifier.fillMaxSize()
             )
         }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(onClick = {}, label = { Text("Nhac song") })
-                AssistChip(onClick = {}, label = { Text("Mua he") })
-                AssistChip(onClick = {}, label = { Text("Tu ${formatPrice(tiers.minOfOrNull { it.price } ?: 0)}") })
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Color.White),
+                        startY = 400f
+                    )
+                )
+        )
+    }
+}
+
+@Composable
+private fun BadgeItem(text: String) {
+    Box(
+        modifier = Modifier
+            .background(Color(0xFFF1F5F9), RoundedCornerShape(16.dp))
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = text.uppercase(),
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+            color = Color(0xFF475569)
+        )
+    }
+}
+
+@Composable
+private fun InfoGrid(event: Event) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(24.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier.size(48.dp).background(Color(0xFFF1F5F9), RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Schedule, contentDescription = "Time", tint = Evergreen)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                val scheduleParts = event.schedule.split("|")
+                if (scheduleParts.size >= 2) {
+                    Text(
+                        text = scheduleParts[0],
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                    Text(
+                        text = scheduleParts[1],
+                        color = Color(0xFF64748B),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    Text(
+                        text = event.schedule,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                }
             }
         }
-        item { Text(event.title, style = MaterialTheme.typography.headlineMedium) }
-        item {
-            InfoPanel(
-                rows = listOf(
-                    Icons.Default.Schedule to event.schedule,
-                    Icons.Default.LocationOn to "${event.venue}, ${event.city}"
-                )
-            )
-        }
-        item {
-            SectionHeader("Gioi thieu su kien", null)
-            Text(event.description, color = SoftText, style = MaterialTheme.typography.bodyLarge)
-        }
-        item {
-            SectionHeader("Nghe si tham gia", null)
-            ArtistRow(event.artists)
-        }
-        item {
-            SectionHeader("Lich trinh su kien", null)
-            TimelineColumn(event.timeline)
-        }
-        item {
-            SectionHeader("So do khu vuc", "Xem chi tiet")
-            VenueMapCard()
-        }
-        item {
-            SectionHeader("Thong tin quan trong", null)
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                event.notices.forEach { note -> NoticeCard(note) }
+        
+        HorizontalDivider(color = Color(0xFFE2E8F0))
+        
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier.size(48.dp).background(Color(0xFFF1F5F9), RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.LocationOn, contentDescription = "Location", tint = Color(0xFFEF4444))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(event.venue, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
+                Text("${event.venue}, ${event.city}", color = Color(0xFF64748B), style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
 }
 
 @Composable
-private fun SideBookingPanel(
-    event: Event,
-    tiers: List<TicketTier>,
-    modifier: Modifier,
-    onBuyNow: () -> Unit
-) {
-    Card(modifier = modifier, colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White), shape = RoundedCornerShape(30.dp)) {
-        Column(modifier = Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Booking panel", style = MaterialTheme.typography.titleLarge)
-            Text(event.subtitle, color = SoftText)
-            tiers.forEach { tier ->
-                Surface(shape = RoundedCornerShape(22.dp), color = SurfaceCard) {
-                    Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(tier.name, fontWeight = FontWeight.SemiBold)
-                        Text(tier.benefits, color = SoftText, style = MaterialTheme.typography.bodyMedium)
-                        Text(formatPrice(tier.price), color = Evergreen, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-            Button(onClick = onBuyNow, modifier = Modifier.fillMaxWidth()) {
-                Text("Di toi dat ve")
+private fun ArtistAvatars(artists: List<Artist>) {
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(artists) { artist ->
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.width(80.dp)
+            ) {
+                AsyncImage(
+                    model = artist.image,
+                    contentDescription = artist.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(64.dp)
+                        .border(2.dp, Evergreen, CircleShape)
+                        .padding(4.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFCBD5E1))
+                )
+                Text(
+                    text = artist.name,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }
 }
 
+private fun abbreviateDayOfWeek(text: String): String {
+    return text.replace("Thứ hai", "T2")
+        .replace("Thứ ba", "T3")
+        .replace("Thứ tư", "T4")
+        .replace("Thứ năm", "T5")
+        .replace("Thứ sáu", "T6")
+        .replace("Thứ bảy", "T7")
+        .replace("Chủ nhật", "CN")
+}
+
+@Composable
+private fun PerformanceList(event: Event, tiers: List<TicketTier>, onBuyNow: () -> Unit) {
+    // Tự động lấy thông tin từ event.schedule nếu danh sách biểu diễn rỗng
+    val performances = event.performances.ifEmpty {
+        val scheduleParts = event.schedule.split("|")
+        listOf(
+            PerformanceSchedule(
+                id = "default",
+                time = scheduleParts.getOrNull(0) ?: "Chưa rõ giờ",
+                date = scheduleParts.getOrNull(1) ?: "Chưa rõ ngày",
+                ticketTiers = tiers
+            )
+        )
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        performances.forEachIndexed { index, perf ->
+            var expanded by remember { mutableStateOf(index == 0) }
+            
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { expanded = !expanded }
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Cột chứa Text ngày giờ (tự co giãn)
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier.size(48.dp).background(Color(0xFFF8FAFC), RoundedCornerShape(12.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Event, contentDescription = null, tint = Color(0xFF94A3B8))
+                        }
+                        Column {
+                            Text(
+                                text = abbreviateDayOfWeek(perf.time), 
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = perf.date, 
+                                color = Evergreen, 
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.width(12.dp))
+                    
+                    // Button được ưu tiên hiển thị
+                    Button(
+                        onClick = onBuyNow,
+                        colors = ButtonDefaults.buttonColors(containerColor = Evergreen),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
+                    ) {
+                        Text("Mua vé ngay", maxLines = 1, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                    }
+                }
+                
+                AnimatedVisibility(visible = expanded) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFF8FAFC))
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text("Thông tin vé", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                        val displayTiers = perf.ticketTiers.ifEmpty { tiers }
+                        displayTiers.forEach { tier ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(12.dp))
+                                    .background(Color.White)
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // 1. MÔ TẢ VÉ: Bên tay trái (chiếm không gian còn lại)
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = tier.name, 
+                                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                                        color = Color(0xFF1E293B)
+                                    )
+                                    if (tier.benefits.isNotEmpty()) {
+                                        Text(
+                                            text = tier.benefits,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Color(0xFF64748B)
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                // 2. GIÁ TIỀN: Bên tay phải, ưu tiên không gian cho 8 chữ số
+                                Text(
+                                    text = formatPrice(tier.price), 
+                                    color = Evergreen, 
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+                                    modifier = Modifier.widthIn(min = 120.dp), // Đủ cho ~8 chữ số + "đ" không bị xuống dòng
+                                    textAlign = TextAlign.End,
+                                    softWrap = true // Chỉ xuống dòng khi vượt quá ngưỡng (ví dụ 9 chữ số)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OrganizerSection(event: Event) {
+    val displayName = if (event.orgName.isNotEmpty()) event.orgName 
+                      else if (event.subtitle.isNotEmpty()) event.subtitle 
+                      else "Ban tổ chức"
+                      
+    val displayDesc = if (event.orgDescription.isNotEmpty()) event.orgDescription 
+                      else "Đơn vị tổ chức sự kiện."
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(16.dp))
+            .background(Color.White, RoundedCornerShape(16.dp))
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Org logo – circular with border
+        if (!event.orgLogo.isNullOrEmpty()) {
+            AsyncImage(
+                model = event.orgLogo,
+                contentDescription = displayName,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(56.dp)
+                    .border(1.dp, Color(0xFFE2E8F0), CircleShape)
+                    .padding(2.dp)
+                    .clip(CircleShape)
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color(0xFFF1F5F9), CircleShape)
+                    .border(1.dp, Color(0xFFE2E8F0), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Business,
+                    contentDescription = displayName,
+                    tint = Evergreen,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
+
+        // Org name + description
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = displayName,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = Color(0xFF1E293B)
+            )
+            Text(
+                text = displayDesc,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF64748B),
+                lineHeight = 20.sp
+            )
+        }
+    }
+}

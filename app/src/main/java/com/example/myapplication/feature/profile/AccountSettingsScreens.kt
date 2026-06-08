@@ -18,9 +18,11 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.content.Intent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -47,8 +49,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -56,7 +59,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import coil.compose.AsyncImage
+import com.example.myapplication.app.AppDependencies
 import com.example.myapplication.core.designsystem.theme.Evergreen
+import com.example.myapplication.feature.authentication.AccountProfile
+import com.example.myapplication.feature.authentication.AuthUiState
+import com.example.myapplication.feature.authentication.AuthUser
+import com.example.myapplication.feature.authentication.GoogleSignInButton
 import java.util.Calendar
 
 @Composable
@@ -64,22 +73,54 @@ fun AccountInfoScreen(
     authUser: AuthUser?,
     accountProfile: AccountProfile,
     authState: AuthUiState,
-    onSave: (String, String, String, String, () -> Unit) -> Unit,
+    onSave: (String, String, String, String, String?, () -> Unit) -> Unit,
+    onLinkGoogle: (String) -> Unit,
+    onGoogleError: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val darkBackground = Color(0xFF232323)
+    val context = LocalContext.current
+    val storageDataSource = remember(context) { AppDependencies.communityStorageDataSource(context) }
+    val screenBackground = Color.White
+    val primaryText = Color(0xFF232323)
+    val secondaryText = Color(0xFF5B5961)
+    val fieldBackground = Color(0xFFF8F7FC)
+    val fieldBorder = Color(0xFFD9D7E0)
     var fullName by remember(authUser?.uid, accountProfile.fullName) { mutableStateOf(accountProfile.fullName.ifBlank { authUser?.displayName.orEmpty() }) }
     var phone by remember(authUser?.uid, accountProfile.phone) { mutableStateOf(accountProfile.phone) }
     var birthday by remember(authUser?.uid, accountProfile.birthday) { mutableStateOf(accountProfile.birthday) }
     var gender by remember(authUser?.uid, accountProfile.gender) { mutableStateOf(accountProfile.gender) }
+    var avatarUrl by remember(authUser?.uid, accountProfile.avatarUrl) { mutableStateOf(accountProfile.avatarUrl) }
+    var isUploadingAvatar by remember { mutableStateOf(false) }
+    var avatarUploadError by remember { mutableStateOf<String?>(null) }
     var showBirthdayPicker by remember { mutableStateOf(false) }
     val initial = fullName.firstOrNull() ?: authUser?.email?.firstOrNull()
+    val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        runCatching {
+            context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        isUploadingAvatar = true
+        avatarUploadError = null
+        val mediaType = context.contentResolver.getType(uri) ?: "image/jpeg"
+        storageDataSource.uploadCommunityMedia(
+            mediaUri = uri,
+            mediaType = mediaType,
+            onSuccess = { url, _ ->
+                avatarUrl = url
+                isUploadingAvatar = false
+            },
+            onError = { throwable ->
+                avatarUploadError = throwable.localizedMessage ?: "Không thể tải ảnh đại diện."
+                isUploadingAvatar = false
+            }
+        )
+    }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(darkBackground)
+            .background(screenBackground)
             .navigationBarsPadding()
     ) {
         SettingsHeader(title = "Thông tin tài khoản", onBack = onBack)
@@ -91,9 +132,20 @@ fun AccountInfoScreen(
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Surface(modifier = Modifier.size(112.dp), shape = CircleShape, color = Color(0xFF078E81)) {
+                Surface(
+                    modifier = Modifier.size(112.dp).clickable { avatarPicker.launch(arrayOf("image/*")) },
+                    shape = CircleShape,
+                    color = Color(0xFF078E81)
+                ) {
                     Box(contentAlignment = Alignment.Center) {
-                        if (initial != null) {
+                        if (!avatarUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = avatarUrl,
+                                contentDescription = "Ảnh đại diện",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else if (initial != null) {
                             Text(
                                 text = initial.uppercaseChar().toString(),
                                 color = Color.White,
@@ -105,7 +157,9 @@ fun AccountInfoScreen(
                     }
                 }
                 Surface(
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(start = 76.dp).size(34.dp),
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(start = 76.dp).size(34.dp).clickable {
+                        avatarPicker.launch(arrayOf("image/*"))
+                    },
                     shape = CircleShape,
                     color = Evergreen
                 ) {
@@ -114,47 +168,71 @@ fun AccountInfoScreen(
                     }
                 }
             }
+            if (isUploadingAvatar) {
+                Text(
+                    text = "Đang tải ảnh đại diện...",
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Evergreen,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center
+                )
+            }
             Text(
                 text = "Cung cấp thông tin chính xác sẽ hỗ trợ bạn trong quá trình mua vé, hoặc khi cần xác thực vé",
                 modifier = Modifier.fillMaxWidth(),
-                color = Color.White,
+                color = secondaryText,
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
             )
 
-            FieldLabel("Họ và tên")
-            ProfileTextField(value = fullName, onValueChange = { fullName = it })
+            FieldLabel("Họ và tên", color = primaryText)
+            ProfileTextField(value = fullName, onValueChange = { fullName = it }, borderColor = fieldBorder, containerColor = fieldBackground)
 
-            FieldLabel("Số điện thoại")
+            FieldLabel("Số điện thoại", color = primaryText)
             ProfileTextField(
                 value = phone,
                 onValueChange = { value -> phone = value.filter { it.isDigit() }.take(10) },
-                keyboardType = KeyboardType.Phone
+                keyboardType = KeyboardType.Phone,
+                borderColor = fieldBorder,
+                containerColor = fieldBackground
             )
 
-            FieldLabel("Email")
+            FieldLabel("Email", color = primaryText)
             ProfileTextField(
                 value = authUser?.email.orEmpty(),
                 onValueChange = {},
                 readOnly = true,
                 enabled = false,
+                borderColor = fieldBorder,
+                containerColor = fieldBackground,
                 trailingIcon = {
                     Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Evergreen)
                 }
             )
 
-            FieldLabel("Ngay sinh *")
+            if (authUser?.isGoogleLinked != true) {
+            GoogleSignInButton(
+                enabled = !authState.isLoading && !isUploadingAvatar,
+                onGoogleLogin = onLinkGoogle,
+                onGoogleLoginError = onGoogleError,
+                text = "Liên kết Google"
+            )
+            }
+
+            FieldLabel("Ngay sinh *", color = primaryText)
             ProfileTextField(
                 value = birthday,
                 onValueChange = {},
                 readOnly = true,
                 onClick = { showBirthdayPicker = true },
+                borderColor = fieldBorder,
+                containerColor = fieldBackground,
                 trailingIcon = {
                     Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = Evergreen)
                 }
             )
 
-            FieldLabel("Giới tính")
+            FieldLabel("Giới tính", color = primaryText)
             Row(horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
                 listOf("Nam", "Nữ", "Khác").forEach { option ->
                     Row(
@@ -167,21 +245,32 @@ fun AccountInfoScreen(
                             onClick = { gender = option },
                             colors = RadioButtonDefaults.colors(selectedColor = Evergreen)
                         )
-                        Text(option, color = Color.White, style = MaterialTheme.typography.bodyLarge)
+                        Text(option, color = primaryText, style = MaterialTheme.typography.bodyLarge)
                     }
                 }
             }
 
-            AuthInlineMessage(error = authState.errorMessage, info = authState.infoMessage)
+            AuthInlineMessage(error = authState.errorMessage ?: avatarUploadError, info = authState.infoMessage)
 
             Button(
-                onClick = { onSave(fullName, phone, birthday, gender, onBack) },
-                enabled = !authState.isLoading,
+                onClick = { onSave(fullName, phone, birthday, gender, avatarUrl, onBack) },
+                enabled = !authState.isLoading && !isUploadingAvatar,
                 modifier = Modifier.fillMaxWidth().height(54.dp).padding(top = 10.dp),
                 shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Evergreen)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Evergreen,
+                    disabledContainerColor = Evergreen.copy(alpha = 0.38f),
+                    disabledContentColor = Color.White.copy(alpha = 0.78f)
+                )
             ) {
-                Text(if (authState.isLoading) "Đang lưu..." else "Hoàn thành", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    when {
+                        isUploadingAvatar -> "Dang tai anh..."
+                        authState.isLoading -> "Dang luu..."
+                        else -> "Hoan thanh"
+                    },
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
         }
     }
@@ -195,73 +284,6 @@ fun AccountInfoScreen(
                 showBirthdayPicker = false
             }
         )
-    }
-}
-
-@Composable
-fun PinSetupScreen(
-    authState: AuthUiState,
-    onSavePin: (String, () -> Unit) -> Unit,
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var pin by remember { mutableStateOf("") }
-    val canSubmit = pin.length == 6
-
-    Column(
-        modifier = modifier.fillMaxSize().background(Color.White).navigationBarsPadding()
-    ) {
-        SettingsHeader(title = "Thiết lập mã PIN", onBack = onBack)
-        Column(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 26.dp, vertical = 78.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(28.dp)
-        ) {
-            Text(
-                text = "Tạo mã PIN khi truy cập trang \"Chi tiết vé\" để tăng bảo mật cho vé của bạn",
-                color = Color.Black,
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = "Vui lòng không chia sẻ mã PIN với người khác",
-                color = Color(0xFFE58A28),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
-            )
-            BasicTextField(
-                value = pin,
-                onValueChange = { value -> pin = value.filter { it.isDigit() }.take(6) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                textStyle = TextStyle(color = Color.Transparent, fontSize = 1.sp),
-                decorationBox = {
-                    Row(horizontalArrangement = Arrangement.spacedBy(26.dp)) {
-                        repeat(6) { index ->
-                            Surface(
-                                modifier = Modifier.size(20.dp),
-                                shape = CircleShape,
-                                color = if (index < pin.length) Evergreen else Color(0xFFE0E0E0)
-                            ) {}
-                        }
-                    }
-                }
-            )
-            Box(modifier = Modifier.weight(1f))
-            Button(
-                onClick = { onSavePin(pin, onBack) },
-                enabled = canSubmit && !authState.isLoading,
-                modifier = Modifier.fillMaxWidth().height(54.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Evergreen,
-                    disabledContainerColor = Color(0xFFE8ECF7),
-                    disabledContentColor = Color.White
-                )
-            ) {
-                Text(if (authState.isLoading) "Đang lưu..." else "Tiếp tục", style = MaterialTheme.typography.titleMedium)
-            }
-            AuthInlineMessage(error = authState.errorMessage, info = authState.infoMessage)
-        }
     }
 }
 
@@ -376,8 +398,8 @@ private fun SettingsHeader(title: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun FieldLabel(text: String) {
-    Text(text, color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+private fun FieldLabel(text: String, color: Color = Color.White) {
+    Text(text, color = color, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
 }
 
 @Composable
@@ -389,6 +411,8 @@ private fun ProfileTextField(
     enabled: Boolean = true,
     keyboardType: KeyboardType = KeyboardType.Text,
     onClick: (() -> Unit)? = null,
+    borderColor: Color = Color.White,
+    containerColor: Color = Color(0xFFF8F7FC),
     trailingIcon: @Composable (() -> Unit)? = null
 ) {
     Box(modifier = modifier.fillMaxWidth().height(58.dp)) {
@@ -403,13 +427,13 @@ private fun ProfileTextField(
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             shape = RoundedCornerShape(6.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.White,
-                unfocusedBorderColor = Color.White,
-                focusedContainerColor = Color(0xFFF8F7FC),
-                unfocusedContainerColor = Color(0xFFF8F7FC),
-                disabledContainerColor = Color(0xFF6F6E75),
-                disabledTextColor = Color(0xFFC8C6CE),
-                disabledBorderColor = Color(0xFFC8C6CE)
+                focusedBorderColor = Evergreen,
+                unfocusedBorderColor = borderColor,
+                focusedContainerColor = containerColor,
+                unfocusedContainerColor = containerColor,
+                disabledContainerColor = containerColor,
+                disabledTextColor = Color(0xFF6B6870),
+                disabledBorderColor = borderColor
             )
         )
         if (onClick != null) {
