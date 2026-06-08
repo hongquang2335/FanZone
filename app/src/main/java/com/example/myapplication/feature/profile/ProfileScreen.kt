@@ -53,6 +53,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplication.core.designsystem.component.CircleAvatar
+import com.example.myapplication.core.designsystem.component.CommunityCard
+import com.example.myapplication.domain.model.CommunityComment
 import com.example.myapplication.core.designsystem.theme.Evergreen
 import com.example.myapplication.domain.model.CommunityPost
 import com.example.myapplication.domain.model.UserProfile
@@ -90,9 +92,15 @@ fun ProfileScreen(
     authState: AuthUiState,
     unreadSupport: Int,
     posts: List<CommunityPost>,
+    commentsByPostId: Map<String, List<CommunityComment>>,
     avatarUrl: String? = null,
     followerCount: Int = 0,
     followingCount: Int = 0,
+    onSharePost: (CommunityPost, String) -> Unit,
+    onToggleLike: (String) -> Unit,
+    onToggleFollow: (String) -> Unit,
+    onOpenComments: (String) -> Unit,
+    onAddComment: (String, String) -> Unit,
     onOpenSupport: () -> Unit,
     onOpenAuth: () -> Unit,
     onOpenAccountInfo: () -> Unit,
@@ -105,9 +113,15 @@ fun ProfileScreen(
         SignedInProfileScreen(
             authUser = authState.user,
             posts = posts,
+            commentsByPostId = commentsByPostId,
             avatarUrl = avatarUrl ?: authState.accountProfile.avatarUrl,
             followerCount = followerCount,
             followingCount = followingCount,
+            onSharePost = onSharePost,
+            onToggleLike = onToggleLike,
+            onToggleFollow = onToggleFollow,
+            onOpenComments = onOpenComments,
+            onAddComment = onAddComment,
             onOpenProfileOptions = onOpenProfileOptions,
             modifier = modifier
         )
@@ -142,7 +156,6 @@ fun ProfileScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(patternHeight)
-                        .statusBarsPadding()
                 )
                 GuestAvatar(
                     size = avatarSize,
@@ -202,9 +215,15 @@ fun ProfileScreen(
 private fun SignedInProfileScreen(
     authUser: AuthUser?,
     posts: List<CommunityPost>,
+    commentsByPostId: Map<String, List<CommunityComment>>,
     avatarUrl: String?,
     followerCount: Int,
     followingCount: Int,
+    onSharePost: (CommunityPost, String) -> Unit,
+    onToggleLike: (String) -> Unit,
+    onToggleFollow: (String) -> Unit,
+    onOpenComments: (String) -> Unit,
+    onAddComment: (String, String) -> Unit,
     onOpenProfileOptions: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -237,7 +256,6 @@ private fun SignedInProfileScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(patternHeight)
-                        .statusBarsPadding()
                 )
                 IconButton(
                     onClick = onOpenProfileOptions,
@@ -309,7 +327,18 @@ private fun SignedInProfileScreen(
                     EmptyProfilePosts(colors = profileColors)
                 } else {
                     userPosts.forEach { post ->
-                        ProfilePostItem(post = post, colors = profileColors)
+                        CommunityCard(
+                            post = post,
+                            currentAuthorName = displayName,
+                            currentUserId = authUser?.uid,
+                            comments = commentsByPostId[post.id].orEmpty(),
+                            onSharePost = onSharePost,
+                            onToggleLike = { onToggleLike(post.id) },
+                            onToggleFollow = onToggleFollow,
+                            onOpenComments = { onOpenComments(post.id) },
+                            onAddComment = { text -> onAddComment(post.id, text) },
+                            onOpenAuth = {}
+                        )
                     }
                 }
             }
@@ -452,6 +481,7 @@ private fun AccountHeaderPattern(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .background(Color(0xFF31C77B))
+            .statusBarsPadding()
             .padding(horizontal = 18.dp, vertical = 12.dp)
     ) {
         val iconTint = Color(0xFF157A4C).copy(alpha = 0.55f)

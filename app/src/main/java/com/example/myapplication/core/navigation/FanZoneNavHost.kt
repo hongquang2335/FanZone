@@ -113,6 +113,12 @@ fun FanZoneNavHost(
                 authState = authState,
                 unreadSupport = uiState.unreadSupportCount,
                 posts = communityState.posts,
+                commentsByPostId = communityState.commentsByPostId,
+                onSharePost = communityViewModel::sharePost,
+                onToggleLike = communityViewModel::toggleLike,
+                onToggleFollow = communityViewModel::toggleFollow,
+                onOpenComments = communityViewModel::observeComments,
+                onAddComment = communityViewModel::addComment,
                 onOpenSupport = { navController.navigate(AppDestination.Support.route) },
                 onOpenAuth = { navController.navigate(AppDestination.Login.route) },
                 onOpenAccountInfo = {

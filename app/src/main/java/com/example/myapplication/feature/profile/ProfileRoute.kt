@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.myapplication.domain.model.CommunityComment
 import com.example.myapplication.domain.model.CommunityPost
 import com.example.myapplication.domain.model.UserProfile
 import com.example.myapplication.feature.authentication.AuthUiState
@@ -16,6 +17,12 @@ fun ProfileRoute(
     authState: AuthUiState,
     unreadSupport: Int,
     posts: List<CommunityPost>,
+    commentsByPostId: Map<String, List<CommunityComment>>,
+    onSharePost: (CommunityPost, String) -> Unit,
+    onToggleLike: (String) -> Unit,
+    onToggleFollow: (String) -> Unit,
+    onOpenComments: (String) -> Unit,
+    onAddComment: (String, String) -> Unit,
     onOpenSupport: () -> Unit,
     onOpenAuth: () -> Unit,
     onOpenAccountInfo: () -> Unit,
@@ -42,9 +49,15 @@ fun ProfileRoute(
         authState = uiState.authState,
         unreadSupport = uiState.unreadSupport,
         posts = uiState.posts,
+        commentsByPostId = commentsByPostId,
         avatarUrl = uiState.avatarUrl,
         followerCount = uiState.followerCount,
         followingCount = uiState.followingCount,
+        onSharePost = onSharePost,
+        onToggleLike = onToggleLike,
+        onToggleFollow = onToggleFollow,
+        onOpenComments = onOpenComments,
+        onAddComment = onAddComment,
         onOpenSupport = onOpenSupport,
         onOpenAuth = onOpenAuth,
         onOpenAccountInfo = onOpenAccountInfo,
