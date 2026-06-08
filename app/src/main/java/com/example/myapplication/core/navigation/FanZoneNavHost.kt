@@ -77,7 +77,15 @@ fun FanZoneNavHost(
                 },
                 onOpenAuth = { navController.navigate(AppDestination.Login.route) },
                 onOpenProfile = { profileId ->
-                    navController.navigate(AppDestination.ViewedProfile.create(profileId))
+                    if (profileId == authState.user?.uid) {
+                        navController.navigate(AppDestination.Profile.route) {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    } else {
+                        navController.navigate(AppDestination.ViewedProfile.create(profileId))
+                    }
                 },
                 viewModel = communityViewModel,
                 modifier = Modifier.fillMaxSize()
@@ -97,7 +105,15 @@ fun FanZoneNavHost(
                 eventId = eventId,
                 onOpenAuth = { navController.navigate(AppDestination.Login.route) },
                 onOpenProfile = { profileId ->
-                    navController.navigate(AppDestination.ViewedProfile.create(profileId))
+                    if (profileId == authState.user?.uid) {
+                        navController.navigate(AppDestination.Profile.route) {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    } else {
+                        navController.navigate(AppDestination.ViewedProfile.create(profileId))
+                    }
                 },
                 onBack = { navController.popBackStack() },
                 viewModel = communityViewModel,
@@ -126,6 +142,8 @@ fun FanZoneNavHost(
                 onToggleFollow = communityViewModel::toggleFollow,
                 onOpenComments = communityViewModel::observeComments,
                 onAddComment = communityViewModel::addComment,
+                onDeletePost = { id -> communityViewModel.deletePost(id) },
+                onEditPost = { post -> communityViewModel.openEditPost(post) },
                 onOpenSupport = { navController.navigate(AppDestination.Support.route) },
                 onOpenAuth = { navController.navigate(AppDestination.Login.route) },
                 onOpenAccountInfo = {
@@ -136,7 +154,15 @@ fun FanZoneNavHost(
                 onOpenProfileOptions = { navController.navigate(AppDestination.ProfileOptions.route) },
                 onSignOut = authViewModel::signOut,
                 onOpenProfile = { profileId ->
-                    navController.navigate(AppDestination.ViewedProfile.create(profileId))
+                    if (profileId == authState.user?.uid) {
+                        navController.navigate(AppDestination.Profile.route) {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    } else {
+                        navController.navigate(AppDestination.ViewedProfile.create(profileId))
+                    }
                 },
                 modifier = Modifier.fillMaxSize()
             )
@@ -156,6 +182,8 @@ fun FanZoneNavHost(
                 onToggleFollow = communityViewModel::toggleFollow,
                 onOpenComments = communityViewModel::observeComments,
                 onAddComment = communityViewModel::addComment,
+                onDeletePost = { id -> communityViewModel.deletePost(id) },
+                onEditPost = { post -> communityViewModel.openEditPost(post) },
                 onBack = { navController.popBackStack() },
                 onOpenAuth = { navController.navigate(AppDestination.Login.route) },
                 modifier = Modifier.fillMaxSize()

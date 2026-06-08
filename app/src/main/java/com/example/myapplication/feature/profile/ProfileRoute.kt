@@ -34,6 +34,8 @@ fun ProfileRoute(
     onOpenProfileOptions: () -> Unit,
     onSignOut: () -> Unit,
     onOpenProfile: (String) -> Unit,
+    onDeletePost: (String) -> Unit = {},
+    onEditPost: (com.example.myapplication.domain.model.CommunityPost) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = viewModel()
 ) {
@@ -67,6 +69,8 @@ fun ProfileRoute(
         onOpenAuth = onOpenAuth,
         onOpenAccountInfo = onOpenAccountInfo,
         onOpenNotificationSettings = onOpenNotificationSettings,
+        onDeletePost = onDeletePost,
+        onEditPost = onEditPost,
         onOpenProfileOptions = onOpenProfileOptions,
         onSignOut = onSignOut,
         onOpenProfile = onOpenProfile,
@@ -142,6 +146,8 @@ fun ViewedProfileRoute(
     onAddComment: (String, String) -> Unit,
     onBack: () -> Unit,
     onOpenAuth: () -> Unit,
+    onDeletePost: (String) -> Unit = {},
+    onEditPost: (com.example.myapplication.domain.model.CommunityPost) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val firestore = remember { FirebaseFirestore.getInstance() }
@@ -189,6 +195,8 @@ fun ViewedProfileRoute(
         onAddComment = onAddComment,
         onBack = onBack,
         onOpenAuth = onOpenAuth,
+        onDeletePost = onDeletePost,
+        onEditPost = onEditPost,
         modifier = modifier
     )
 }

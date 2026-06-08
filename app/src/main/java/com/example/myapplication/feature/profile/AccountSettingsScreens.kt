@@ -181,8 +181,9 @@ fun AccountInfoScreen(
                 text = "Cung cấp thông tin chính xác sẽ hỗ trợ bạn trong quá trình mua vé, hoặc khi cần xác thực vé",
                 modifier = Modifier.fillMaxWidth(),
                 color = secondaryText,
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+                maxLines = 2
             )
 
             FieldLabel("Họ và tên", color = primaryText)

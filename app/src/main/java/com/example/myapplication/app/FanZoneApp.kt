@@ -75,7 +75,9 @@ fun FanZoneApp(
             viewModel = viewModel,
             darkTheme = darkTheme,
             onDarkThemeChange = onDarkThemeChange,
-            modifier = Modifier.fillMaxSize().padding(padding)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = padding.calculateBottomPadding())
         )
     }
 }

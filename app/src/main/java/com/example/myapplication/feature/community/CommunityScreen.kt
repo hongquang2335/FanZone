@@ -32,6 +32,8 @@ fun CommunityScreen(
     onAddComment: (String, String) -> Unit,
     onOpenAuth: () -> Unit,
     onOpenProfile: (String) -> Unit,
+    onDeletePost: (String) -> Unit = {},
+    onEditPost: (com.example.myapplication.domain.model.CommunityPost) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background)) {
@@ -67,7 +69,9 @@ fun CommunityScreen(
                                         onOpenComments = { onOpenComments(post.id) },
                                         onAddComment = { text -> onAddComment(post.id, text) },
                                         onOpenAuth = onOpenAuth,
-                                        onOpenProfile = onOpenProfile
+                                        onOpenProfile = onOpenProfile,
+                                        onDeletePost = { onDeletePost(post.id) },
+                                        onEditPost = { onEditPost(post) }
                                     )
                                 }
                             }
@@ -88,7 +92,9 @@ fun CommunityScreen(
                         onOpenComments = { onOpenComments(post.id) },
                         onAddComment = { text -> onAddComment(post.id, text) },
                         onOpenAuth = onOpenAuth,
-                        onOpenProfile = onOpenProfile
+                        onOpenProfile = onOpenProfile,
+                        onDeletePost = { onDeletePost(post.id) },
+                        onEditPost = { onEditPost(post) }
                     )
                 }
             }

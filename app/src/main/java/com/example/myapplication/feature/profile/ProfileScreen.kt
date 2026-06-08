@@ -111,6 +111,8 @@ fun ProfileScreen(
     onOpenAuth: () -> Unit,
     onOpenAccountInfo: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
+    onDeletePost: (String) -> Unit = {},
+    onEditPost: (com.example.myapplication.domain.model.CommunityPost) -> Unit = {},
     onOpenProfileOptions: () -> Unit,
     onSignOut: () -> Unit,
     onOpenProfile: (String) -> Unit = {},
@@ -129,6 +131,8 @@ fun ProfileScreen(
             onToggleFollow = onToggleFollow,
             onOpenComments = onOpenComments,
             onAddComment = onAddComment,
+            onDeletePost = onDeletePost,
+            onEditPost = onEditPost,
             onOpenProfileOptions = onOpenProfileOptions,
             onOpenProfile = onOpenProfile,
             modifier = modifier
@@ -231,6 +235,8 @@ private fun SignedInProfileScreen(
     onToggleFollow: (String) -> Unit,
     onOpenComments: (String) -> Unit,
     onAddComment: (String, String) -> Unit,
+    onDeletePost: (String) -> Unit = {},
+    onEditPost: (com.example.myapplication.domain.model.CommunityPost) -> Unit = {},
     onOpenProfileOptions: () -> Unit,
     onOpenProfile: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -345,7 +351,9 @@ private fun SignedInProfileScreen(
                             onOpenComments = { onOpenComments(post.id) },
                             onAddComment = { text -> onAddComment(post.id, text) },
                             onOpenAuth = {},
-                            onOpenProfile = onOpenProfile
+                            onOpenProfile = onOpenProfile,
+                            onDeletePost = { onDeletePost(post.id) },
+                            onEditPost = { onEditPost(post) }
                         )
                     }
                 }
@@ -645,6 +653,8 @@ fun ViewedProfileScreen(
     onAddComment: (String, String) -> Unit,
     onBack: () -> Unit,
     onOpenAuth: () -> Unit,
+    onDeletePost: (String) -> Unit = {},
+    onEditPost: (com.example.myapplication.domain.model.CommunityPost) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val profileColors = profileColors()
@@ -673,20 +683,6 @@ fun ViewedProfileScreen(
                         .fillMaxWidth()
                         .height(patternHeight)
                 )
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .statusBarsPadding()
-                        .padding(top = 12.dp, start = horizontalPadding)
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = AppStrings.Profile.BACK,
-                        tint = Color.White,
-                        modifier = Modifier.size(30.dp)
-                    )
-                }
                 Surface(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -789,11 +785,29 @@ fun ViewedProfileScreen(
                             onToggleFollow = { onToggleFollow() },
                             onOpenComments = { onOpenComments(post.id) },
                             onAddComment = { text -> onAddComment(post.id, text) },
-                            onOpenAuth = onOpenAuth
+                            onOpenAuth = onOpenAuth,
+                            onDeletePost = { onDeletePost(post.id) },
+                            onEditPost = { onEditPost(post) }
                         )
                     }
                 }
             }
+        }
+
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .statusBarsPadding()
+                .padding(top = 12.dp, start = horizontalPadding)
+                .background(Color.Black.copy(alpha = 0.3f), CircleShape)
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = AppStrings.Profile.BACK,
+                tint = Color.White,
+                modifier = Modifier.size(30.dp)
+            )
         }
     }
 }

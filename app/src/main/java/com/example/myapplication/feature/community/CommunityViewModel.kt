@@ -199,6 +199,10 @@ class CommunityViewModel(
             }
     }
 
+    fun deletePost(postId: String) {
+        repository.deletePost(postId, onSuccess = {}, onError = {})
+    }
+
     private fun observePosts() {
         subscription?.dispose()
         subscription = repository.observeCommunityPosts(
@@ -229,5 +233,27 @@ class CommunityViewModel(
         commentSubscriptions.values.forEach { it.dispose() }
         commentSubscriptions.clear()
         super.onCleared()
+    }
+
+    fun openEditPost(post: CommunityPost) {
+        _uiState.update { it.copy(editingPost = post) }
+    }
+
+    fun closeEditPost() {
+        _uiState.update { it.copy(editingPost = null) }
+    }
+
+    fun updatePost(postId: String, text: String, mediaItems: List<com.example.myapplication.domain.model.CommunityMediaItem>) {
+        repository.updatePost(
+            postId = postId,
+            text = text,
+            mediaItems = mediaItems,
+            onSuccess = { closeEditPost() },
+            onError = { throwable ->
+                _uiState.update {
+                    it.copy(errorMessage = throwable.localizedMessage ?: "Khong the cap nhat bai viet.")
+                }
+            }
+        )
     }
 }

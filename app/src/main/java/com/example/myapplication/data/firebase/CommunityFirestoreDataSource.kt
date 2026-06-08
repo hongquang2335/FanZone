@@ -212,6 +212,19 @@ class CommunityFirestoreDataSource(
             )
     }
 
+    fun updatePost(postId: String, text: String, mediaItems: List<com.example.myapplication.domain.model.CommunityMediaItem>): Task<Void> {
+        return postsCollection.document(postId).update(
+            mapOf(
+                FIELD_CONTENT to text,
+                "mediaItems" to mediaItems.map { mapOf("url" to it.url, "type" to it.type) }
+            )
+        )
+    }
+
+    fun deletePost(postId: String): Task<Void> {
+        return postsCollection.document(postId).delete()
+    }
+
     fun checkCommunityStorage(
         onResult: (CommunityStorageCheck) -> Unit,
         onError: (Throwable) -> Unit

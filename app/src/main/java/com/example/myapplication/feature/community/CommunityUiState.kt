@@ -11,6 +11,7 @@ data class CommunityUiState(
     val currentAuthorAvatarUrl: String? = null,
     val currentUserId: String? = null,
     val followedProfileIds: Set<String> = emptySet(),
+    val editingPost: CommunityPost? = null,
     val errorMessage: String? = null
 ) {
     val posts: List<CommunityPost>

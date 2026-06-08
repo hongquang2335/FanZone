@@ -58,6 +58,11 @@ import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.RemoveRedEye
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material3.AssistChip
@@ -94,12 +99,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.example.myapplication.R
 import com.example.myapplication.core.designsystem.theme.Danger
@@ -264,6 +271,47 @@ fun GradientPanel(title: String, body: String, action: String, onAction: () -> U
 }
 
 @Composable
+fun ExpandableText(
+    text: String,
+    style: androidx.compose.ui.text.TextStyle,
+    textLimit: Int = 50
+) {
+    if (text.isBlank()) return
+
+    var isExpanded by remember { mutableStateOf(false) }
+
+    if (text.length > textLimit) {
+        if (!isExpanded) {
+            Text(
+                text = buildAnnotatedString {
+                    append(text.take(textLimit))
+                    append("... ")
+                    withStyle(style = SpanStyle(color = Evergreen, fontWeight = FontWeight.Bold)) {
+                        append("Xem thêm")
+                    }
+                },
+                style = style,
+                modifier = Modifier.clickable { isExpanded = true }
+            )
+        } else {
+            Text(
+                text = buildAnnotatedString {
+                    append(text)
+                    append(" ")
+                    withStyle(style = SpanStyle(color = Evergreen, fontWeight = FontWeight.Bold)) {
+                        append("Rút gọn")
+                    }
+                },
+                style = style,
+                modifier = Modifier.clickable { isExpanded = false }
+            )
+        }
+    } else {
+        Text(text, style = style)
+    }
+}
+
+@Composable
 fun CommunityCard(
     post: CommunityPost,
     modifier: Modifier = Modifier,
@@ -277,7 +325,9 @@ fun CommunityCard(
     onOpenComments: () -> Unit = {},
     onAddComment: (String) -> Unit = {},
     onOpenAuth: () -> Unit = {},
-    onOpenProfile: (String) -> Unit = {}
+    onOpenProfile: (String) -> Unit = {},
+    onDeletePost: () -> Unit = {},
+    onEditPost: () -> Unit = {}
 ) {
     var liked by remember(post.id, currentUserId, post.likedBy) { mutableStateOf(post.isLikedByUser(currentUserId)) }
     var likeCount by remember(post.id, post.likes) { mutableStateOf(post.likes) }
@@ -287,6 +337,10 @@ fun CommunityCard(
     var shareCount by remember(post.id) { mutableStateOf(post.shareCount) }
     var showAuthPrompt by remember { mutableStateOf(false) }
     val sharedPost = post.sharedPost
+    
+    val isMyPost = post.authorId != null && post.authorId == currentUserId
+    var menuExpanded by remember { androidx.compose.runtime.mutableStateOf(false) }
+    var showDeleteConfirm by remember { androidx.compose.runtime.mutableStateOf(false) }
 
     Column(
         modifier = modifier,
@@ -296,12 +350,15 @@ fun CommunityCard(
             SharedPostPreview(
                 post = post,
                 share = sharedPost,
+                isMyPost = isMyPost,
                 onCommentClick = {
                     onOpenComments()
                     commentOpen = true
                 },
                 onShareClick = { shareOpen = true },
-                onOpenProfile = onOpenProfile
+                onOpenProfile = onOpenProfile,
+                onEditPost = onEditPost,
+                onDeletePost = { showDeleteConfirm = true }
             )
         } else {
             Card(
@@ -352,23 +409,57 @@ fun CommunityCard(
                                 )
                             }
                         }
-                        if (post.authorId != null && post.authorId != currentUserId) {
-                            Text(
-                                text = if (post.isAuthorFollowed) "Da follow" else "Follow",
-                                color = if (post.isAuthorFollowed) SoftText else Evergreen,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.clickable {
-                                    if (currentUserId == null) {
-                                        showAuthPrompt = true
-                                    } else {
-                                        onToggleFollow(post.authorId)
-                                    }
+
+                        if (isMyPost) {
+                            Box {
+                                androidx.compose.material3.IconButton(onClick = { menuExpanded = true }) {
+                                    Icon(Icons.Default.MoreVert, contentDescription = "Menu")
                                 }
-                            )
+                                androidx.compose.material3.DropdownMenu(
+                                    expanded = menuExpanded,
+                                    onDismissRequest = { menuExpanded = false }
+                                ) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("Chỉnh sửa") },
+                                        onClick = {
+                                            menuExpanded = false
+                                            onEditPost()
+                                        }
+                                    )
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("Xóa", color = Danger) },
+                                        onClick = {
+                                            menuExpanded = false
+                                            showDeleteConfirm = true
+                                        }
+                                    )
+                                }
+                            }
+
+
+                            if (showDeleteConfirm) {
+                                androidx.compose.material3.AlertDialog(
+                                    onDismissRequest = { showDeleteConfirm = false },
+                                    title = { Text("Xóa bài viết") },
+                                    text = { Text("Bạn có chắc chắn muốn xóa bài viết này không?") },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            showDeleteConfirm = false
+                                            onDeletePost()
+                                        }) {
+                                            Text("Xóa", color = Danger)
+                                        }
+                                    },
+                                    dismissButton = {
+                                        TextButton(onClick = { showDeleteConfirm = false }) {
+                                            Text("Hủy")
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
-                    Text(post.content, style = MaterialTheme.typography.bodyLarge)
+                    ExpandableText(text = post.content, style = MaterialTheme.typography.bodyLarge)
                     CommunityPostMedia(post = post, height = 190.dp)
                     Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                         PostAction(
@@ -410,6 +501,28 @@ fun CommunityCard(
                         )
                     }
                 }
+            }
+        }
+        if (sharedPost != null) {
+            if (showDeleteConfirm) {
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = { showDeleteConfirm = false },
+                    title = { Text("Xóa bài viết") },
+                    text = { Text("Bạn có chắc chắn muốn xóa bài viết này không?") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showDeleteConfirm = false
+                            onDeletePost()
+                        }) {
+                            Text("Xóa", color = Danger)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteConfirm = false }) {
+                            Text("Hủy")
+                        }
+                    }
+                )
             }
         }
     }
@@ -454,10 +567,15 @@ fun CommunityCard(
 private fun SharedPostPreview(
     post: CommunityPost,
     share: SharedCommunityPost,
+    isMyPost: Boolean,
     onCommentClick: () -> Unit,
     onShareClick: () -> Unit,
-    onOpenProfile: (String) -> Unit
+    onOpenProfile: (String) -> Unit,
+    onEditPost: () -> Unit,
+    onDeletePost: () -> Unit
 ) {
+    var menuExpanded by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
@@ -490,10 +608,37 @@ private fun SharedPostPreview(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+                
+                if (isMyPost) {
+                    Box {
+                        androidx.compose.material3.IconButton(onClick = { menuExpanded = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Menu")
+                        }
+                        androidx.compose.material3.DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false }
+                        ) {
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text("Chỉnh sửa") },
+                                onClick = {
+                                    menuExpanded = false
+                                    onEditPost()
+                                }
+                            )
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text("Xóa", color = Danger) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onDeletePost()
+                                }
+                            )
+                        }
+                    }
+                }
             }
 
             if (post.content.isNotBlank()) {
-                Text(post.content, style = MaterialTheme.typography.bodyLarge)
+                ExpandableText(text = post.content, style = MaterialTheme.typography.bodyLarge)
             }
 
             Surface(
@@ -534,7 +679,7 @@ private fun SharedPostPreview(
                                 )
                             }
                         }
-                        Text(share.content, style = MaterialTheme.typography.bodyMedium)
+                        ExpandableText(text = share.content, style = MaterialTheme.typography.bodyMedium)
                     }
                     CommunityPostMedia(post = post.copy(mediaItems = share.mediaItems, imageUrl = null, mediaUrl = null, mediaType = null), height = 220.dp, clipCorners = false)
                 }
@@ -1003,7 +1148,7 @@ private fun FirestoreCommentBubble(comment: CommunityComment) {
             Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                 Text(comment.authorName, fontWeight = FontWeight.Bold)
                 if (comment.text.isNotBlank()) {
-                    Text(comment.text, style = MaterialTheme.typography.bodyLarge)
+                    ExpandableText(text = comment.text, style = MaterialTheme.typography.bodyLarge, textLimit = 50)
                 }
                 comment.mediaItems.firstOrNull()?.let { media ->
                     Text(media.type, color = SoftText, style = MaterialTheme.typography.bodySmall)
@@ -1217,6 +1362,129 @@ fun AuthPromptDialog(
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Text(AppStrings.Community.LOGIN)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EditPostDialog(
+    post: CommunityPost,
+    onDismiss: () -> Unit,
+    onSave: (String, List<com.example.myapplication.domain.model.CommunityMediaItem>) -> Unit
+) {
+    var draft by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(post.content) }
+    var currentMediaItems by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(post.mediaItems) }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White)
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 10.dp)
+            ) {
+                androidx.compose.material3.IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.align(Alignment.CenterStart)
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = "Đóng")
+                }
+                Text(
+                    text = "Chỉnh sửa bài viết",
+                    modifier = Modifier.align(Alignment.Center),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold
+                )
+                TextButton(
+                    onClick = { onSave(draft, currentMediaItems) },
+                    enabled = (draft.isNotBlank() && draft != post.content) || currentMediaItems != post.mediaItems,
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                ) {
+                    Text(
+                        text = "Lưu",
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if ((draft.isNotBlank() && draft != post.content) || currentMediaItems != post.mediaItems) Evergreen else SoftText
+                    )
+                }
+            }
+
+            androidx.compose.material3.Surface(color = SoftLine, modifier = Modifier.fillMaxWidth().height(1.dp)) {}
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    CircleAvatar(
+                        size = 64.dp,
+                        imageUrl = post.authorAvatarUrl
+                    )
+                    Text(post.author, style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold)
+                }
+
+                BasicTextField(
+                    value = draft,
+                    onValueChange = { draft = it },
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    decorationBox = { innerTextField ->
+                        Box {
+                            if (draft.isEmpty()) {
+                                Text(AppStrings.Community.PLACEHOLDER, color = SoftText, style = MaterialTheme.typography.bodyLarge)
+                            }
+                            innerTextField()
+                        }
+                    }
+                )
+
+                if (currentMediaItems.isNotEmpty()) {
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(currentMediaItems) { media ->
+                            Box(modifier = Modifier.size(100.dp).clip(RoundedCornerShape(8.dp))) {
+                                if (media.type == "image") {
+                                    AsyncImage(
+                                        model = media.url,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
+                                        Icon(Icons.Default.PlayCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
+                                    }
+                                }
+                                androidx.compose.material3.IconButton(
+                                    onClick = { currentMediaItems = currentMediaItems - media },
+                                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(24.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                ) {
+                                    Icon(Icons.Default.Close, contentDescription = "Xóa", tint = Color.White, modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        }
                     }
                 }
             }

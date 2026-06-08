@@ -54,6 +54,8 @@ fun EventCommunityScreen(
     onAddComment: (String, String) -> Unit,
     onOpenAuth: () -> Unit,
     onOpenProfile: (String) -> Unit,
+    onDeletePost: (String) -> Unit = {},
+    onEditPost: (CommunityPost) -> Unit = {},
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -87,7 +89,9 @@ fun EventCommunityScreen(
                             onOpenComments = onOpenComments,
                             onAddComment = onAddComment,
                             onOpenAuth = onOpenAuth,
-                            onOpenProfile = onOpenProfile
+                            onOpenProfile = onOpenProfile,
+                            onDeletePost = onDeletePost,
+                            onEditPost = onEditPost
                         )
                     }
                 } else {
@@ -113,7 +117,9 @@ fun EventCommunityScreen(
                             onOpenComments = { onOpenComments(post.id) },
                             onAddComment = { text -> onAddComment(post.id, text) },
                             onOpenAuth = onOpenAuth,
-                            onOpenProfile = onOpenProfile
+                            onOpenProfile = onOpenProfile,
+                            onDeletePost = { onDeletePost(post.id) },
+                            onEditPost = { onEditPost(post) }
                         )
                     }
                     if (posts.isEmpty()) {
@@ -141,7 +147,9 @@ private fun ExpandedEventCommunityContent(
     onOpenComments: (String) -> Unit,
     onAddComment: (String, String) -> Unit,
     onOpenAuth: () -> Unit,
-    onOpenProfile: (String) -> Unit
+    onOpenProfile: (String) -> Unit,
+    onDeletePost: (String) -> Unit,
+    onEditPost: (CommunityPost) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -183,7 +191,9 @@ private fun ExpandedEventCommunityContent(
                         onOpenComments = { onOpenComments(post.id) },
                         onAddComment = { text -> onAddComment(post.id, text) },
                         onOpenAuth = onOpenAuth,
-                        onOpenProfile = onOpenProfile
+                        onOpenProfile = onOpenProfile,
+                        onDeletePost = { onDeletePost(post.id) },
+                        onEditPost = { onEditPost(post) }
                     )
                 }
             }
@@ -231,11 +241,7 @@ private fun EventCommunityHeader(event: Event) {
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Public, contentDescription = null, tint = SoftText, modifier = Modifier.size(18.dp))
-                Text("Nhóm công khai", color = SoftText)
-                Text("- 1.070 thành viên", fontWeight = FontWeight.SemiBold)
-            }
+
         }
     }
 }

@@ -30,8 +30,20 @@ fun CommunityRoute(
         onAddComment = viewModel::addComment,
         onOpenAuth = onOpenAuth,
         onOpenProfile = onOpenProfile,
+        onDeletePost = viewModel::deletePost,
+        onEditPost = viewModel::openEditPost,
         modifier = modifier
     )
+
+    uiState.editingPost?.let { post ->
+        com.example.myapplication.core.designsystem.component.EditPostDialog(
+            post = post,
+            onDismiss = viewModel::closeEditPost,
+            onSave = { newText, newMedia ->
+                viewModel.updatePost(post.id, newText, newMedia)
+            }
+        )
+    }
 }
 
 @Composable
@@ -60,7 +72,19 @@ fun EventCommunityRoute(
         onAddComment = viewModel::addComment,
         onOpenAuth = onOpenAuth,
         onOpenProfile = onOpenProfile,
+        onDeletePost = viewModel::deletePost,
+        onEditPost = viewModel::openEditPost,
         onBack = onBack,
         modifier = modifier
     )
+
+    uiState.editingPost?.let { post ->
+        com.example.myapplication.core.designsystem.component.EditPostDialog(
+            post = post,
+            onDismiss = viewModel::closeEditPost,
+            onSave = { newText, newMedia ->
+                viewModel.updatePost(post.id, newText, newMedia)
+            }
+        )
+    }
 }
