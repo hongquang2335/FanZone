@@ -10,6 +10,7 @@ import com.example.myapplication.domain.model.Event
 fun CommunityRoute(
     onOpenEvent: (String) -> Unit,
     onOpenAuth: () -> Unit,
+    onOpenProfile: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: CommunityViewModel
 ) {
@@ -28,6 +29,7 @@ fun CommunityRoute(
         onOpenComments = viewModel::observeComments,
         onAddComment = viewModel::addComment,
         onOpenAuth = onOpenAuth,
+        onOpenProfile = onOpenProfile,
         modifier = modifier
     )
 }
@@ -37,6 +39,7 @@ fun EventCommunityRoute(
     event: Event,
     eventId: String?,
     onOpenAuth: () -> Unit,
+    onOpenProfile: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: CommunityViewModel
@@ -56,6 +59,7 @@ fun EventCommunityRoute(
         onOpenComments = viewModel::observeComments,
         onAddComment = viewModel::addComment,
         onOpenAuth = onOpenAuth,
+        onOpenProfile = onOpenProfile,
         onBack = onBack,
         modifier = modifier
     )

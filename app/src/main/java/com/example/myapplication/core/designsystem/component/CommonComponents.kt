@@ -105,14 +105,20 @@ fun SectionHeader(title: String, subtitle: String?) {
 }
 
 @Composable
-fun CircleAvatar(size: Dp = 44.dp, imageUrl: String? = null, showPlaceholder: Boolean = true) {
-    val modifier = Modifier
+fun CircleAvatar(
+    size: Dp = 44.dp,
+    imageUrl: String? = null,
+    showPlaceholder: Boolean = true,
+    modifier: Modifier = Modifier
+) {
+    val combinedModifier = Modifier
         .size(size)
         .clip(CircleShape)
+        .then(modifier)
     if (imageUrl.isNullOrBlank()) {
         if (showPlaceholder) {
             Surface(
-                modifier = modifier,
+                modifier = combinedModifier,
                 shape = CircleShape,
                 color = Color(0xFFF7F7FA)
             ) {
@@ -135,14 +141,14 @@ fun CircleAvatar(size: Dp = 44.dp, imageUrl: String? = null, showPlaceholder: Bo
                 }
             }
         } else {
-            Box(modifier = modifier.background(Color.Transparent))
+            Box(modifier = combinedModifier.background(Color.Transparent))
         }
     } else {
         AsyncImage(
             model = imageUrl,
             contentDescription = "Avatar",
             contentScale = ContentScale.Crop,
-            modifier = modifier
+            modifier = combinedModifier
         )
     }
 }

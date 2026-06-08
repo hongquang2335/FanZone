@@ -1,7 +1,15 @@
 package com.example.myapplication.core.designsystem.component
 
 import android.net.Uri
-import android.widget.VideoView
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.imePadding
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
+import com.example.myapplication.core.util.AppStrings
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -22,6 +30,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -53,9 +62,10 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -133,15 +143,15 @@ fun HeroBanner(event: Event, onOpenEvent: () -> Unit) {
             modifier = Modifier.widthIn(max = 210.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            AssistChip(onClick = {}, label = { Text("Giam chop nhoang") })
-            Text("Flash Sale\nCuoi Tuan!", style = MaterialTheme.typography.headlineMedium, color = Color.White)
-            Text("Giam gia len den 50% cho cac su kien hot nhat tuan nay.", color = Color.White.copy(alpha = 0.88f))
+            AssistChip(onClick = {}, label = { Text(AppStrings.Community.FLASH_SALE_TITLE) })
+            Text(AppStrings.Community.FLASH_SALE_SUB, style = MaterialTheme.typography.headlineMedium, color = Color.White)
+            Text(AppStrings.Community.FLASH_SALE_BODY, color = Color.White.copy(alpha = 0.88f))
             OutlinedButton(
                 onClick = onOpenEvent,
                 border = BorderStroke(1.dp, Color.White.copy(alpha = 0.36f)),
                 shape = RoundedCornerShape(20.dp)
             ) {
-                Text("Xem ngay", color = Color.White)
+                Text(AppStrings.Community.VIEW_NOW, color = Color.White)
             }
         }
         if (event.imageUrl != null) {
@@ -207,7 +217,7 @@ fun EventCard(event: Event, modifier: Modifier = Modifier, onOpen: () -> Unit) {
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("THANG 10", style = MaterialTheme.typography.labelLarge, color = Danger)
+                        Text("THÁNG 10", style = MaterialTheme.typography.labelLarge, color = Danger)
                         Text("28", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
                     }
                 }
@@ -221,9 +231,9 @@ fun EventCard(event: Event, modifier: Modifier = Modifier, onOpen: () -> Unit) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("+99 quan tam", color = SoftText, style = MaterialTheme.typography.bodyMedium)
+                    Text(AppStrings.Community.INTERESTED_COUNT, color = SoftText, style = MaterialTheme.typography.bodyMedium)
                     Button(onClick = onOpen, shape = RoundedCornerShape(20.dp)) {
-                        Text("Quan tam")
+                        Text(AppStrings.Community.INTERESTED)
                     }
                 }
             }
@@ -266,7 +276,8 @@ fun CommunityCard(
     onToggleFollow: (String) -> Unit = {},
     onOpenComments: () -> Unit = {},
     onAddComment: (String) -> Unit = {},
-    onOpenAuth: () -> Unit = {}
+    onOpenAuth: () -> Unit = {},
+    onOpenProfile: (String) -> Unit = {}
 ) {
     var liked by remember(post.id, currentUserId, post.likedBy) { mutableStateOf(post.isLikedByUser(currentUserId)) }
     var likeCount by remember(post.id, post.likes) { mutableStateOf(post.likes) }
@@ -289,7 +300,8 @@ fun CommunityCard(
                     onOpenComments()
                     commentOpen = true
                 },
-                onShareClick = { shareOpen = true }
+                onShareClick = { shareOpen = true },
+                onOpenProfile = onOpenProfile
             )
         } else {
             Card(
@@ -299,7 +311,12 @@ fun CommunityCard(
             ) {
                 Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        CircleAvatar(imageUrl = post.authorAvatarUrl)
+                        CircleAvatar(
+                            imageUrl = post.authorAvatarUrl,
+                            modifier = Modifier.clickable(enabled = post.authorId != null) {
+                                post.authorId?.let(onOpenProfile)
+                            }
+                        )
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             if (post.eventTitle != null) {
                                 Text(
@@ -315,11 +332,15 @@ fun CommunityCard(
                                 PostMetaLine(
                                     author = post.author,
                                     timeLabel = post.postTimeLabel(),
-                                    textStyle = MaterialTheme.typography.bodyMedium
+                                    textStyle = MaterialTheme.typography.bodyMedium,
+                                    onAuthorClick = post.authorId?.let { id -> { onOpenProfile(id) } }
                                 )
                             } else {
                                 Text(
                                     text = post.author,
+                                    modifier = Modifier.clickable(enabled = post.authorId != null) {
+                                        post.authorId?.let(onOpenProfile)
+                                    },
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1,
@@ -434,7 +455,8 @@ private fun SharedPostPreview(
     post: CommunityPost,
     share: SharedCommunityPost,
     onCommentClick: () -> Unit,
-    onShareClick: () -> Unit
+    onShareClick: () -> Unit,
+    onOpenProfile: (String) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -443,10 +465,18 @@ private fun SharedPostPreview(
     ) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                CircleAvatar(imageUrl = post.authorAvatarUrl)
+                CircleAvatar(
+                    imageUrl = post.authorAvatarUrl,
+                    modifier = Modifier.clickable(enabled = post.authorId != null) {
+                        post.authorId?.let(onOpenProfile)
+                    }
+                )
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         text = post.author,
+                        modifier = Modifier.clickable(enabled = post.authorId != null) {
+                            post.authorId?.let(onOpenProfile)
+                        },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -478,10 +508,19 @@ private fun SharedPostPreview(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            CircleAvatar(size = 36.dp, imageUrl = share.authorAvatarUrl)
+                            CircleAvatar(
+                                size = 36.dp,
+                                imageUrl = share.authorAvatarUrl,
+                                modifier = Modifier.clickable(enabled = share.authorId != null) {
+                                    share.authorId?.let(onOpenProfile)
+                                }
+                            )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = share.eventTitle ?: share.author,
+                                    modifier = Modifier.clickable(enabled = share.authorId != null) {
+                                        share.authorId?.let(onOpenProfile)
+                                    },
                                     fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.titleSmall,
                                     maxLines = 1,
@@ -490,7 +529,8 @@ private fun SharedPostPreview(
                                 PostMetaLine(
                                     author = share.author.takeIf { share.eventTitle != null },
                                     timeLabel = post.postTimeLabel(),
-                                    textStyle = MaterialTheme.typography.bodySmall
+                                    textStyle = MaterialTheme.typography.bodySmall,
+                                    onAuthorClick = share.authorId?.let { id -> { onOpenProfile(id) } }
                                 )
                             }
                         }
@@ -731,20 +771,30 @@ private fun CommunityVideoPlayer(url: String) {
         return
     }
 
+    val context = LocalContext.current
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            repeatMode = Player.REPEAT_MODE_ONE
+            playWhenReady = true
+        }
+    }
+
+    LaunchedEffect(url) {
+        exoPlayer.setMediaItem(MediaItem.fromUri(Uri.parse(url)))
+        exoPlayer.prepare()
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            exoPlayer.release()
+        }
+    }
+
     AndroidView(
-        factory = { context ->
-            VideoView(context).apply {
-                setOnPreparedListener { player ->
-                    player.isLooping = true
-                    start()
-                }
-                setOnCompletionListener { start() }
-            }
-        },
-        update = { view ->
-            if (view.getTag() != url) {
-                view.setTag(url)
-                view.setVideoURI(Uri.parse(url))
+        factory = { ctx ->
+            PlayerView(ctx).apply {
+                player = exoPlayer
+                useController = true
             }
         },
         modifier = Modifier.fillMaxSize()
@@ -781,7 +831,8 @@ private fun CommunityMediaItem.toDisplayItem(): DisplayCommunityMediaItem {
 private fun PostMetaLine(
     timeLabel: String,
     textStyle: androidx.compose.ui.text.TextStyle,
-    author: String? = null
+    author: String? = null,
+    onAuthorClick: (() -> Unit)? = null
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -794,7 +845,8 @@ private fun PostMetaLine(
                 style = textStyle,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = if (onAuthorClick != null) Modifier.clickable(onClick = onAuthorClick) else Modifier
             )
             Text("·", color = SoftText, style = textStyle)
         }
@@ -843,13 +895,18 @@ private fun FirestoreCommentsDialog(
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.White)
+                .statusBarsPadding()
                 .navigationBarsPadding()
+                .imePadding()
         ) {
             Box(
                 modifier = Modifier
@@ -879,10 +936,10 @@ private fun FirestoreCommentsDialog(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Yeu thich $likeCount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("$shareCount luot chia se", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(AppStrings.Community.FAVORITE.format(likeCount), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(AppStrings.Community.SHARES_COUNT.format(shareCount), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
-            Divider()
+            HorizontalDivider()
             LazyColumn(
                 modifier = Modifier.weight(1f).padding(horizontal = 18.dp, vertical = 16.dp),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 12.dp),
@@ -890,7 +947,7 @@ private fun FirestoreCommentsDialog(
             ) {
                 if (comments.isEmpty()) {
                     item {
-                        Text("Chua co binh luan.", color = SoftText, style = MaterialTheme.typography.bodyMedium)
+                        Text(AppStrings.Community.NO_COMMENTS, color = SoftText, style = MaterialTheme.typography.bodyMedium)
                     }
                 } else {
                     items(comments) { comment ->
@@ -898,7 +955,7 @@ private fun FirestoreCommentsDialog(
                     }
                 }
             }
-            Divider()
+            HorizontalDivider()
             Row(
                 modifier = Modifier.fillMaxWidth().padding(14.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -908,8 +965,16 @@ private fun FirestoreCommentsDialog(
                     value = draft,
                     onValueChange = { draft = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Binh luan duoi ten $authorName") },
-                    singleLine = true
+                    placeholder = { Text(AppStrings.Community.WRITE_COMMENT_PLACEHOLDER.format(authorName), color = SoftText, style = MaterialTheme.typography.bodyLarge) },
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color(0xFFF3F5F7),
+                        unfocusedContainerColor = Color(0xFFF3F5F7),
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent
+                    ),
+                    shape = RoundedCornerShape(24.dp)
                 )
                 TextButton(
                     enabled = draft.isNotBlank(),
@@ -917,9 +982,13 @@ private fun FirestoreCommentsDialog(
                         val text = draft
                         draft = ""
                         onAddComment(text)
-                    }
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Evergreen,
+                        disabledContentColor = SoftText
+                    )
                 ) {
-                    Text("Gui")
+                    Text(AppStrings.Community.SEND, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                 }
             }
         }
@@ -1024,7 +1093,7 @@ private fun ShareDialog(
                         value = shareDraft,
                         onValueChange = { shareDraft = it },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Bạn đang nghĩ gì?", color = SoftText) },
+                        placeholder = { Text(AppStrings.Community.PLACEHOLDER, color = SoftText) },
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.White,
                             unfocusedContainerColor = Color.White,
@@ -1046,13 +1115,13 @@ private fun ShareDialog(
                             },
                             shape = RoundedCornerShape(14.dp)
                         ) {
-                            Text("Chia sẻ ngay")
+                            Text(AppStrings.Community.SHARE_NOW)
                         }
                     }
                 }
             }
             TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                Text("Đóng")
+                Text(AppStrings.Community.CLOSE)
             }
         }
         }
@@ -1116,13 +1185,13 @@ fun AuthPromptDialog(
                     modifier = Modifier.size(56.dp)
                 )
                 Text(
-                    text = "Yêu cầu đăng nhập",
+                    text = AppStrings.Community.AUTH_REQUIRED_TITLE,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = Ink
                 )
                 Text(
-                    text = "Vui lòng đăng nhập để thích, bình luận, chia sẻ hoặc viết bài của riêng bạn.",
+                    text = AppStrings.Community.AUTH_REQUIRED_DESC,
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.bodyLarge,
                     color = SoftText
@@ -1137,7 +1206,7 @@ fun AuthPromptDialog(
                         shape = RoundedCornerShape(14.dp),
                         border = BorderStroke(1.dp, SoftLine)
                     ) {
-                        Text("Để sau", color = SoftText)
+                        Text(AppStrings.Community.LATER, color = SoftText)
                     }
                     Button(
                         onClick = {
@@ -1147,7 +1216,7 @@ fun AuthPromptDialog(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp)
                     ) {
-                        Text("Đăng nhập")
+                        Text(AppStrings.Community.LOGIN)
                     }
                 }
             }

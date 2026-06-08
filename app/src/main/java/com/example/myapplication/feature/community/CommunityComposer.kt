@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -41,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -51,6 +53,7 @@ import com.example.myapplication.core.designsystem.component.AuthPromptDialog
 import com.example.myapplication.core.designsystem.theme.Evergreen
 import com.example.myapplication.core.designsystem.theme.SoftLine
 import com.example.myapplication.core.designsystem.theme.SoftText
+import com.example.myapplication.core.util.AppStrings
 import com.example.myapplication.domain.repository.SelectedCommunityMedia
 
 @Composable
@@ -92,7 +95,7 @@ fun ComposerCard(
                 border = androidx.compose.foundation.BorderStroke(1.dp, SoftLine)
             ) {
                 Text(
-                    text = "Bạn đang nghĩ gì?",
+                    text = AppStrings.Community.PLACEHOLDER,
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
                     color = SoftText,
                     style = MaterialTheme.typography.bodyLarge
@@ -153,7 +156,7 @@ private fun NewPostDialog(
             }
             SelectedCommunityMedia(
                 uri = uri,
-                name = uri.lastPathSegment?.substringAfterLast('/') ?: "Tệp đã chọn",
+                name = uri.lastPathSegment?.substringAfterLast('/') ?: AppStrings.Community.SELECTED_FILE,
                 type = context.contentResolver.getType(uri)
                     ?: pendingTypes.firstOrNull()
                     ?: "application/octet-stream"
@@ -166,7 +169,10 @@ private fun NewPostDialog(
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
         Column(
             modifier = Modifier
@@ -174,6 +180,7 @@ private fun NewPostDialog(
                 .background(Color.White)
                 .statusBarsPadding()
                 .navigationBarsPadding()
+                .imePadding()
         ) {
             Box(
                 modifier = Modifier
@@ -184,14 +191,26 @@ private fun NewPostDialog(
                     onClick = onDismiss,
                     modifier = Modifier.align(Alignment.CenterStart)
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = "Đóng")
+                    Icon(Icons.Default.Close, contentDescription = AppStrings.Community.CLOSE)
                 }
                 Text(
-                    text = "Bài viết mới",
+                    text = AppStrings.Community.NEW_POST,
                     modifier = Modifier.align(Alignment.Center),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold
                 )
+                TextButton(
+                    onClick = onPost,
+                    enabled = state.canPost,
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                ) {
+                    Text(
+                        text = if (state.isPosting) AppStrings.Community.POSTING else AppStrings.Community.POST_ACTION,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (state.canPost) Evergreen else SoftText
+                    )
+                }
             }
 
             Surface(color = SoftLine, modifier = Modifier.fillMaxWidth().height(1.dp)) {}
@@ -213,13 +232,13 @@ private fun NewPostDialog(
 
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     item {
-                        ComposerActionChip(Icons.Default.Image, "Ảnh") {
+                        ComposerActionChip(Icons.Default.Image, AppStrings.Community.ADD_IMAGE) {
                             pendingTypes = arrayOf("image/*")
                             mediaLauncher.launch(pendingTypes)
                         }
                     }
                     item {
-                        ComposerActionChip(Icons.Default.Videocam, "Video") {
+                        ComposerActionChip(Icons.Default.Videocam, AppStrings.Community.ADD_VIDEO) {
                             pendingTypes = arrayOf("video/*")
                             mediaLauncher.launch(pendingTypes)
                         }
@@ -243,7 +262,7 @@ private fun NewPostDialog(
                     )
                     if (state.draft.isBlank()) {
                         Text(
-                            text = "Bạn đang nghĩ gì?",
+                            text = AppStrings.Community.PLACEHOLDER,
                             color = SoftText,
                             style = MaterialTheme.typography.headlineSmall
                         )
@@ -253,21 +272,7 @@ private fun NewPostDialog(
 
             Surface(color = SoftLine, modifier = Modifier.fillMaxWidth().height(1.dp)) {}
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Button(
-                    onClick = onPost,
-                    enabled = state.canPost,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(if (state.isPosting) "Đang đăng..." else "Đăng")
-                }
-            }
+
             state.errorMessage?.let { message ->
                 Text(
                     text = message,
@@ -314,7 +319,7 @@ private fun SelectedMediaRow(
                 maxLines = 1
             )
             IconButton(onClick = onRemove, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Delete, contentDescription = "Xóa tệp", tint = SoftText)
+                Icon(Icons.Default.Delete, contentDescription = AppStrings.Community.DELETE_FILE, tint = SoftText)
             }
         }
     }

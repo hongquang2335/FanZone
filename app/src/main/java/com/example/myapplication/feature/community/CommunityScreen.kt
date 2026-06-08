@@ -31,6 +31,7 @@ fun CommunityScreen(
     onOpenComments: (String) -> Unit,
     onAddComment: (String, String) -> Unit,
     onOpenAuth: () -> Unit,
+    onOpenProfile: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background)) {
@@ -38,7 +39,7 @@ fun CommunityScreen(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize().statusBarsPadding(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 100.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             item { ComposerCard(currentAuthorAvatarUrl = currentAuthorAvatarUrl, onOpenAuth = onOpenAuth) }
@@ -65,7 +66,8 @@ fun CommunityScreen(
                                         comments = commentsByPostId[post.id].orEmpty(),
                                         onOpenComments = { onOpenComments(post.id) },
                                         onAddComment = { text -> onAddComment(post.id, text) },
-                                        onOpenAuth = onOpenAuth
+                                        onOpenAuth = onOpenAuth,
+                                        onOpenProfile = onOpenProfile
                                     )
                                 }
                             }
@@ -85,7 +87,8 @@ fun CommunityScreen(
                         comments = commentsByPostId[post.id].orEmpty(),
                         onOpenComments = { onOpenComments(post.id) },
                         onAddComment = { text -> onAddComment(post.id, text) },
-                        onOpenAuth = onOpenAuth
+                        onOpenAuth = onOpenAuth,
+                        onOpenProfile = onOpenProfile
                     )
                 }
             }

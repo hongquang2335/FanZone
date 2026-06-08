@@ -53,6 +53,7 @@ fun EventCommunityScreen(
     onOpenComments: (String) -> Unit,
     onAddComment: (String, String) -> Unit,
     onOpenAuth: () -> Unit,
+    onOpenProfile: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -68,7 +69,7 @@ fun EventCommunityScreen(
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 100.dp),
+                contentPadding = PaddingValues(bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 if (isExpanded) {
@@ -85,7 +86,8 @@ fun EventCommunityScreen(
                             onToggleFollow = onToggleFollow,
                             onOpenComments = onOpenComments,
                             onAddComment = onAddComment,
-                            onOpenAuth = onOpenAuth
+                            onOpenAuth = onOpenAuth,
+                            onOpenProfile = onOpenProfile
                         )
                     }
                 } else {
@@ -97,9 +99,6 @@ fun EventCommunityScreen(
                             currentAuthorAvatarUrl = currentAuthorAvatarUrl,
                             onOpenAuth = onOpenAuth
                         )
-                    }
-                    item {
-                        FeedTitle(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
                     }
                     items(posts) { post ->
                         CommunityCard(
@@ -113,7 +112,8 @@ fun EventCommunityScreen(
                             comments = commentsByPostId[post.id].orEmpty(),
                             onOpenComments = { onOpenComments(post.id) },
                             onAddComment = { text -> onAddComment(post.id, text) },
-                            onOpenAuth = onOpenAuth
+                            onOpenAuth = onOpenAuth,
+                            onOpenProfile = onOpenProfile
                         )
                     }
                     if (posts.isEmpty()) {
@@ -140,7 +140,8 @@ private fun ExpandedEventCommunityContent(
     onToggleFollow: (String) -> Unit,
     onOpenComments: (String) -> Unit,
     onAddComment: (String, String) -> Unit,
-    onOpenAuth: () -> Unit
+    onOpenAuth: () -> Unit,
+    onOpenProfile: (String) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -167,7 +168,6 @@ private fun ExpandedEventCommunityContent(
             modifier = Modifier.weight(1.2f),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            FeedTitle()
             if (posts.isEmpty()) {
                 EmptyPostsMessage()
             } else {
@@ -182,7 +182,8 @@ private fun ExpandedEventCommunityContent(
                         comments = commentsByPostId[post.id].orEmpty(),
                         onOpenComments = { onOpenComments(post.id) },
                         onAddComment = { text -> onAddComment(post.id, text) },
-                        onOpenAuth = onOpenAuth
+                        onOpenAuth = onOpenAuth,
+                        onOpenProfile = onOpenProfile
                     )
                 }
             }

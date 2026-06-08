@@ -30,6 +30,7 @@ import com.example.myapplication.feature.profile.AccountInfoRoute
 import com.example.myapplication.feature.profile.NotificationSettingsRoute
 import com.example.myapplication.feature.profile.ProfileOptionsRoute
 import com.example.myapplication.feature.profile.ProfileRoute
+import com.example.myapplication.feature.profile.ViewedProfileRoute
 import com.example.myapplication.feature.success.PurchaseSuccessScreen
 import com.example.myapplication.feature.support.ChatbotScreen
 import com.example.myapplication.feature.tickets.TicketWalletRoute
@@ -75,6 +76,9 @@ fun FanZoneNavHost(
                     navController.navigate(AppDestination.EventCommunity.create(eventId))
                 },
                 onOpenAuth = { navController.navigate(AppDestination.Login.route) },
+                onOpenProfile = { profileId ->
+                    navController.navigate(AppDestination.ViewedProfile.create(profileId))
+                },
                 viewModel = communityViewModel,
                 modifier = Modifier.fillMaxSize()
             )
@@ -92,6 +96,9 @@ fun FanZoneNavHost(
                 event = event,
                 eventId = eventId,
                 onOpenAuth = { navController.navigate(AppDestination.Login.route) },
+                onOpenProfile = { profileId ->
+                    navController.navigate(AppDestination.ViewedProfile.create(profileId))
+                },
                 onBack = { navController.popBackStack() },
                 viewModel = communityViewModel,
                 modifier = Modifier.fillMaxSize()
@@ -128,6 +135,29 @@ fun FanZoneNavHost(
                 onOpenNotificationSettings = { navController.navigate(AppDestination.NotificationSettings.route) },
                 onOpenProfileOptions = { navController.navigate(AppDestination.ProfileOptions.route) },
                 onSignOut = authViewModel::signOut,
+                onOpenProfile = { profileId ->
+                    navController.navigate(AppDestination.ViewedProfile.create(profileId))
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        composable(
+            route = AppDestination.ViewedProfile.route,
+            arguments = listOf(navArgument("profileId") { type = NavType.StringType })
+        ) { entry ->
+            val profileId = entry.arguments?.getString("profileId").orEmpty()
+            ViewedProfileRoute(
+                profileId = profileId,
+                currentUserId = authState.user?.uid,
+                posts = communityState.posts,
+                commentsByPostId = communityState.commentsByPostId,
+                onSharePost = communityViewModel::sharePost,
+                onToggleLike = communityViewModel::toggleLike,
+                onToggleFollow = communityViewModel::toggleFollow,
+                onOpenComments = communityViewModel::observeComments,
+                onAddComment = communityViewModel::addComment,
+                onBack = { navController.popBackStack() },
+                onOpenAuth = { navController.navigate(AppDestination.Login.route) },
                 modifier = Modifier.fillMaxSize()
             )
         }

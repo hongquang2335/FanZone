@@ -56,7 +56,7 @@ fun TicketWalletScreen(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize().statusBarsPadding(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 100.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             item { SectionHeader("Ve cua toi", "Quan ly ve va QR check-in") }
