@@ -1,3 +1,22 @@
+import java.util.Properties
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use(::load)
+    }
+}
+
+val vnpayBackendUrl = localProperties
+    .getProperty(
+        "VNPAY_BACKEND_URL",
+        "https://your-ngrok-domain.ngrok-free.app"
+    )
+    .trim()
+    .trimEnd('/')
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -16,6 +35,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField(
+            "String",
+            "VNPAY_BACKEND_URL",
+            "\"$vnpayBackendUrl\""
+        )
     }
 
     buildTypes {
@@ -33,6 +57,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -68,6 +93,7 @@ dependencies {
     // Coroutines Play Services for .await()
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.google.play.services.tasks)
+    implementation(libs.zxing.core)
 
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation(libs.firebase.ai)

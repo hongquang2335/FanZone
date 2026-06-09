@@ -31,6 +31,14 @@ fun CheckoutRoute(
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
+    LaunchedEffect(state.completedTxnRef) {
+        if (state.completedTxnRef != null) {
+            onCommitPaymentMethod("vnpay")
+            onConfirm()
+            viewModel.consumePaymentSuccess()
+        }
+    }
+
     CheckoutScreen(
         event = event,
         tiers = tiers,
@@ -38,12 +46,17 @@ fun CheckoutRoute(
         selectedSeats = selectedSeats,
         paymentMethods = paymentMethods,
         selectedPaymentMethod = state.selectedPaymentMethod,
+        isCreatingPayment = state.isCreatingPayment,
+        isVerifyingPayment = state.isVerifyingPayment,
+        paymentUrl = state.paymentUrl,
+        paymentError = state.paymentError,
         onBack = onBack,
         onSelectPayment = viewModel::selectPaymentMethod,
-        onConfirm = {
-            onCommitPaymentMethod("vnpay")
-            onConfirm()
-        },
+        onConfirm = { viewModel.startVnpayPayment(event, selectedSeats) },
+        onPaymentReturn = viewModel::handleVnpayReturn,
+        onPaymentDismiss = viewModel::cancelPayment,
+        onPaymentWebError = viewModel::reportWebViewError,
+        onDismissPaymentError = viewModel::dismissPaymentError,
         modifier = modifier
     )
 }

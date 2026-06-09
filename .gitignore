@@ -14,3 +14,7 @@
 .cxx
 local.properties
 app/google-services.json
+node_modules/
+backend/.env
+backend/service-account*.json
+backend/firebase-service-account*.json

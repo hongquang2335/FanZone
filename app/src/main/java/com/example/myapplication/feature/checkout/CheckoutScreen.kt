@@ -1,5 +1,21 @@
 package com.example.myapplication.feature.checkout
 
+import android.annotation.SuppressLint
+import android.content.Intent
+import android.graphics.Bitmap
+import android.net.Uri
+import android.os.Message
+import android.util.Log
+import android.view.ViewGroup
+import android.webkit.ConsoleMessage
+import android.webkit.CookieManager
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import android.widget.FrameLayout
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -26,10 +42,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,6 +58,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,11 +67,15 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.example.myapplication.R
 import com.example.myapplication.core.designsystem.component.formatPrice
@@ -81,9 +105,17 @@ fun CheckoutScreen(
     selectedSeats: List<EventSeat>,
     paymentMethods: List<PaymentMethod>,
     selectedPaymentMethod: String,
+    isCreatingPayment: Boolean,
+    isVerifyingPayment: Boolean,
+    paymentUrl: String?,
+    paymentError: String?,
     onBack: () -> Unit,
     onSelectPayment: (String) -> Unit,
     onConfirm: () -> Unit,
+    onPaymentReturn: (String, String) -> Unit,
+    onPaymentDismiss: () -> Unit,
+    onPaymentWebError: () -> Unit,
+    onDismissPaymentError: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val ticketGroups = remember(selectedSeats, tiers, quantities) {
@@ -97,6 +129,7 @@ fun CheckoutScreen(
         bottomBar = {
             CheckoutBottomBar(
                 enabled = total > 0,
+                isLoading = isCreatingPayment || isVerifyingPayment,
                 onConfirm = onConfirm
             )
         },
@@ -137,6 +170,32 @@ fun CheckoutScreen(
                 }
             }
         }
+    }
+
+    if (paymentUrl != null) {
+        VnpayPaymentWebView(
+            paymentUrl = paymentUrl,
+            onPaymentReturn = onPaymentReturn,
+            onDismiss = onPaymentDismiss,
+            onWebError = onPaymentWebError
+        )
+    }
+
+    if (isCreatingPayment || isVerifyingPayment) {
+        PaymentLoadingOverlay(
+            message = if (isVerifyingPayment) {
+                "Đang xác minh giao dịch..."
+            } else {
+                "Đang kết nối VNPAY..."
+            }
+        )
+    }
+
+    if (paymentError != null) {
+        PaymentFailureDialog(
+            message = paymentError,
+            onDismiss = onDismissPaymentError
+        )
     }
 }
 
@@ -483,6 +542,7 @@ private fun VnpayLogo() {
 @Composable
 private fun CheckoutBottomBar(
     enabled: Boolean,
+    isLoading: Boolean,
     onConfirm: () -> Unit
 ) {
     Surface(
@@ -494,7 +554,7 @@ private fun CheckoutBottomBar(
     ) {
         Button(
             onClick = onConfirm,
-            enabled = enabled,
+            enabled = enabled && !isLoading,
             modifier = Modifier
                 .padding(horizontal = 20.dp, vertical = 24.dp)
                 .fillMaxWidth()
@@ -518,7 +578,7 @@ private fun CheckoutBottomBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Xác nhận thanh toán",
+                    text = if (isLoading) "Đang xử lý..." else "Xác nhận thanh toán",
                     fontSize = 18.sp,
                     lineHeight = 27.sp,
                     fontWeight = FontWeight.Bold,
@@ -533,6 +593,360 @@ private fun CheckoutBottomBar(
         }
     }
 }
+
+@SuppressLint("SetJavaScriptEnabled")
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun VnpayPaymentWebView(
+    paymentUrl: String,
+    onPaymentReturn: (String, String) -> Unit,
+    onDismiss: () -> Unit,
+    onWebError: () -> Unit
+) {
+    val context = LocalContext.current
+    val webViewHolder = remember { arrayOfNulls<WebView>(1) }
+    val popupWebViews = remember { mutableListOf<WebView>() }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
+    ) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = "Thanh toán VNPAY",
+                            fontWeight = FontWeight.Bold,
+                            color = VibeText
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onDismiss) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Đóng thanh toán"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = VibeCanvas
+                    )
+                )
+            },
+            containerColor = Color.White
+        ) { padding ->
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                factory = {
+                    val container = FrameLayout(context)
+                    var handledReturn = false
+                    lateinit var createPaymentWebView: (Boolean) -> WebView
+
+                    fun handleUri(uri: Uri?): Boolean {
+                        if (
+                            uri?.scheme == PAYMENT_RETURN_SCHEME &&
+                            uri.host == PAYMENT_RETURN_HOST
+                        ) {
+                            handledReturn = true
+                            onPaymentReturn(
+                                uri.getQueryParameter("txnRef").orEmpty(),
+                                uri.getQueryParameter("responseCode").orEmpty()
+                            )
+                            return true
+                        }
+
+                        val scheme = uri?.scheme?.lowercase()
+                        if (scheme != null && scheme !in WEB_SCHEMES) {
+                            return runCatching {
+                                val intent = if (scheme == "intent") {
+                                    Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME)
+                                } else {
+                                    Intent(Intent.ACTION_VIEW, uri)
+                                }
+                                context.startActivity(intent)
+                            }.isSuccess
+                        }
+                        return false
+                    }
+
+                    createPaymentWebView = { isPopup ->
+                        WebView(context).apply paymentWebView@{
+                            settings.javaScriptEnabled = true
+                            settings.domStorageEnabled = true
+                            settings.databaseEnabled = true
+                            settings.javaScriptCanOpenWindowsAutomatically = true
+                            settings.setSupportMultipleWindows(true)
+                            settings.cacheMode = WebSettings.LOAD_NO_CACHE
+                            settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+
+                            CookieManager.getInstance().apply {
+                                setAcceptCookie(true)
+                                setAcceptThirdPartyCookies(this@paymentWebView, true)
+                                flush()
+                            }
+
+                            webViewClient = object : WebViewClient() {
+                                override fun shouldOverrideUrlLoading(
+                                    view: WebView?,
+                                    request: WebResourceRequest?
+                                ): Boolean = handleUri(request?.url)
+
+                                @Deprecated("Deprecated in Java")
+                                override fun shouldOverrideUrlLoading(
+                                    view: WebView?,
+                                    url: String?
+                                ): Boolean = handleUri(url?.let(Uri::parse))
+
+                                override fun onPageStarted(
+                                    view: WebView?,
+                                    url: String?,
+                                    favicon: Bitmap?
+                                ) {
+                                    Log.d(VNPAY_WEB_TAG, "Loading: ${url?.safeLogUrl()}")
+                                }
+
+                                override fun onPageFinished(view: WebView?, url: String?) {
+                                    Log.d(VNPAY_WEB_TAG, "Finished: ${url?.safeLogUrl()}")
+                                }
+
+                                override fun onReceivedError(
+                                    view: WebView?,
+                                    request: WebResourceRequest?,
+                                    error: WebResourceError?
+                                ) {
+                                    if (request?.isForMainFrame == true && !handledReturn) {
+                                        Log.e(
+                                            VNPAY_WEB_TAG,
+                                            "Main frame error ${error?.errorCode}: ${error?.description}"
+                                        )
+                                        onWebError()
+                                    }
+                                }
+                            }
+
+                            webChromeClient = object : WebChromeClient() {
+                                override fun onConsoleMessage(
+                                    consoleMessage: ConsoleMessage
+                                ): Boolean {
+                                    Log.d(
+                                        VNPAY_WEB_TAG,
+                                        "JS ${consoleMessage.messageLevel()}: ${consoleMessage.message()}"
+                                    )
+                                    return true
+                                }
+
+                                override fun onCreateWindow(
+                                    view: WebView?,
+                                    isDialog: Boolean,
+                                    isUserGesture: Boolean,
+                                    resultMsg: Message?
+                                ): Boolean {
+                                    val transport = resultMsg?.obj as? WebView.WebViewTransport
+                                        ?: return false
+                                    val popup = createPaymentWebView(true)
+                                    popupWebViews += popup
+                                    container.addView(
+                                        popup,
+                                        FrameLayout.LayoutParams(
+                                            ViewGroup.LayoutParams.MATCH_PARENT,
+                                            ViewGroup.LayoutParams.MATCH_PARENT
+                                        )
+                                    )
+                                    transport.webView = popup
+                                    resultMsg.sendToTarget()
+                                    Log.d(VNPAY_WEB_TAG, "Opened payment popup WebView")
+                                    return true
+                                }
+
+                                override fun onCloseWindow(window: WebView?) {
+                                    window ?: return
+                                    container.removeView(window)
+                                    popupWebViews.remove(window)
+                                    window.destroy()
+                                    Log.d(VNPAY_WEB_TAG, "Closed payment popup WebView")
+                                }
+                            }
+
+                            if (isPopup) {
+                                setBackgroundColor(android.graphics.Color.WHITE)
+                            }
+                        }
+                    }
+
+                    val mainWebView = createPaymentWebView(false)
+                    container.addView(
+                        mainWebView,
+                        FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
+                        )
+                    )
+                    mainWebView.loadUrl(paymentUrl)
+                    webViewHolder[0] = mainWebView
+                    container
+                }
+            )
+        }
+    }
+
+    DisposableEffect(paymentUrl) {
+        onDispose {
+            popupWebViews.toList().forEach { popup ->
+                (popup.parent as? ViewGroup)?.removeView(popup)
+                popup.stopLoading()
+                popup.destroy()
+            }
+            popupWebViews.clear()
+            webViewHolder[0]?.stopLoading()
+            webViewHolder[0]?.destroy()
+            webViewHolder[0] = null
+        }
+    }
+}
+
+@Composable
+private fun PaymentLoadingOverlay(message: String) {
+    Dialog(
+        onDismissRequest = {},
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.45f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White,
+                shadowElevation = 12.dp
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 28.dp, vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    CircularProgressIndicator(color = VibeGreenDark)
+                    Text(
+                        text = message,
+                        color = VibeText,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PaymentFailureDialog(
+    message: String,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.60f))
+                .padding(horizontal = 24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 384.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = Color.White,
+                shadowElevation = 24.dp
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(Modifier.height(32.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .shadow(
+                                20.dp,
+                                CircleShape,
+                                ambientColor = Color(0x26BA1A1A)
+                            )
+                            .background(Color(0xFFFFDAD6), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Error,
+                            contentDescription = null,
+                            tint = Color(0xFFBA1A1A),
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
+                    Spacer(Modifier.height(24.dp))
+                    Text(
+                        text = "Thanh toán thất bại",
+                        color = VibeText,
+                        fontSize = 30.sp,
+                        lineHeight = 36.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = message,
+                        color = CheckoutMetaText,
+                        fontSize = 16.sp,
+                        lineHeight = 26.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(Modifier.height(32.dp))
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .shadow(20.dp, CircleShape)
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(VibeGreenDark, VibeGreen)
+                                ),
+                                CircleShape
+                            ),
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Transparent,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text(
+                            text = "Đóng",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(Modifier.height(32.dp))
+                }
+            }
+        }
+    }
+}
+
+private const val PAYMENT_RETURN_SCHEME = "eventhub"
+private const val PAYMENT_RETURN_HOST = "vnpay-return"
+private const val VNPAY_WEB_TAG = "VnpayWebView"
+private val WEB_SCHEMES = setOf("http", "https", "about", "javascript", "data", "blob")
+
+private fun String.safeLogUrl(): String = substringBefore('?')
 
 private data class TicketGroup(
     val name: String,
