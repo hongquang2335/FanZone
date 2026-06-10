@@ -30,12 +30,17 @@ import com.example.myapplication.feature.profile.AccountInfoRoute
 import com.example.myapplication.feature.profile.NotificationSettingsRoute
 import com.example.myapplication.feature.profile.ProfileOptionsRoute
 import com.example.myapplication.feature.profile.ProfileRoute
+import com.example.myapplication.feature.profile.ViewedProfileRoute
+import com.example.myapplication.feature.profile.NotificationViewModel
+import com.example.myapplication.feature.profile.NotificationListScreen
 import com.example.myapplication.feature.success.PurchaseSuccessScreen
 import com.example.myapplication.feature.support.ChatViewModel
 import com.example.myapplication.feature.support.ChatbotScreen
 import com.example.myapplication.feature.tickets.TicketWalletRoute
+import com.example.myapplication.app.navigateToRootDestination
 import com.example.myapplication.ui.state.FanZoneUiState
 import com.example.myapplication.ui.state.FanZoneViewModel
+import com.example.myapplication.core.designsystem.theme.ElectricStageTheme
 
 @Composable
 fun FanZoneNavHost(
@@ -85,7 +90,19 @@ fun FanZoneNavHost(
                     navController.navigate(AppDestination.EventCommunity.create(eventId))
                 },
                 onOpenAuth = { navController.navigate(AppDestination.Login.route) },
+                onOpenProfile = { profileId ->
+                    if (profileId == authState.user?.uid) {
+                        navController.navigate(AppDestination.Profile.route) {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    } else {
+                        navController.navigate(AppDestination.ViewedProfile.create(profileId))
+                    }
+                },
                 viewModel = communityViewModel,
+                onOpenNotifications = { navController.navigate(AppDestination.Notifications.route) },
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -102,18 +119,25 @@ fun FanZoneNavHost(
                 event = event,
                 eventId = eventId,
                 onOpenAuth = { navController.navigate(AppDestination.Login.route) },
+                onOpenProfile = { profileId ->
+                    if (profileId == authState.user?.uid) {
+                        navController.navigate(AppDestination.Profile.route) {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    } else {
+                        navController.navigate(AppDestination.ViewedProfile.create(profileId))
+                    }
+                },
                 onBack = { navController.popBackStack() },
                 viewModel = communityViewModel,
+                onOpenNotifications = { navController.navigate(AppDestination.Notifications.route) },
                 modifier = Modifier.fillMaxSize()
             )
         }
         composable(AppDestination.Tickets.route) {
             TicketWalletRoute(
-                tickets = uiState.walletItems,
-                onOpenEvent = { eventId ->
-                    viewModel.selectEvent(eventId)
-                    navController.navigate(AppDestination.EventDetail.create(eventId))
-                },
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -129,6 +153,8 @@ fun FanZoneNavHost(
                 onToggleFollow = communityViewModel::toggleFollow,
                 onOpenComments = communityViewModel::observeComments,
                 onAddComment = communityViewModel::addComment,
+                onDeletePost = { id -> communityViewModel.deletePost(id) },
+                onEditPost = { post -> communityViewModel.openEditPost(post) },
                 onOpenSupport = { navController.navigate(AppDestination.Support.route) },
                 onOpenAuth = { navController.navigate(AppDestination.Login.route) },
                 onOpenAccountInfo = {
@@ -138,6 +164,41 @@ fun FanZoneNavHost(
                 onOpenNotificationSettings = { navController.navigate(AppDestination.NotificationSettings.route) },
                 onOpenProfileOptions = { navController.navigate(AppDestination.ProfileOptions.route) },
                 onSignOut = authViewModel::signOut,
+                onOpenProfile = { profileId ->
+                    if (profileId == authState.user?.uid) {
+                        navController.navigate(AppDestination.Profile.route) {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    } else {
+                        navController.navigate(AppDestination.ViewedProfile.create(profileId))
+                    }
+                },
+                onOpenNotifications = { navController.navigate(AppDestination.Notifications.route) },
+                unreadNotificationCount = communityState.unreadNotificationCount,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        composable(
+            route = AppDestination.ViewedProfile.route,
+            arguments = listOf(navArgument("profileId") { type = NavType.StringType })
+        ) { entry ->
+            val profileId = entry.arguments?.getString("profileId").orEmpty()
+            ViewedProfileRoute(
+                profileId = profileId,
+                currentUserId = authState.user?.uid,
+                posts = communityState.posts,
+                commentsByPostId = communityState.commentsByPostId,
+                onSharePost = communityViewModel::sharePost,
+                onToggleLike = communityViewModel::toggleLike,
+                onToggleFollow = communityViewModel::toggleFollow,
+                onOpenComments = communityViewModel::observeComments,
+                onAddComment = communityViewModel::addComment,
+                onDeletePost = { id -> communityViewModel.deletePost(id) },
+                onEditPost = { post -> communityViewModel.openEditPost(post) },
+                onBack = { navController.popBackStack() },
+                onOpenAuth = { navController.navigate(AppDestination.Login.route) },
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -175,12 +236,44 @@ fun FanZoneNavHost(
             )
         }
         composable(AppDestination.NotificationSettings.route) {
-            NotificationSettingsRoute(
-                darkTheme = darkTheme,
-                onDarkThemeChange = onDarkThemeChange,
-                onBack = { navController.popBackStack() },
-                modifier = Modifier.fillMaxSize()
-            )
+            ElectricStageTheme {
+                NotificationSettingsRoute(
+                    darkTheme = darkTheme,
+                    onDarkThemeChange = onDarkThemeChange,
+                    onBack = { navController.popBackStack() },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+        composable(AppDestination.Notifications.route) {
+            val notificationViewModel: NotificationViewModel = composeViewModel()
+            ElectricStageTheme {
+                NotificationListScreen(
+                    onBack = { navController.popBackStack() },
+                    onNavigateToPost = { postId ->
+                        val posts = communityState.posts
+                        val post = posts.firstOrNull { it.id == postId }
+                        if (post?.eventId != null) {
+                            navController.navigate(AppDestination.EventCommunity.create(post.eventId))
+                        } else {
+                            navController.navigate(AppDestination.Community.route)
+                        }
+                    },
+                    onNavigateToProfile = { profileId ->
+                        if (profileId == authState.user?.uid) {
+                            navController.navigate(AppDestination.Profile.route) {
+                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        } else {
+                            navController.navigate(AppDestination.ViewedProfile.create(profileId))
+                        }
+                    },
+                    viewModel = notificationViewModel,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
         composable(AppDestination.Login.route) {
             LoginScreen(
@@ -304,6 +397,8 @@ fun FanZoneNavHost(
             EventDetailRoute(
                 eventId = eventId,
                 onBack = { navController.popBackStack() },
+                isUserSignedIn = authViewModel::isUserSignedIn,
+                onNavigateToLogin = { navController.navigate(AppDestination.Login.route) },
                 onNavigateToBooking = { id -> navController.navigate(AppDestination.Booking.create(id)) },
                 onOpenCommunity = { id -> navController.navigate(AppDestination.EventCommunity.create(id)) },
                 modifier = Modifier.fillMaxSize()
@@ -341,6 +436,7 @@ fun FanZoneNavHost(
                 event = event,
                 tiers = tiers,
                 quantities = uiState.tierQuantities,
+                selectedSeats = uiState.selectedSeats,
                 paymentMethods = uiState.paymentMethods,
                 selectedPaymentMethod = uiState.selectedPaymentMethod,
                 onBack = { navController.popBackStack() },
@@ -355,23 +451,24 @@ fun FanZoneNavHost(
             )
         }
         composable(AppDestination.Success.route) {
+            val purchasedTicket = uiState.latestPurchasedTicket
+            val purchasedEvent = purchasedTicket?.let { ticket ->
+                uiState.events.firstOrNull { it.id == ticket.eventId }
+            } ?: uiState.selectedEvent
             PurchaseSuccessScreen(
-                ticket = uiState.latestPurchasedTicket,
+                ticket = purchasedTicket,
+                event = purchasedEvent,
                 onOpenEvent = { eventId ->
                     viewModel.selectEvent(eventId)
                     navController.navigate(AppDestination.EventDetail.create(eventId))
                 },
                 onOpenWallet = {
-                    navController.navigate(AppDestination.Tickets.route) {
-                        popUpTo(AppDestination.Home.route) { inclusive = false }
-                        launchSingleTop = true
-                    }
+                    navController.popBackStack(AppDestination.Home.route, inclusive = false)
+                    navController.navigateToRootDestination(AppDestination.Tickets.route)
                 },
                 onGoHome = {
-                    navController.navigate(AppDestination.Home.route) {
-                        popUpTo(AppDestination.Home.route) { inclusive = false }
-                        launchSingleTop = true
-                    }
+                    navController.popBackStack(AppDestination.Home.route, inclusive = false)
+                    navController.navigateToRootDestination(AppDestination.Home.route)
                 },
                 modifier = Modifier.fillMaxSize()
             )

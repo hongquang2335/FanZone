@@ -94,7 +94,9 @@ class FanZoneViewModel(
                             category = (doc.get("category") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                             orgName = doc.getString("orgName") ?: "",
                             orgLogo = doc.getString("orgLogo"),
-                            orgDescription = doc.getString("orgDescription") ?: ""
+                            orgDescription = doc.getString("orgDescription") ?: "",
+                            startTime = rawStartTime,
+                            endTime = rawEndTime
                         )
                     } catch (e: Exception) {
                         Log.e("FanZoneVM", "Lỗi khi parse Document ${doc.id}: ${e.message}")
@@ -178,20 +180,24 @@ class FanZoneViewModel(
 
             state.copy(
                 tiers = state.tiers.filterNot { it.eventId == eventId } + selectedSeatTiers,
-                tierQuantities = selectedSeatTiers.associate { it.id to 1 }
+                tierQuantities = selectedSeatTiers.associate { it.id to 1 },
+                selectedSeats = seats
             )
         }
     }
 
     fun clearTicketSelection() {
-        _uiState.update { it.copy(tierQuantities = emptyMap()) }
+        _uiState.update { it.copy(tierQuantities = emptyMap(), selectedSeats = emptyList()) }
     }
 
     fun confirmPurchase(): TicketWalletItem {
         val state = _uiState.value
-        val seatLabel = state.tiersForSelectedEvent
-            .filter { (state.tierQuantities[it.id] ?: 0) > 0 }
-            .joinToString { tier -> "${tier.name} x${state.tierQuantities[tier.id] ?: 0}" }
+        val seatLabel = state.selectedSeats
+            .takeIf { it.isNotEmpty() }
+            ?.joinToString { seat -> seat.seatId }
+            ?: state.tiersForSelectedEvent
+                .filter { (state.tierQuantities[it.id] ?: 0) > 0 }
+                .joinToString { tier -> "${tier.name} x${state.tierQuantities[tier.id] ?: 0}" }
 
         val ticket = TicketWalletItem(
             id = "ticket-${state.walletItems.size + 1}",
@@ -208,7 +214,8 @@ class FanZoneViewModel(
             it.copy(
                 walletItems = listOf(ticket) + it.walletItems,
                 latestPurchasedTicketId = ticket.id,
-                tierQuantities = emptyMap()
+                tierQuantities = emptyMap(),
+                selectedSeats = emptyList()
             )
         }
         return ticket

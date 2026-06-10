@@ -14,28 +14,38 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import com.example.myapplication.domain.model.Notification
+import com.example.myapplication.domain.model.NotificationType
+import com.example.myapplication.domain.repository.NotificationRepository
 
 class CommunityViewModel(
     application: Application
 ) : AndroidViewModel(application) {
     private val repository = AppDependencies.communityRepository(application)
+    private val notificationRepository = AppDependencies.notificationRepository(application)
     private val auth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
     private val _uiState = MutableStateFlow(CommunityUiState())
     val uiState: StateFlow<CommunityUiState> = _uiState.asStateFlow()
 
     private var subscription: CommunityPostSubscription? = null
+    private var notificationSubscription: CommunityPostSubscription? = null
     private val commentSubscriptions = mutableMapOf<String, CommunityPostSubscription>()
-
+ 
     private val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
         val user = firebaseAuth.currentUser
         if (user == null) {
+            subscription?.dispose()
+            subscription = null
+            notificationSubscription?.dispose()
+            notificationSubscription = null
             _uiState.update {
                 it.copy(
                     currentAuthorName = "Ban",
                     currentAuthorAvatarUrl = null,
                     currentUserId = null,
-                    followedProfileIds = emptySet()
+                    followedProfileIds = emptySet(),
+                    unreadNotificationCount = 0
                 )
             }
         } else {
@@ -79,7 +89,20 @@ class CommunityViewModel(
         if (isLiked) {
             repository.unlikeCommunityPost(postId, currentUserId, onSuccess = {}, onError = {})
         } else {
-            repository.likeCommunityPost(postId, currentUserId, onSuccess = {}, onError = {})
+            repository.likeCommunityPost(postId, currentUserId, onSuccess = {
+                if (post.authorId != null && post.authorId != currentUserId) {
+                    val notification = Notification(
+                        recipientId = post.authorId,
+                        senderId = currentUserId,
+                        senderName = _uiState.value.currentAuthorName,
+                        senderAvatarUrl = _uiState.value.currentAuthorAvatarUrl,
+                        type = NotificationType.LIKE,
+                        postId = postId,
+                        postContentExcerpt = post.content.take(60)
+                    )
+                    notificationRepository.createNotification(notification)
+                }
+            }, onError = {})
         }
     }
 
@@ -114,6 +137,17 @@ class CommunityViewModel(
                 batch.update(currentUserRef, "following", com.google.firebase.firestore.FieldValue.increment(1))
                 batch.update(targetUserRef, "followerIds", com.google.firebase.firestore.FieldValue.arrayUnion(currentUserId))
                 batch.update(targetUserRef, "followers", com.google.firebase.firestore.FieldValue.increment(1))
+            }
+        }.addOnSuccessListener {
+            if (!isFollowing && profileId != currentUserId) {
+                val notification = Notification(
+                    recipientId = profileId,
+                    senderId = currentUserId,
+                    senderName = _uiState.value.currentAuthorName,
+                    senderAvatarUrl = _uiState.value.currentAuthorAvatarUrl,
+                    type = NotificationType.FOLLOW
+                )
+                notificationRepository.createNotification(notification)
             }
         }.addOnFailureListener { throwable ->
             _uiState.update { state ->
@@ -158,7 +192,21 @@ class CommunityViewModel(
                 authorAvatarUrl = _uiState.value.currentAuthorAvatarUrl,
                 text = trimmedText
             ),
-            onSuccess = {},
+            onSuccess = {
+                val post = _uiState.value.posts.firstOrNull { it.id == postId }
+                if (post != null && post.authorId != null && post.authorId != currentUserId) {
+                    val notification = Notification(
+                        recipientId = post.authorId,
+                        senderId = currentUserId,
+                        senderName = _uiState.value.currentAuthorName,
+                        senderAvatarUrl = _uiState.value.currentAuthorAvatarUrl,
+                        type = NotificationType.COMMENT,
+                        postId = postId,
+                        postContentExcerpt = trimmedText.take(60)
+                    )
+                    notificationRepository.createNotification(notification)
+                }
+            },
             onError = { throwable ->
                 _uiState.update {
                     it.copy(errorMessage = throwable.localizedMessage ?: "Khong the gui binh luan.")
@@ -179,6 +227,7 @@ class CommunityViewModel(
                 currentUserId = user.uid
             )
         }
+        observeNotifications(user.uid)
 
         firestore.collection("users")
             .document(user.uid)
@@ -199,6 +248,10 @@ class CommunityViewModel(
             }
     }
 
+    fun deletePost(postId: String) {
+        repository.deletePost(postId, onSuccess = {}, onError = {})
+    }
+
     private fun observePosts() {
         subscription?.dispose()
         subscription = repository.observeCommunityPosts(
@@ -212,6 +265,7 @@ class CommunityViewModel(
                 }
             },
             onError = { throwable ->
+                android.util.Log.e("CommunityViewModel", "Error loading community posts: ${throwable.message}", throwable)
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -226,8 +280,47 @@ class CommunityViewModel(
         auth.removeAuthStateListener(authListener)
         subscription?.dispose()
         subscription = null
+        notificationSubscription?.dispose()
+        notificationSubscription = null
         commentSubscriptions.values.forEach { it.dispose() }
         commentSubscriptions.clear()
         super.onCleared()
+    }
+ 
+    private fun observeNotifications(userId: String) {
+        notificationSubscription?.dispose()
+        notificationSubscription = notificationRepository.observeNotifications(
+            userId = userId,
+            onNotifications = { list ->
+                val unread = list.count { !it.isRead }
+                _uiState.update { it.copy(unreadNotificationCount = unread) }
+            },
+            onError = {}
+        )
+    }
+
+    fun openEditPost(post: CommunityPost) {
+        _uiState.update { it.copy(editingPost = post) }
+    }
+
+    fun closeEditPost() {
+        _uiState.update { it.copy(editingPost = null) }
+    }
+
+    fun updatePost(postId: String, text: String, mediaItems: List<com.example.myapplication.domain.model.CommunityMediaItem>) {
+        repository.updatePost(
+            postId = postId,
+            text = text,
+            mediaItems = mediaItems,
+            onSuccess = {
+                closeEditPost()
+                observePosts()
+            },
+            onError = { throwable ->
+                _uiState.update {
+                    it.copy(errorMessage = throwable.localizedMessage ?: "Khong the cap nhat bai viet.")
+                }
+            }
+        )
     }
 }

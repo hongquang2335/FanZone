@@ -42,3 +42,34 @@ fun FanZoneTheme(
     )
 }
 
+private val ElectricStageColors = darkColorScheme(
+    primary = Color(0xFF006D3D),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFF2DC275),
+    onPrimaryContainer = Color.Black,
+    background = Color(0xFF0A090C),
+    onBackground = Color.White,
+    surface = Color(0xFF201C28),
+    onSurface = Color.White,
+    surfaceVariant = Color(0xFF373045),
+    onSurfaceVariant = Color.White.copy(alpha = 0.7f),
+    outline = Color(0xFF5F5E5E).copy(alpha = 0.15f),
+    error = Danger,
+    surfaceContainerLowest = Color(0xFF0F0E13),
+    surfaceContainerLow = Color(0xFF16121A),
+    surfaceContainer = Color(0xFF201C28),
+    surfaceContainerHigh = Color(0xFF2B2536),
+    surfaceContainerHighest = Color(0xFF373045)
+)
+
+@Composable
+fun ElectricStageTheme(
+    content: @Composable () -> Unit
+) {
+    MaterialTheme(
+        colorScheme = ElectricStageColors,
+        typography = FanZoneTypography,
+        content = content
+    )
+}
+

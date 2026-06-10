@@ -24,6 +24,7 @@ class ProfileViewModel(
         authState: AuthUiState,
         unreadSupport: Int,
         posts: List<CommunityPost>,
+        unreadNotificationCount: Int = 0,
         darkTheme: Boolean = _uiState.value.darkTheme
     ) {
         _uiState.update {
@@ -33,6 +34,7 @@ class ProfileViewModel(
                 unreadSupport = unreadSupport,
                 posts = posts,
                 avatarUrl = authState.accountProfile.avatarUrl,
+                unreadNotificationCount = unreadNotificationCount,
                 darkTheme = darkTheme
             )
         }

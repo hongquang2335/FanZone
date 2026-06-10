@@ -63,6 +63,7 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import com.example.myapplication.R
+import com.example.myapplication.core.util.AppStrings
 import com.example.myapplication.core.designsystem.theme.Evergreen
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
@@ -88,16 +89,16 @@ fun LoginScreen(
 
     AuthScaffold(
         modifier = modifier,
-        title = "Đăng nhập",
+        title = AppStrings.Auth.LOGIN,
         navigation = {
-            CircleHeaderButton(icon = Icons.Default.Close, contentDescription = "Đóng", onClick = onClose)
+            CircleHeaderButton(icon = Icons.Default.Close, contentDescription = AppStrings.Community.CLOSE, onClick = onClose)
         },
         mascot = false
     ) {
         AuthTextField(
             value = email,
             onValueChange = { email = it },
-            placeholder = "Nhập email",
+            placeholder = AppStrings.Auth.EMAIL_PLACEHOLDER,
             trailingIcon = {
                 Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF7E7E86))
             },
@@ -106,7 +107,7 @@ fun LoginScreen(
         AuthTextField(
             value = password,
             onValueChange = { password = it },
-            placeholder = "Nhập mật khẩu",
+            placeholder = AppStrings.Auth.PASSWORD_PLACEHOLDER,
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -137,7 +138,7 @@ fun LoginScreen(
                 disabledElevation = 0.dp
             )
         ) {
-            Text(if (authState.isLoading) "Đang xử lý..." else "Đăng nhập", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Text(if (authState.isLoading) AppStrings.Auth.PROCESSING else AppStrings.Auth.LOGIN, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
         }
         GoogleSignInButton(
             enabled = !authState.isLoading,
@@ -146,7 +147,7 @@ fun LoginScreen(
         )
         AuthMessage(error = authState.errorMessage, info = authState.infoMessage)
         Text(
-            text = "Quên mật khẩu?",
+            text = AppStrings.Auth.FORGOT_PASSWORD,
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(
@@ -162,7 +163,7 @@ fun LoginScreen(
         )
         Spacer(modifier = Modifier.height(18.dp))
         Text(
-            text = "Tạo tài khoản ngay",
+            text = AppStrings.Auth.DONT_HAVE_ACCOUNT_REGISTER,
             modifier = Modifier.fillMaxWidth().clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -182,7 +183,7 @@ fun GoogleSignInButton(
     onGoogleLogin: (String) -> Unit,
     onGoogleLoginError: (String) -> Unit,
     modifier: Modifier = Modifier,
-    text: String = "Tiếp tục với Google"
+    text: String = AppStrings.Auth.SIGN_IN_WITH_GOOGLE
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -192,13 +193,13 @@ fun GoogleSignInButton(
     OutlinedButton(
         onClick = {
             if (googleWebClientId.startsWith("YOUR_WEB_CLIENT_ID")) {
-                onGoogleLoginError("Thiếu Google Web Client ID. Hãy cập nhật google_web_client_id trong strings.xml.")
+                onGoogleLoginError(AppStrings.Auth.GOOGLE_WEB_CLIENT_MISSING)
                 return@OutlinedButton
             }
             val googleApiAvailability = GoogleApiAvailability.getInstance()
             val playServicesStatus = googleApiAvailability.isGooglePlayServicesAvailable(context)
             if (playServicesStatus != ConnectionResult.SUCCESS) {
-                onGoogleLoginError("Google Play Services chua s?n s�ng tr�n thi?t b? n�y. H�y c?p nh?t Google Play Services ho?c d�ng emulator c� Play Store.")
+                onGoogleLoginError(AppStrings.Auth.GOOGLE_PLAY_SERVICES_ERROR)
                 return@OutlinedButton
             }
             scope.launch {
@@ -215,7 +216,7 @@ fun GoogleSignInButton(
                     val googleCredential = GoogleIdTokenCredential.createFrom(result.credential.data)
                     onGoogleLogin(googleCredential.idToken)
                 } catch (_: GetCredentialCancellationException) {
-                    onGoogleLoginError("Bạn đã hủy đăng nhập Google.")
+                    onGoogleLoginError(AppStrings.Auth.GOOGLE_SIGN_IN_CANCELLED)
                 } catch (throwable: GetCredentialException) {
                     onGoogleLoginError(throwable.toGoogleSignInMessage())
                 } catch (throwable: Throwable) {
@@ -241,9 +242,9 @@ private fun Throwable.toGoogleSignInMessage(): String {
         normalized.contains("10:") ||
         normalized.contains("configuration")
     ) {
-        return "Google Sign-In chưa sẵn sàng. Cần thêm Android OAuth client cho com.example.myapplication với SHA-1 debug trong Google Cloud/Firebase rồi tải lại google-services.json."
+        return AppStrings.Auth.GOOGLE_SIGN_IN_UNAVAILABLE
     }
-    return detail.ifBlank { "Không thể đăng nhập Google." }
+    return detail.ifBlank { AppStrings.Auth.GOOGLE_SIGN_IN_ERROR }
 }
 
 @Composable
@@ -263,22 +264,22 @@ fun RegisterScreen(
 
     AuthScaffold(
         modifier = modifier,
-        title = "Đăng ký tài khoản",
+        title = AppStrings.Auth.REGISTER_TITLE,
         navigation = {
-            CircleHeaderButton(icon = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", onClick = onBack)
+            CircleHeaderButton(icon = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = AppStrings.Auth.BACK, onClick = onBack)
         },
         compactHeader = false
     ) {
         AuthTextField(
             value = email,
             onValueChange = { email = it },
-            placeholder = "Nhập email của bạn",
+            placeholder = AppStrings.Auth.INPUT_EMAIL_PLACEHOLDER,
             keyboardType = KeyboardType.Email
         )
         AuthTextField(
             value = password,
             onValueChange = { password = it },
-            placeholder = "Nhập mật khẩu",
+            placeholder = AppStrings.Auth.PASSWORD_PLACEHOLDER,
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -294,7 +295,7 @@ fun RegisterScreen(
         AuthTextField(
             value = repeatPassword,
             onValueChange = { repeatPassword = it },
-            placeholder = "Nhập lại mật khẩu",
+            placeholder = AppStrings.Auth.INPUT_PASSWORD_REPEATED,
             visualTransformation = if (repeatVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { repeatVisible = !repeatVisible }) {
@@ -328,11 +329,11 @@ fun RegisterScreen(
                 disabledElevation = 0.dp
             )
         ) {
-            Text(if (authState.isLoading) "Đang xử lý..." else "Tiếp tục", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Text(if (authState.isLoading) AppStrings.Auth.PROCESSING else AppStrings.Auth.REGISTER, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
         }
         AuthMessage(error = authState.errorMessage, info = authState.infoMessage)
         Text(
-            text = "Đăng nhập ngay",
+            text = AppStrings.Auth.ALREADY_HAVE_ACCOUNT,
             modifier = Modifier.fillMaxWidth().clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -358,14 +359,14 @@ fun ForgotPasswordScreen(
 
     AuthScaffold(
         modifier = modifier,
-        title = "Quên mật khẩu",
+        title = AppStrings.Auth.RESET_PASSWORD,
         navigation = {
-            CircleHeaderButton(icon = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", onClick = onBack)
+            CircleHeaderButton(icon = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = AppStrings.Auth.BACK, onClick = onBack)
         },
         compactHeader = false
     ) {
         Text(
-            text = "Nhập email tài khoản. App sẽ kiểm tra email tồn tại rồi gửi email đặt lại mật khẩu. Sau đó bạn nhập mã oobCode trong link email.",
+            text = AppStrings.Auth.INPUT_EMAIL_PROMPT,
             modifier = Modifier.fillMaxWidth(),
             color = Color(0xFF5B5961),
             style = MaterialTheme.typography.bodyMedium,
@@ -374,7 +375,7 @@ fun ForgotPasswordScreen(
         AuthTextField(
             value = email,
             onValueChange = { email = it },
-            placeholder = "Nhập email",
+            placeholder = AppStrings.Auth.EMAIL_PLACEHOLDER,
             keyboardType = KeyboardType.Email
         )
         Button(
@@ -395,7 +396,7 @@ fun ForgotPasswordScreen(
                 disabledElevation = 0.dp
             )
         ) {
-            Text(if (authState.isLoading) "Đang gửi..." else "Gửi email đặt lại mật khẩu", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Text(if (authState.isLoading) AppStrings.Auth.SENDING else AppStrings.Auth.SEND_RESET_LINK, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
         }
         AuthMessage(error = authState.errorMessage, info = authState.infoMessage)
     }
@@ -412,14 +413,14 @@ fun ResetPasswordCodeScreen(
 
     AuthScaffold(
         modifier = modifier,
-        title = "Xác nhận mã",
+        title = AppStrings.Auth.CONFIRM_CODE,
         navigation = {
-            CircleHeaderButton(icon = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", onClick = onBack)
+            CircleHeaderButton(icon = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = AppStrings.Auth.BACK, onClick = onBack)
         },
         compactHeader = false
     ) {
         Text(
-            text = "Mở email đặt lại mật khẩu, copy link hoặc riêng phần oobCode rồi dán vào đây.",
+            text = AppStrings.Auth.INPUT_RESET_PROMPT,
             modifier = Modifier.fillMaxWidth(),
             color = Color(0xFF5B5961),
             style = MaterialTheme.typography.bodyMedium,
@@ -428,7 +429,7 @@ fun ResetPasswordCodeScreen(
         AuthTextField(
             value = codeOrLink,
             onValueChange = { codeOrLink = it },
-            placeholder = "Nhập link email hoặc mã oobCode"
+            placeholder = AppStrings.Auth.INPUT_RESET_PLACEHOLDER
         )
         Button(
             onClick = { onVerifyCode(codeOrLink) },
@@ -448,7 +449,7 @@ fun ResetPasswordCodeScreen(
                 disabledElevation = 0.dp
             )
         ) {
-            Text(if (authState.isLoading) "Đang kiểm tra..." else "Xác nhận mã", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Text(if (authState.isLoading) AppStrings.Auth.VERIFYING else AppStrings.Auth.CONFIRM_CODE, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
         }
         AuthMessage(error = authState.errorMessage, info = authState.infoMessage)
     }
@@ -469,14 +470,14 @@ fun NewPasswordScreen(
 
     AuthScaffold(
         modifier = modifier,
-        title = "Mật khẩu mới",
+        title = AppStrings.Auth.NEW_PASSWORD,
         navigation = {
-            CircleHeaderButton(icon = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", onClick = onBack)
+            CircleHeaderButton(icon = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = AppStrings.Auth.BACK, onClick = onBack)
         },
         compactHeader = false
     ) {
         Text(
-            text = "Mã đã được xác nhận. Hãy tạo mật khẩu mới cho tài khoản.",
+            text = AppStrings.Auth.PASSWORD_RESET_CONFIRMED,
             modifier = Modifier.fillMaxWidth(),
             color = Color(0xFF5B5961),
             style = MaterialTheme.typography.bodyMedium,
@@ -485,7 +486,7 @@ fun NewPasswordScreen(
         AuthTextField(
             value = password,
             onValueChange = { password = it },
-            placeholder = "Nhập mật khẩu mới",
+            placeholder = AppStrings.Auth.INPUT_PASSWORD_NEW,
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -497,7 +498,7 @@ fun NewPasswordScreen(
         AuthTextField(
             value = repeatPassword,
             onValueChange = { repeatPassword = it },
-            placeholder = "Nhập lại mật khẩu mới",
+            placeholder = AppStrings.Auth.INPUT_PASSWORD_NEW_REPEATED,
             visualTransformation = if (repeatVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { repeatVisible = !repeatVisible }) {
@@ -527,7 +528,7 @@ fun NewPasswordScreen(
                 disabledElevation = 0.dp
             )
         ) {
-            Text(if (authState.isLoading) "Đang đổi..." else "Đổi mật khẩu", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Text(if (authState.isLoading) AppStrings.Auth.CHANGING else AppStrings.Auth.CHANGE_PASSWORD, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
         }
         AuthMessage(error = authState.errorMessage, info = authState.infoMessage)
     }
@@ -669,12 +670,12 @@ private fun PasswordRules() {
         border = BorderStroke(1.dp, Color(0xFFE95868))
     ) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Mật khẩu chưa hợp lệ", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+            Text(AppStrings.Auth.PASSWORD_INVALID, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
             listOf(
-                "Tu 8 - 32 ky tu",
-                "Bao gom chu thuong va so",
-                "Bao gom ky tu dac biet (!,$,@,%,...)",
-                "Co it nhat 1 ky tu in hoa"
+                AppStrings.Auth.PASSWORD_RULE_LENGTH,
+                AppStrings.Auth.PASSWORD_RULE_ALPHA_NUM,
+                AppStrings.Auth.PASSWORD_RULE_SPECIAL,
+                AppStrings.Auth.PASSWORD_RULE_UPPERCASE
             ).forEach { rule ->
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Surface(shape = CircleShape, color = Color(0xFFE95868), modifier = Modifier.size(16.dp)) {

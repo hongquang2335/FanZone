@@ -16,9 +16,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -33,28 +35,64 @@ import com.example.myapplication.core.designsystem.component.AppTopBar
 import com.example.myapplication.core.designsystem.component.SectionHeader
 import com.example.myapplication.core.designsystem.component.formatPrice
 import com.example.myapplication.core.designsystem.theme.Evergreen
+import com.example.myapplication.core.designsystem.theme.VibeCanvas
+import com.example.myapplication.core.designsystem.theme.VibeGreen
+import com.example.myapplication.core.designsystem.theme.VibeGreenDark
+import com.example.myapplication.core.designsystem.theme.VibeSurfaceMuted
+import com.example.myapplication.core.designsystem.theme.VibeText
 import com.example.myapplication.domain.model.Artist
 import com.example.myapplication.domain.model.Event
 import com.example.myapplication.domain.model.PerformanceSchedule
 import com.example.myapplication.domain.model.TicketTier
+import com.example.myapplication.core.designsystem.component.LoginRequiredDialog
 
 @Composable
 fun EventDetailScreen(
     event: Event,
     tiers: List<TicketTier>,
     onBack: () -> Unit,
+    isUserSignedIn: () -> Boolean,
+    onNavigateToLogin: () -> Unit,
     onBuyNow: () -> Unit,
     onOpenCommunity: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        topBar = { AppTopBar(title = "FanZone", onBack = onBack) },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
-        EventDetailBody(event, tiers, onBuyNow, onOpenCommunity, Modifier.fillMaxSize().padding(innerPadding))
+    var showLoginRequired by rememberSaveable { mutableStateOf(false) }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = { AppTopBar(title = "FanZone", onBack = onBack) },
+            containerColor = MaterialTheme.colorScheme.background
+        ) { innerPadding ->
+            EventDetailBody(
+                event = event,
+                tiers = tiers,
+                onBuyNow = {
+                    if (isUserSignedIn()) {
+                        onBuyNow()
+                    } else {
+                        showLoginRequired = true
+                    }
+                },
+                onOpenCommunity = onOpenCommunity,
+                modifier = Modifier.fillMaxSize().padding(innerPadding)
+            )
+        }
+
+        if (showLoginRequired) {
+            LoginRequiredDialog(
+                onDismiss = { showLoginRequired = false },
+                onLogin = {
+                    showLoginRequired = false
+                    onNavigateToLogin()
+                }
+            )
+        }
     }
 }
+
+
 
 @Composable
 private fun EventDetailBody(

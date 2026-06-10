@@ -2,6 +2,7 @@ package com.example.myapplication.domain.repository
 
 import android.net.Uri
 import com.example.myapplication.domain.model.CommunityComment
+import com.example.myapplication.domain.model.CommunityMediaItem
 import com.example.myapplication.domain.model.CommunityPost
 
 interface CommunityRepository {
@@ -22,6 +23,20 @@ interface CommunityRepository {
         author: String,
         authorAvatarUrl: String?,
         caption: String,
+        onSuccess: () -> Unit,
+        onError: (Throwable) -> Unit
+    )
+
+    fun updatePost(
+        postId: String,
+        text: String,
+        mediaItems: List<CommunityMediaItem>,
+        onSuccess: () -> Unit,
+        onError: (Throwable) -> Unit
+    )
+
+    fun deletePost(
+        postId: String,
         onSuccess: () -> Unit,
         onError: (Throwable) -> Unit
     )

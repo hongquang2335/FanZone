@@ -46,13 +46,7 @@ fun FanZoneApp(
                     items = bottomDestinations,
                     currentRoute = currentRoute
                 ) { destination ->
-                    navController.navigate(destination.route) {
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
+                    navController.navigateToRootDestination(destination.route)
                 }
             }
         },
@@ -75,7 +69,19 @@ fun FanZoneApp(
             viewModel = viewModel,
             darkTheme = darkTheme,
             onDarkThemeChange = onDarkThemeChange,
-            modifier = Modifier.fillMaxSize().padding(padding)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = padding.calculateBottomPadding())
         )
+    }
+}
+
+fun androidx.navigation.NavHostController.navigateToRootDestination(route: String) {
+    navigate(route) {
+        popUpTo(graph.startDestinationId) {
+            saveState = true
+        }
+        launchSingleTop = true
+        restoreState = true
     }
 }

@@ -12,12 +12,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
@@ -26,12 +31,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ConfirmationNumber
-import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
@@ -60,6 +66,7 @@ import com.example.myapplication.domain.model.CommunityPost
 import com.example.myapplication.domain.model.UserProfile
 import com.example.myapplication.feature.authentication.AuthUiState
 import com.example.myapplication.feature.authentication.AuthUser
+import com.example.myapplication.core.util.AppStrings
 
 private data class ProfileColors(
     val background: Color,
@@ -105,8 +112,13 @@ fun ProfileScreen(
     onOpenAuth: () -> Unit,
     onOpenAccountInfo: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
+    onDeletePost: (String) -> Unit = {},
+    onEditPost: (com.example.myapplication.domain.model.CommunityPost) -> Unit = {},
     onOpenProfileOptions: () -> Unit,
     onSignOut: () -> Unit,
+    onOpenProfile: (String) -> Unit = {},
+    unreadNotificationCount: Int = 0,
+    onOpenNotifications: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (authState.isSignedIn) {
@@ -122,7 +134,12 @@ fun ProfileScreen(
             onToggleFollow = onToggleFollow,
             onOpenComments = onOpenComments,
             onAddComment = onAddComment,
+            onDeletePost = onDeletePost,
+            onEditPost = onEditPost,
             onOpenProfileOptions = onOpenProfileOptions,
+            onOpenProfile = onOpenProfile,
+            unreadNotificationCount = unreadNotificationCount,
+            onOpenNotifications = onOpenNotifications,
             modifier = modifier
         )
         return
@@ -134,7 +151,6 @@ fun ProfileScreen(
         modifier = modifier
             .fillMaxSize()
             .background(profileColors.background)
-            .navigationBarsPadding()
     ) {
         val compactHeight = maxHeight < 700.dp
         val horizontalPadding = if (maxWidth < 360.dp) 18.dp else 24.dp
@@ -157,6 +173,20 @@ fun ProfileScreen(
                         .fillMaxWidth()
                         .height(patternHeight)
                 )
+                IconButton(
+                    onClick = onOpenAuth,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .statusBarsPadding()
+                        .padding(top = 12.dp, end = horizontalPadding)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.NotificationsNone,
+                        contentDescription = "Thông báo",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
                 GuestAvatar(
                     size = avatarSize,
                     modifier = Modifier
@@ -166,7 +196,7 @@ fun ProfileScreen(
             }
 
             Text(
-                text = "Đăng nhập/Đăng ký",
+                text = AppStrings.Profile.LOGIN_SIGNUP,
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(
@@ -197,10 +227,10 @@ fun ProfileScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    SectionTitle(icon = Icons.Default.Help, title = "Trung tâm trợ giúp", colors = profileColors)
+                    SectionTitle(icon = Icons.AutoMirrored.Filled.Help, title = AppStrings.Profile.HELP_CENTER, colors = profileColors)
                     Icon(
                         Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = "Mở trung tâm trợ giúp",
+                        contentDescription = AppStrings.Profile.HELP_CENTER_DESC,
                         tint = profileColors.mutedText,
                         modifier = Modifier.size(34.dp)
                     )
@@ -224,7 +254,12 @@ private fun SignedInProfileScreen(
     onToggleFollow: (String) -> Unit,
     onOpenComments: (String) -> Unit,
     onAddComment: (String, String) -> Unit,
+    onDeletePost: (String) -> Unit = {},
+    onEditPost: (com.example.myapplication.domain.model.CommunityPost) -> Unit = {},
     onOpenProfileOptions: () -> Unit,
+    onOpenProfile: (String) -> Unit,
+    unreadNotificationCount: Int,
+    onOpenNotifications: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val profileColors = profileColors()
@@ -238,7 +273,6 @@ private fun SignedInProfileScreen(
         modifier = modifier
             .fillMaxSize()
             .background(profileColors.background)
-            .navigationBarsPadding()
     ) {
         val compactHeight = maxHeight < 700.dp
         val horizontalPadding = if (maxWidth < 360.dp) 18.dp else 24.dp
@@ -257,19 +291,51 @@ private fun SignedInProfileScreen(
                         .fillMaxWidth()
                         .height(patternHeight)
                 )
-                IconButton(
-                    onClick = onOpenProfileOptions,
+                Row(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .statusBarsPadding()
-                        .padding(top = 12.dp, end = horizontalPadding)
+                        .padding(top = 12.dp, end = horizontalPadding),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        Icons.Default.MoreVert,
-                        contentDescription = "Mở tùy chọn profile",
-                        tint = Color.White,
-                        modifier = Modifier.size(30.dp)
-                    )
+                    Box(modifier = Modifier.size(48.dp)) {
+                        IconButton(onClick = onOpenNotifications) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsNone,
+                                contentDescription = "Thông báo",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        if (unreadNotificationCount > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(top = 4.dp, end = 4.dp)
+                                    .size(18.dp)
+                                    .background(MaterialTheme.colorScheme.error, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = unreadNotificationCount.toString(),
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                    IconButton(
+                        onClick = onOpenProfileOptions
+                    ) {
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = AppStrings.Profile.OPTIONS_TITLE,
+                            tint = Color.White,
+                            modifier = Modifier.size(30.dp)
+                        )
+                    }
                 }
                 Surface(
                     modifier = Modifier
@@ -318,7 +384,7 @@ private fun SignedInProfileScreen(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Text(
-                    text = "Bài viết của bạn",
+                    text = AppStrings.Profile.YOUR_POSTS,
                     color = profileColors.primaryText,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold
@@ -337,7 +403,10 @@ private fun SignedInProfileScreen(
                             onToggleFollow = onToggleFollow,
                             onOpenComments = { onOpenComments(post.id) },
                             onAddComment = { text -> onAddComment(post.id, text) },
-                            onOpenAuth = {}
+                            onOpenAuth = {},
+                            onOpenProfile = onOpenProfile,
+                            onDeletePost = { onDeletePost(post.id) },
+                            onEditPost = { onEditPost(post) }
                         )
                     }
                 }
@@ -364,23 +433,23 @@ fun ProfileOptionsScreen(
             .background(profileColors.background)
             .navigationBarsPadding()
     ) {
-        ProfileOptionsHeader(title = "Tùy chọn", onBack = onBack)
+        ProfileOptionsHeader(title = AppStrings.Profile.OPTIONS_TITLE, onBack = onBack)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 28.dp),
             verticalArrangement = Arrangement.spacedBy(22.dp)
         ) {
-            SectionTitle(icon = Icons.Default.Person, title = "Cài đặt tài khoản", colors = profileColors)
+            SectionTitle(icon = Icons.Default.Person, title = AppStrings.Profile.ACCOUNT_SETTINGS, colors = profileColors)
             Surface(shape = RoundedCornerShape(18.dp), color = profileColors.panel) {
                 Column {
-                    AccountRow("Thông tin tài khoản", colors = profileColors, onClick = onOpenAccountInfo)
+                    AccountRow(AppStrings.Profile.ACCOUNT_INFO, colors = profileColors, onClick = onOpenAccountInfo)
                     AccountDivider(colors = profileColors)
-                    AccountRow("Cài đặt", colors = profileColors, onClick = onOpenNotificationSettings)
+                    AccountRow(AppStrings.Profile.NOTIFICATION_SETTINGS, colors = profileColors, onClick = onOpenNotificationSettings)
                 }
             }
-            ProfileNavRow(icon = Icons.Default.Help, title = "Trung tâm trợ giúp", colors = profileColors, onClick = onOpenSupport)
-            ProfileNavRow(icon = Icons.Default.Logout, title = "Đăng xuất", colors = profileColors, onClick = onSignOut)
+            ProfileNavRow(icon = Icons.AutoMirrored.Filled.Help, title = AppStrings.Profile.HELP_CENTER, colors = profileColors, onClick = onOpenSupport)
+            ProfileNavRow(icon = Icons.AutoMirrored.Filled.Logout, title = AppStrings.Profile.LOGOUT, colors = profileColors, onClick = onSignOut)
         }
     }
 }
@@ -405,7 +474,7 @@ private fun ProfileOptionsHeader(title: String, onBack: () -> Unit) {
             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.65f))
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = Color.White, modifier = Modifier.size(28.dp))
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = AppStrings.Profile.BACK, tint = Color.White, modifier = Modifier.size(28.dp))
             }
         }
         Text(
@@ -433,9 +502,9 @@ private fun ProfileStatsRow(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ProfileStat(value = following.toString(), label = "đã follow", colors = colors, modifier = Modifier.weight(1f))
-            ProfileStat(value = followers.toString(), label = "Follower", colors = colors, modifier = Modifier.weight(1f))
-            ProfileStat(value = likes.toString(), label = "thích", colors = colors, modifier = Modifier.weight(1f))
+            ProfileStat(value = following.toString(), label = AppStrings.Profile.FOLLOWING_STAT, colors = colors, modifier = Modifier.weight(1f))
+            ProfileStat(value = followers.toString(), label = AppStrings.Profile.FOLLOWERS_STAT, colors = colors, modifier = Modifier.weight(1f))
+            ProfileStat(value = likes.toString(), label = AppStrings.Profile.LIKES_STAT, colors = colors, modifier = Modifier.weight(1f))
         }
     }
 }
@@ -452,7 +521,7 @@ private fun ProfileStat(value: String, label: String, colors: ProfileColors, mod
 private fun EmptyProfilePosts(colors: ProfileColors) {
     Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = colors.panel) {
         Text(
-            text = "Bạn chưa tạo bài viết nào.",
+            text = AppStrings.Profile.NO_POSTS_SELF,
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 34.dp).fillMaxWidth(),
             color = colors.mutedText,
             style = MaterialTheme.typography.bodyLarge,
@@ -468,9 +537,9 @@ private fun ProfilePostItem(post: CommunityPost, colors: ProfileColors) {
             Text(post.topic, color = Evergreen, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
             Text(post.content, color = colors.primaryText, style = MaterialTheme.typography.bodyLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("${post.likes} thích", color = colors.mutedText, style = MaterialTheme.typography.bodyMedium)
-                Text("${post.comments} bình luận", color = colors.mutedText, style = MaterialTheme.typography.bodyMedium)
-                Text("${post.shareCount} chia sẻ", color = colors.mutedText, style = MaterialTheme.typography.bodyMedium)
+                Text("${post.likes}${AppStrings.Profile.LIKES_SUFFIX}", color = colors.mutedText, style = MaterialTheme.typography.bodyMedium)
+                Text("${post.comments}${AppStrings.Profile.COMMENTS_SUFFIX}", color = colors.mutedText, style = MaterialTheme.typography.bodyMedium)
+                Text("${post.shareCount}${AppStrings.Profile.SHARES_SUFFIX}", color = colors.mutedText, style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
@@ -615,6 +684,183 @@ private fun LanguageBadge(colors: ProfileColors) {
                 }
             }
             Text("Vie", color = colors.primaryText, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
+@Composable
+fun ViewedProfileScreen(
+    viewedUserId: String,
+    displayName: String,
+    avatarUrl: String?,
+    followerCount: Int,
+    followingCount: Int,
+    isFollowing: Boolean,
+    posts: List<CommunityPost>,
+    commentsByPostId: Map<String, List<CommunityComment>>,
+    currentUserId: String?,
+    onToggleFollow: () -> Unit,
+    onSharePost: (CommunityPost, String) -> Unit,
+    onToggleLike: (String) -> Unit,
+    onOpenComments: (String) -> Unit,
+    onAddComment: (String, String) -> Unit,
+    onBack: () -> Unit,
+    onOpenAuth: () -> Unit,
+    onDeletePost: (String) -> Unit = {},
+    onEditPost: (com.example.myapplication.domain.model.CommunityPost) -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    val profileColors = profileColors()
+    val initial = displayName.firstOrNull()
+    val totalLikes = posts.sumOf { it.likes }
+
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxSize()
+            .background(profileColors.background)
+    ) {
+        val compactHeight = maxHeight < 700.dp
+        val horizontalPadding = if (maxWidth < 360.dp) 18.dp else 24.dp
+        val headerHeight = if (compactHeight) 190.dp else 224.dp
+        val patternHeight = if (compactHeight) 132.dp else 156.dp
+        val avatarSize = if (compactHeight) 96.dp else 116.dp
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+        ) {
+            Box(modifier = Modifier.fillMaxWidth().height(headerHeight)) {
+                AccountHeaderPattern(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(patternHeight)
+                )
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .offset(y = (-2).dp)
+                        .size(avatarSize),
+                    shape = CircleShape,
+                    color = Color(0xFF078E81)
+                ) {
+                    if (!avatarUrl.isNullOrBlank()) {
+                        CircleAvatar(size = avatarSize, imageUrl = avatarUrl)
+                    } else {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = initial?.uppercaseChar()?.toString().orEmpty(),
+                                color = Color.White,
+                                style = MaterialTheme.typography.displayMedium,
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+            }
+
+            Text(
+                text = displayName,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                color = profileColors.primaryText,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            if (currentUserId != viewedUserId) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Button(
+                        onClick = {
+                            if (currentUserId == null) {
+                                onOpenAuth()
+                            } else {
+                                onToggleFollow()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isFollowing) Color.LightGray else Evergreen,
+                            contentColor = if (isFollowing) Color.Black else Color.White
+                        ),
+                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier.widthIn(min = 125.dp)
+                    ) {
+                        Text(text = if (isFollowing) AppStrings.Profile.FOLLOWED else AppStrings.Profile.FOLLOW)
+                    }
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+
+            ProfileStatsRow(
+                following = followingCount,
+                followers = followerCount,
+                likes = totalLikes,
+                colors = profileColors,
+                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 10.dp)
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = horizontalPadding, vertical = if (compactHeight) 14.dp else 20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text(
+                    text = AppStrings.Profile.POSTS_OF_USER.format(displayName),
+                    color = profileColors.primaryText,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                if (posts.isEmpty()) {
+                    Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = profileColors.panel) {
+                        Text(
+                            text = AppStrings.Profile.NO_POSTS_OTHER.format(displayName),
+                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 34.dp).fillMaxWidth(),
+                            color = profileColors.mutedText,
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                } else {
+                    posts.forEach { post ->
+                        CommunityCard(
+                            post = post,
+                            currentAuthorName = displayName,
+                            currentUserId = currentUserId,
+                            comments = commentsByPostId[post.id].orEmpty(),
+                            onSharePost = onSharePost,
+                            onToggleLike = { onToggleLike(post.id) },
+                            onToggleFollow = { onToggleFollow() },
+                            onOpenComments = { onOpenComments(post.id) },
+                            onAddComment = { text -> onAddComment(post.id, text) },
+                            onOpenAuth = onOpenAuth,
+                            onDeletePost = { onDeletePost(post.id) },
+                            onEditPost = { onEditPost(post) }
+                        )
+                    }
+                }
+            }
+        }
+
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .statusBarsPadding()
+                .padding(top = 12.dp, start = horizontalPadding)
+                .background(Color.Black.copy(alpha = 0.3f), CircleShape)
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = AppStrings.Profile.BACK,
+                tint = Color.White,
+                modifier = Modifier.size(30.dp)
+            )
         }
     }
 }

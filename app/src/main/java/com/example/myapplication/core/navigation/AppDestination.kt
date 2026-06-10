@@ -22,6 +22,7 @@ sealed class AppDestination(val route: String) {
     data object AccountInfo : AppDestination("profile/account-info")
     data object ProfileOptions : AppDestination("profile/options")
     data object NotificationSettings : AppDestination("profile/notification-settings")
+    data object Notifications : AppDestination("profile/notifications")
     data object Support : AppDestination("support")
     data object EventCommunity : AppDestination("community/event/{eventId}") {
         fun create(eventId: String) = "community/event/$eventId"

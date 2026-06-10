@@ -198,4 +198,26 @@ class CommunityRepositoryImpl(
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener(onError)
     }
+
+    override fun updatePost(
+        postId: String,
+        text: String,
+        mediaItems: List<CommunityMediaItem>,
+        onSuccess: () -> Unit,
+        onError: (Throwable) -> Unit
+    ) {
+        firestoreDataSource.updatePost(postId, text, mediaItems)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener(onError)
+    }
+
+    override fun deletePost(
+        postId: String,
+        onSuccess: () -> Unit,
+        onError: (Throwable) -> Unit
+    ) {
+        firestoreDataSource.deletePost(postId)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener(onError)
+    }
 }

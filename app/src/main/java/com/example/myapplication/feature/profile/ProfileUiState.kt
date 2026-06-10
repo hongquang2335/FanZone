@@ -12,5 +12,6 @@ data class ProfileUiState(
     val avatarUrl: String? = null,
     val followerCount: Int = 0,
     val followingCount: Int = 0,
+    val unreadNotificationCount: Int = 0,
     val darkTheme: Boolean = false
 )

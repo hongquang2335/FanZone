@@ -13,10 +13,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -24,7 +27,11 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material3.AssistChip
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,16 +48,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.core.designsystem.component.CircleAvatar
-import com.example.myapplication.core.designsystem.component.AuthPromptDialog
+import com.example.myapplication.core.designsystem.component.LoginRequiredDialog
 import com.example.myapplication.core.designsystem.theme.Evergreen
 import com.example.myapplication.core.designsystem.theme.SoftLine
 import com.example.myapplication.core.designsystem.theme.SoftText
+import com.example.myapplication.core.util.AppStrings
 import com.example.myapplication.domain.repository.SelectedCommunityMedia
 
 @Composable
@@ -78,25 +87,29 @@ fun ComposerCard(
                 imageUrl = currentAuthorAvatarUrl ?: state.currentAuthorAvatarUrl
             )
             Surface(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable {
-                        if (state.currentAuthorId == null) {
-                            showAuthPrompt = true
-                        } else {
-                            composerOpen = true
-                        }
-                    },
+                modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(24.dp),
                 color = Color(0xFFF3F5F7),
                 border = androidx.compose.foundation.BorderStroke(1.dp, SoftLine)
             ) {
-                Text(
-                    text = "Bạn đang nghĩ gì?",
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
-                    color = SoftText,
-                    style = MaterialTheme.typography.bodyLarge
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            if (state.currentAuthorId == null) {
+                                showAuthPrompt = true
+                            } else {
+                                composerOpen = true
+                            }
+                        }
+                ) {
+                    Text(
+                        text = AppStrings.Community.PLACEHOLDER,
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                        color = SoftText,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
             }
         }
     }
@@ -120,9 +133,10 @@ fun ComposerCard(
     }
 
     if (showAuthPrompt) {
-        AuthPromptDialog(
+        LoginRequiredDialog(
             onDismiss = { showAuthPrompt = false },
-            onSignIn = onOpenAuth
+            onLogin = onOpenAuth,
+            subtitleText = AppStrings.Community.AUTH_REQUIRED_DESC
         )
     }
 }
@@ -153,7 +167,7 @@ private fun NewPostDialog(
             }
             SelectedCommunityMedia(
                 uri = uri,
-                name = uri.lastPathSegment?.substringAfterLast('/') ?: "Tệp đã chọn",
+                name = uri.lastPathSegment?.substringAfterLast('/') ?: AppStrings.Community.SELECTED_FILE,
                 type = context.contentResolver.getType(uri)
                     ?: pendingTypes.firstOrNull()
                     ?: "application/octet-stream"
@@ -166,7 +180,10 @@ private fun NewPostDialog(
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
         Column(
             modifier = Modifier
@@ -174,6 +191,7 @@ private fun NewPostDialog(
                 .background(Color.White)
                 .statusBarsPadding()
                 .navigationBarsPadding()
+                .imePadding()
         ) {
             Box(
                 modifier = Modifier
@@ -184,14 +202,34 @@ private fun NewPostDialog(
                     onClick = onDismiss,
                     modifier = Modifier.align(Alignment.CenterStart)
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = "Đóng")
+                    Icon(Icons.Default.Close, contentDescription = AppStrings.Community.CLOSE)
                 }
                 Text(
-                    text = "Bài viết mới",
+                    text = AppStrings.Community.NEW_POST,
                     modifier = Modifier.align(Alignment.Center),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold
                 )
+                TextButton(
+                    onClick = onPost,
+                    enabled = state.canPost,
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                ) {
+                    if (state.isPosting) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = Evergreen,
+                            strokeWidth = 2.dp
+                        )
+                        androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Text(
+                        text = if (state.isPosting) AppStrings.Community.POSTING else AppStrings.Community.POST_ACTION,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (state.canPost || state.isPosting) Evergreen else SoftText
+                    )
+                }
             }
 
             Surface(color = SoftLine, modifier = Modifier.fillMaxWidth().height(1.dp)) {}
@@ -213,23 +251,15 @@ private fun NewPostDialog(
 
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     item {
-                        ComposerActionChip(Icons.Default.Image, "Ảnh") {
+                        ComposerActionChip(Icons.Default.Image, AppStrings.Community.ADD_IMAGE) {
                             pendingTypes = arrayOf("image/*")
                             mediaLauncher.launch(pendingTypes)
                         }
                     }
                     item {
-                        ComposerActionChip(Icons.Default.Videocam, "Video") {
+                        ComposerActionChip(Icons.Default.Videocam, AppStrings.Community.ADD_VIDEO) {
                             pendingTypes = arrayOf("video/*")
                             mediaLauncher.launch(pendingTypes)
-                        }
-                    }
-                }
-
-                if (state.selectedMedia.isNotEmpty()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        state.selectedMedia.forEach { media ->
-                            SelectedMediaRow(media = media, onRemove = { onMediaRemoved(media) })
                         }
                     }
                 }
@@ -243,31 +273,28 @@ private fun NewPostDialog(
                     )
                     if (state.draft.isBlank()) {
                         Text(
-                            text = "Bạn đang nghĩ gì?",
+                            text = AppStrings.Community.PLACEHOLDER,
                             color = SoftText,
                             style = MaterialTheme.typography.headlineSmall
                         )
+                    }
+                }
+
+                if (state.selectedMedia.isNotEmpty()) {
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(state.selectedMedia) { media ->
+                            MediaThumbnailItem(media = media, onRemove = { onMediaRemoved(media) })
+                        }
                     }
                 }
             }
 
             Surface(color = SoftLine, modifier = Modifier.fillMaxWidth().height(1.dp)) {}
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Button(
-                    onClick = onPost,
-                    enabled = state.canPost,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(if (state.isPosting) "Đang đăng..." else "Đăng")
-                }
-            }
+
             state.errorMessage?.let { message ->
                 Text(
                     text = message,
@@ -314,8 +341,62 @@ private fun SelectedMediaRow(
                 maxLines = 1
             )
             IconButton(onClick = onRemove, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Delete, contentDescription = "Xóa tệp", tint = SoftText)
+                Icon(Icons.Default.Delete, contentDescription = AppStrings.Community.DELETE_FILE, tint = SoftText)
             }
+        }
+    }
+}
+
+@Composable
+private fun MediaThumbnailItem(
+    media: SelectedCommunityMedia,
+    onRemove: () -> Unit
+) {
+    val isVideo = media.type.startsWith("video/")
+    Box(
+        modifier = Modifier
+            .size(120.dp)
+            .clip(RoundedCornerShape(12.dp))
+    ) {
+        AsyncImage(
+            model = media.uri,
+            contentDescription = media.name,
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+        // Video play icon overlay
+        if (isVideo) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.35f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayCircle,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(36.dp)
+                )
+            }
+        }
+        // Remove button
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(4.dp)
+                .size(24.dp)
+                .clip(RoundedCornerShape(50))
+                .background(Color.Black.copy(alpha = 0.55f))
+                .clickable(onClick = onRemove),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = AppStrings.Community.DELETE_FILE,
+                tint = Color.White,
+                modifier = Modifier.size(14.dp)
+            )
         }
     }
 }

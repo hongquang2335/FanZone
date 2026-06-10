@@ -106,7 +106,9 @@ class EventDetailViewModel : ViewModel() {
                 category = (doc.get("category") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                 orgName = doc.getString("orgName") ?: "",
                 orgLogo = doc.getString("orgLogo"),
-                orgDescription = doc.getString("orgDescription") ?: ""
+                orgDescription = doc.getString("orgDescription") ?: "",
+                startTime = rawStartTime,
+                endTime = rawEndTime
             )
             
             _uiState.update { 
@@ -121,20 +123,20 @@ class EventDetailViewModel : ViewModel() {
 
     private fun formatEventSchedule(startTimeStr: String, endTimeStr: String): String {
         return try {
-            val sdfInput = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
-            sdfInput.timeZone = TimeZone.getTimeZone("UTC")
+            val sdfInput = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.US)
+            val vietnamTimeZone = TimeZone.getTimeZone("Asia/Ho_Chi_Minh")
+            val startDate = sdfInput.parse(startTimeStr) ?: return startTimeStr
+            val endDate = if (endTimeStr.isNotEmpty()) sdfInput.parse(endTimeStr) else null
             
-            val cleanStart = startTimeStr.substringBefore("Z").substringBefore("+")
-            val cleanEnd = endTimeStr.substringBefore("Z").substringBefore("+")
-            
-            val startDate = sdfInput.parse(cleanStart) ?: return startTimeStr
-            val endDate = if (cleanEnd.isNotEmpty()) sdfInput.parse(cleanEnd) else null
-            
-            val timeFormat = SimpleDateFormat("HH:mm", Locale.US)
-            val dateFormat = SimpleDateFormat("dd 'tháng' MM, yyyy", Locale("vi", "VN"))
+            val timeFormat = SimpleDateFormat("HH:mm", Locale.US).apply {
+                timeZone = vietnamTimeZone
+            }
+            val dateFormat = SimpleDateFormat("dd 'tháng' MM, yyyy", Locale("vi", "VN")).apply {
+                timeZone = vietnamTimeZone
+            }
             
             val getDayOfWeek = { date: java.util.Date ->
-                val cal = Calendar.getInstance()
+                val cal = Calendar.getInstance(vietnamTimeZone)
                 cal.time = date
                 when (cal.get(Calendar.DAY_OF_WEEK)) {
                     Calendar.MONDAY -> "Thứ hai"
@@ -151,8 +153,8 @@ class EventDetailViewModel : ViewModel() {
             val startDayOfWeek = getDayOfWeek(startDate)
 
             if (endDate != null) {
-                val calStart = Calendar.getInstance().apply { time = startDate }
-                val calEnd = Calendar.getInstance().apply { time = endDate }
+                val calStart = Calendar.getInstance(vietnamTimeZone).apply { time = startDate }
+                val calEnd = Calendar.getInstance(vietnamTimeZone).apply { time = endDate }
                 val isSameDay = calStart.get(Calendar.YEAR) == calEnd.get(Calendar.YEAR) &&
                         calStart.get(Calendar.DAY_OF_YEAR) == calEnd.get(Calendar.DAY_OF_YEAR)
                 

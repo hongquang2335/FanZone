@@ -10,6 +10,8 @@ import com.example.myapplication.domain.model.Event
 fun CommunityRoute(
     onOpenEvent: (String) -> Unit,
     onOpenAuth: () -> Unit,
+    onOpenProfile: (String) -> Unit,
+    onOpenNotifications: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: CommunityViewModel
 ) {
@@ -28,8 +30,24 @@ fun CommunityRoute(
         onOpenComments = viewModel::observeComments,
         onAddComment = viewModel::addComment,
         onOpenAuth = onOpenAuth,
+        onOpenProfile = onOpenProfile,
+        onDeletePost = viewModel::deletePost,
+        onEditPost = viewModel::openEditPost,
+        unreadNotificationCount = uiState.unreadNotificationCount,
+        onOpenNotifications = onOpenNotifications,
+        errorMessage = uiState.errorMessage,
         modifier = modifier
     )
+
+    uiState.editingPost?.let { post ->
+        com.example.myapplication.core.designsystem.component.EditPostDialog(
+            post = post,
+            onDismiss = viewModel::closeEditPost,
+            onSave = { newText, newMedia ->
+                viewModel.updatePost(post.id, newText, newMedia)
+            }
+        )
+    }
 }
 
 @Composable
@@ -37,6 +55,8 @@ fun EventCommunityRoute(
     event: Event,
     eventId: String?,
     onOpenAuth: () -> Unit,
+    onOpenProfile: (String) -> Unit,
+    onOpenNotifications: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: CommunityViewModel
@@ -56,7 +76,23 @@ fun EventCommunityRoute(
         onOpenComments = viewModel::observeComments,
         onAddComment = viewModel::addComment,
         onOpenAuth = onOpenAuth,
+        onOpenProfile = onOpenProfile,
+        onDeletePost = viewModel::deletePost,
+        onEditPost = viewModel::openEditPost,
         onBack = onBack,
+        unreadNotificationCount = uiState.unreadNotificationCount,
+        onOpenNotifications = onOpenNotifications,
+        errorMessage = uiState.errorMessage,
         modifier = modifier
     )
+
+    uiState.editingPost?.let { post ->
+        com.example.myapplication.core.designsystem.component.EditPostDialog(
+            post = post,
+            onDismiss = viewModel::closeEditPost,
+            onSave = { newText, newMedia ->
+                viewModel.updatePost(post.id, newText, newMedia)
+            }
+        )
+    }
 }
