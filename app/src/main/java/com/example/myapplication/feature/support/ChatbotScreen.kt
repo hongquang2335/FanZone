@@ -16,6 +16,7 @@ import com.example.myapplication.domain.model.Participant
 import com.example.myapplication.core.designsystem.component.ChatBubble
 import com.example.myapplication.core.designsystem.component.ChatInputBar
 import com.example.myapplication.core.designsystem.component.ChatTopBar
+import com.example.myapplication.core.designsystem.component.SuggestionChips
 import com.example.myapplication.core.designsystem.theme.VibeCanvas
 
 import androidx.compose.ui.tooling.preview.Preview
@@ -31,7 +32,7 @@ fun ChatbotScreen(
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
 
-    // Tự động cuộn xuống đáy khi có tin nhắn mới hoặc nội dung thay đổi
+    // Tự động cuộn xuống đáy khi có tin nhắn mới
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
             scrollState.animateScrollTo(scrollState.maxValue)
@@ -45,28 +46,50 @@ fun ChatbotScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(top = paddingValues.calculateTopPadding()) // Chỉ lấy padding phía trên (TopBar)
         ) {
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
                     .verticalScroll(scrollState)
-                    .padding(bottom = 16.dp)
             ) {
+                // Giảm khoảng cách giữa các tin nhắn bằng cách không bọc thêm padding ở đây
                 messages.forEach { message ->
+                    val isAnimated = viewModel.isMessageAnimated(message.id)
+                    android.util.Log.d("ChatbotScreen", "Rendering message: id=${message.id}, isAnimated=$isAnimated")
                     ChatBubble(
                         message = message,
+                        isAnimated = isAnimated,
+                        onAnimationFinished = { 
+                            android.util.Log.d("ChatbotScreen", "onAnimationFinished for id=${message.id}")
+                            viewModel.markMessageAsAnimated(message.id) 
+                        },
                         onSuggestionClick = { suggestion ->
                             viewModel.sendMessage(suggestion)
                         }
                     )
                 }
+                Spacer(modifier = Modifier.height(8.dp))
             }
 
-            ChatInputBar(onSendMessage = { text ->
-                viewModel.sendMessage(text)
-            })
+            // Hiển thị gợi ý của tin nhắn cuối cùng (nếu có) ngay trên input bar
+            val lastBotMessage = messages.lastOrNull { it.sender == Participant.Bot }
+            if (lastBotMessage != null && lastBotMessage.suggestions.isNotEmpty()) {
+                SuggestionChips(
+                    suggestions = lastBotMessage.suggestions,
+                    onSuggestionClick = { suggestion ->
+                        viewModel.sendMessage(suggestion)
+                    }
+                )
+            }
+
+            ChatInputBar(
+                onSendMessage = { text ->
+                    viewModel.sendMessage(text)
+                },
+                modifier = Modifier.imePadding() // Hỗ trợ đẩy lên khi hiện bàn phím
+            )
         }
     }
 }

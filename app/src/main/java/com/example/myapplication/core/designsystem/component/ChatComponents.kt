@@ -100,6 +100,8 @@ fun ChatTopBar(onBackClick: () -> Unit) {
 @Composable
 fun ChatBubble(
     message: ChatMessage,
+    isAnimated: Boolean = true,
+    onAnimationFinished: () -> Unit = {},
     onSuggestionClick: (String) -> Unit
 ) {
     val isBot = message.sender == Participant.Bot
@@ -107,7 +109,7 @@ fun ChatBubble(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp, horizontal = 16.dp),
+            .padding(vertical = 4.dp, horizontal = 16.dp),
         horizontalAlignment = if (isBot) Alignment.Start else Alignment.End
     ) {
         Row(
@@ -134,9 +136,11 @@ fun ChatBubble(
                     ThinkingIndicator(modifier = Modifier.padding(16.dp))
                 } else {
                     TypingText(
-                        messageId = message.id, // Truyền ID để quản lý animation state
+                        messageId = message.id,
                         text = message.content,
                         isBot = isBot,
+                        isAlreadyAnimated = isAnimated,
+                        onAnimationFinished = onAnimationFinished,
                         modifier = Modifier.padding(16.dp)
                     )
                 }
@@ -146,15 +150,6 @@ fun ChatBubble(
                 Spacer(modifier = Modifier.width(8.dp))
                 AvatarBubble(isBot)
             }
-        }
-
-        if (isBot && message.suggestions.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(12.dp))
-            SuggestionChips(
-                suggestions = message.suggestions,
-                onSuggestionClick = onSuggestionClick,
-                modifier = Modifier.padding(start = 44.dp)
-            )
         }
     }
 }
@@ -206,27 +201,29 @@ fun ThinkingIndicator(modifier: Modifier = Modifier) {
     }
 }
 
-// Sử dụng một static Map hoặc ViewModel để lưu trạng thái đã chạy animation
-private val animatedMessageIds = mutableStateMapOf<String, Boolean>()
-
 @Composable
 fun TypingText(
     messageId: String,
     text: String,
     isBot: Boolean,
+    isAlreadyAnimated: Boolean = false,
+    onAnimationFinished: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val isPreview = LocalInspectionMode.current
 
-    // Kiểm tra xem message này đã từng chạy xong animation chưa
-    val hasAnimated = animatedMessageIds[messageId] ?: false
-
     var displayedTextCount by remember(text) {
-        mutableIntStateOf(if (isPreview || !isBot || hasAnimated) text.length else 0)
+        val initialCount = if (isPreview || !isBot || isAlreadyAnimated) text.length else 0
+        android.util.Log.d("ChatComponents", "Initializing displayedTextCount: id=$messageId, count=$initialCount, isAlreadyAnimated=$isAlreadyAnimated")
+        mutableIntStateOf(initialCount)
     }
 
-    if (!isPreview && isBot && !hasAnimated && displayedTextCount < text.length) {
-        LaunchedEffect(text) {
+    // Tách biệt logic điều kiện khởi chạy và logic thực thi animation
+    val shouldAnimate = !isPreview && isBot && !isAlreadyAnimated
+    
+    LaunchedEffect(messageId, shouldAnimate) {
+        if (shouldAnimate && displayedTextCount < text.length) {
+            android.util.Log.d("ChatComponents", "Starting animation for messageId: $messageId")
             val words = text.split(" ")
             var currentLength = 0
             for (word in words) {
@@ -235,7 +232,8 @@ fun TypingText(
                 delay(30)
             }
             displayedTextCount = text.length
-            animatedMessageIds[messageId] = true // Đánh dấu đã xong
+            android.util.Log.d("ChatComponents", "Animation finished for messageId: $messageId")
+            onAnimationFinished()
         }
     }
 
@@ -298,31 +296,24 @@ fun SuggestionChips(
     onSuggestionClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // We use a Column of Rows to wrap chips if they exceed width, or LazyRow for simplicity
-    // User requested "bố cục như hình" which shows wrapping chips.
-    // In Compose, FlowRow is better but for now let's use a simple Column of Rows or a wrapping logic.
-    // Actually, I'll use a LazyRow first and if I have time I'll implement a custom FlowLayout or just hardcode some rows for the preview.
-
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Simple wrap logic for 2 rows
-        val chunked = suggestions.chunked(2)
-        chunked.forEach { rowSuggestions ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                rowSuggestions.forEach { suggestion ->
-                    Surface(
-                        onClick = { onSuggestionClick(suggestion) },
-                        shape = RoundedCornerShape(20.dp),
-                        color = VibeSurfaceMuted,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, VibeStroke)
-                    ) {
-                        Text(
-                            text = suggestion,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = VibeText
-                        )
-                    }
-                }
+    LazyRow(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(suggestions) { suggestion ->
+            Surface(
+                onClick = { onSuggestionClick(suggestion) },
+                shape = RoundedCornerShape(20.dp),
+                color = VibeSurfaceMuted,
+                border = androidx.compose.foundation.BorderStroke(1.dp, VibeStroke)
+            ) {
+                Text(
+                    text = suggestion,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = VibeText
+                )
             }
         }
     }

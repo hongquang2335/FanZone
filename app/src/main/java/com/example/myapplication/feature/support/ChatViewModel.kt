@@ -19,10 +19,26 @@ class ChatViewModel : ViewModel() {
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
 
+    // Sử dụng mutableStateMapOf để Compose có thể quan sát được sự thay đổi
+    private val animatedMessageIds = androidx.compose.runtime.mutableStateMapOf<String, Boolean>()
+
+    fun isMessageAnimated(id: String): Boolean {
+        val animated = animatedMessageIds[id] ?: false
+        android.util.Log.d("ChatViewModel", "Checking isMessageAnimated: id=$id, result=$animated")
+        return animated
+    }
+
+    fun markMessageAsAnimated(id: String) {
+        if (animatedMessageIds[id] != true) {
+            android.util.Log.d("ChatViewModel", "Marking message as animated: id=$id")
+            animatedMessageIds[id] = true
+        }
+    }
+
     private val model by lazy {
         Firebase.ai(backend = GenerativeBackend.googleAI())
         .generativeModel(
-            modelName = "gemini-2.5-flash",
+            modelName = "gemini-3.1-flash-lite",
             systemInstruction = content {
                 text(prompt.trimIndent())
             }

@@ -31,6 +31,7 @@ import com.example.myapplication.feature.profile.NotificationSettingsRoute
 import com.example.myapplication.feature.profile.ProfileOptionsRoute
 import com.example.myapplication.feature.profile.ProfileRoute
 import com.example.myapplication.feature.success.PurchaseSuccessScreen
+import com.example.myapplication.feature.support.ChatViewModel
 import com.example.myapplication.feature.support.ChatbotScreen
 import com.example.myapplication.feature.tickets.TicketWalletRoute
 import com.example.myapplication.ui.state.FanZoneUiState
@@ -45,7 +46,8 @@ fun FanZoneNavHost(
     onDarkThemeChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     communityViewModel: CommunityViewModel = composeViewModel(),
-    authViewModel: AuthViewModel = composeViewModel()
+    authViewModel: AuthViewModel = composeViewModel(),
+    chatViewModel: ChatViewModel = composeViewModel()
 ) {
     val communityState by communityViewModel.uiState.collectAsStateWithLifecycle()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
@@ -282,7 +284,8 @@ fun FanZoneNavHost(
         }
         composable(AppDestination.Support.route) {
             ChatbotScreen(
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                viewModel = chatViewModel
             )
         }
         composable(
