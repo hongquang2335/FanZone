@@ -312,7 +312,10 @@ class CommunityViewModel(
             postId = postId,
             text = text,
             mediaItems = mediaItems,
-            onSuccess = { closeEditPost() },
+            onSuccess = {
+                closeEditPost()
+                observePosts()
+            },
             onError = { throwable ->
                 _uiState.update {
                     it.copy(errorMessage = throwable.localizedMessage ?: "Khong the cap nhat bai viet.")

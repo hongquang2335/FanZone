@@ -44,8 +44,7 @@ import com.example.myapplication.domain.model.Artist
 import com.example.myapplication.domain.model.Event
 import com.example.myapplication.domain.model.PerformanceSchedule
 import com.example.myapplication.domain.model.TicketTier
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import com.example.myapplication.core.designsystem.component.LoginRequiredDialog
 
 @Composable
 fun EventDetailScreen(
@@ -76,6 +75,7 @@ fun EventDetailScreen(
                         showLoginRequired = true
                     }
                 },
+                onOpenCommunity = onOpenCommunity,
                 modifier = Modifier.fillMaxSize().padding(innerPadding)
             )
         }
@@ -92,121 +92,7 @@ fun EventDetailScreen(
     }
 }
 
-@Composable
-private fun LoginRequiredDialog(
-    onDismiss: () -> Unit,
-    onLogin: () -> Unit
-) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0x661B1C1C))
-                .padding(horizontal = 20.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 351.dp)
-                    .shadow(12.dp, RoundedCornerShape(32.dp))
-                    .background(VibeCanvas.copy(alpha = 0.96f), RoundedCornerShape(32.dp))
-                    .padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .background(VibeGreen.copy(alpha = 0.20f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = VibeGreenDark,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
 
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text(
-                    text = "Yêu cầu đăng nhập",
-                    color = VibeText,
-                    fontSize = 24.sp,
-                    lineHeight = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = "Vui lòng đăng nhập để sử dụng\nchức năng đặt vé.",
-                    color = Color(0xFF3D4A3F),
-                    fontSize = 16.sp,
-                    lineHeight = 26.sp,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f).height(52.dp),
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = VibeSurfaceMuted,
-                            contentColor = VibeGreenDark
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
-                    ) {
-                        Text(
-                            text = "Để sau",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
-                        )
-                    }
-
-                    Button(
-                        onClick = onLogin,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(52.dp)
-                            .shadow(6.dp, CircleShape)
-                            .background(
-                                brush = Brush.linearGradient(
-                                    listOf(VibeGreenDark, VibeGreen)
-                                ),
-                                shape = CircleShape
-                            ),
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent,
-                            contentColor = Color.White
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
-                    ) {
-                        Text(
-                            text = "Đăng nhập",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun EventDetailBody(

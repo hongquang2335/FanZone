@@ -351,11 +351,33 @@ fun CommunityCard(
                 post = post,
                 share = sharedPost,
                 isMyPost = isMyPost,
-                onCommentClick = {
-                    onOpenComments()
-                    commentOpen = true
+                liked = liked,
+                likeCount = likeCount,
+                commentCount = commentCount,
+                onLikeClick = {
+                    if (currentUserId == null) {
+                        showAuthPrompt = true
+                    } else {
+                        liked = !liked
+                        likeCount += if (liked) 1 else -1
+                        onToggleLike()
+                    }
                 },
-                onShareClick = { shareOpen = true },
+                onCommentClick = {
+                    if (currentUserId == null) {
+                        showAuthPrompt = true
+                    } else {
+                        onOpenComments()
+                        commentOpen = true
+                    }
+                },
+                onShareClick = {
+                    if (currentUserId == null) {
+                        showAuthPrompt = true
+                    } else {
+                        shareOpen = true
+                    }
+                },
                 onOpenProfile = onOpenProfile,
                 onEditPost = onEditPost,
                 onDeletePost = { showDeleteConfirm = true }
@@ -437,26 +459,6 @@ fun CommunityCard(
                             }
 
 
-                            if (showDeleteConfirm) {
-                                androidx.compose.material3.AlertDialog(
-                                    onDismissRequest = { showDeleteConfirm = false },
-                                    title = { Text("Xóa bài viết") },
-                                    text = { Text("Bạn có chắc chắn muốn xóa bài viết này không?") },
-                                    confirmButton = {
-                                        TextButton(onClick = {
-                                            showDeleteConfirm = false
-                                            onDeletePost()
-                                        }) {
-                                            Text("Xóa", color = Danger)
-                                        }
-                                    },
-                                    dismissButton = {
-                                        TextButton(onClick = { showDeleteConfirm = false }) {
-                                            Text("Hủy")
-                                        }
-                                    }
-                                )
-                            }
                         }
                     }
                     ExpandableText(text = post.content, style = MaterialTheme.typography.bodyLarge)
@@ -503,34 +505,24 @@ fun CommunityCard(
                 }
             }
         }
-        if (sharedPost != null) {
-            if (showDeleteConfirm) {
-                androidx.compose.material3.AlertDialog(
-                    onDismissRequest = { showDeleteConfirm = false },
-                    title = { Text("Xóa bài viết") },
-                    text = { Text("Bạn có chắc chắn muốn xóa bài viết này không?") },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            showDeleteConfirm = false
-                            onDeletePost()
-                        }) {
-                            Text("Xóa", color = Danger)
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDeleteConfirm = false }) {
-                            Text("Hủy")
-                        }
-                    }
-                )
+
+    }
+
+    if (showDeleteConfirm) {
+        DeleteConfirmDialog(
+            onDismiss = { showDeleteConfirm = false },
+            onConfirm = {
+                showDeleteConfirm = false
+                onDeletePost()
             }
-        }
+        )
     }
 
     if (showAuthPrompt) {
-        AuthPromptDialog(
+        LoginRequiredDialog(
             onDismiss = { showAuthPrompt = false },
-            onSignIn = onOpenAuth
+            onLogin = onOpenAuth,
+            subtitleText = AppStrings.Community.AUTH_REQUIRED_DESC
         )
     }
 
@@ -568,6 +560,10 @@ private fun SharedPostPreview(
     post: CommunityPost,
     share: SharedCommunityPost,
     isMyPost: Boolean,
+    liked: Boolean,
+    likeCount: Int,
+    commentCount: Int,
+    onLikeClick: () -> Unit,
     onCommentClick: () -> Unit,
     onShareClick: () -> Unit,
     onOpenProfile: (String) -> Unit,
@@ -688,12 +684,13 @@ private fun SharedPostPreview(
             Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 PostAction(
                     icon = Icons.Default.FavoriteBorder,
-                    label = "0",
-                    onClick = {}
+                    label = "$likeCount",
+                    tint = if (liked) Danger else SoftText,
+                    onClick = onLikeClick
                 )
                 PostAction(
                     icon = Icons.AutoMirrored.Outlined.Chat,
-                    label = "0",
+                    label = "$commentCount",
                     onClick = onCommentClick
                 )
                 PostAction(
@@ -1304,71 +1301,6 @@ private fun ShareSection(
     }
 }
 
-@Composable
-fun AuthPromptDialog(
-    onDismiss: () -> Unit,
-    onSignIn: () -> Unit
-) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = true)
-    ) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = Color.White,
-            tonalElevation = 8.dp,
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    tint = Evergreen,
-                    modifier = Modifier.size(56.dp)
-                )
-                Text(
-                    text = AppStrings.Community.AUTH_REQUIRED_TITLE,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Ink
-                )
-                Text(
-                    text = AppStrings.Community.AUTH_REQUIRED_DESC,
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = SoftText
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(1.dp, SoftLine)
-                    ) {
-                        Text(AppStrings.Community.LATER, color = SoftText)
-                    }
-                    Button(
-                        onClick = {
-                            onDismiss()
-                            onSignIn()
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text(AppStrings.Community.LOGIN)
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun EditPostDialog(

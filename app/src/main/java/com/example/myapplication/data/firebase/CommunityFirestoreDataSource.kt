@@ -273,6 +273,9 @@ class CommunityFirestoreDataSource(
             mapOf(
                 FIELD_CONTENT to text,
                 "mediaItems" to mediaItems.map { mapOf("url" to it.url, "type" to it.type) },
+                FIELD_IMAGE_URL to null,
+                FIELD_MEDIA_URL to null,
+                FIELD_MEDIA_TYPE to null,
                 FIELD_UPDATED_AT to FieldValue.serverTimestamp()
             )
         )

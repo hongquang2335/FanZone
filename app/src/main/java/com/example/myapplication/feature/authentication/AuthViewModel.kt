@@ -786,6 +786,8 @@ class AuthViewModel(
             }
     }
 
+    fun isUserSignedIn(): Boolean = auth.currentUser != null
+
     override fun onCleared() {
         auth.removeAuthStateListener(authListener)
         super.onCleared()

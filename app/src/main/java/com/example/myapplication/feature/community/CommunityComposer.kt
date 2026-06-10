@@ -55,7 +55,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.core.designsystem.component.CircleAvatar
-import com.example.myapplication.core.designsystem.component.AuthPromptDialog
+import com.example.myapplication.core.designsystem.component.LoginRequiredDialog
 import com.example.myapplication.core.designsystem.theme.Evergreen
 import com.example.myapplication.core.designsystem.theme.SoftLine
 import com.example.myapplication.core.designsystem.theme.SoftText
@@ -133,9 +133,10 @@ fun ComposerCard(
     }
 
     if (showAuthPrompt) {
-        AuthPromptDialog(
+        LoginRequiredDialog(
             onDismiss = { showAuthPrompt = false },
-            onSignIn = onOpenAuth
+            onLogin = onOpenAuth,
+            subtitleText = AppStrings.Community.AUTH_REQUIRED_DESC
         )
     }
 }
