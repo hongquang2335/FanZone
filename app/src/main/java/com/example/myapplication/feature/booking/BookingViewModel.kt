@@ -20,6 +20,40 @@ class BookingViewModel : ViewModel() {
         seatsRegistration?.remove()
         _uiState.value = BookingUiState(event = event, isLoading = true)
 
+        // Fetch once immediately to populate UI in case snapshot listener is blocked/delayed
+        Firebase.firestore
+            .collection("event_seats")
+            .whereEqualTo("eventId", event.id).get()
+            .addOnSuccessListener { snapshot ->
+                if (_uiState.value.event?.id != event.id) return@addOnSuccessListener
+                if (snapshot != null && !snapshot.isEmpty) {
+                    val seats = snapshot.documents.mapNotNull { document ->
+                        val seatId = document.getString("seatId") ?: return@mapNotNull null
+                        EventSeat(
+                            id = document.id,
+                            eventId = document.getString("eventId") ?: event.id,
+                            seatId = seatId,
+                            zoneId = document.getString("zoneId").orEmpty(),
+                            price = (document.get("price") as? Number)?.toInt() ?: 0,
+                            status = document.getString("status").orEmpty()
+                        )
+                    }.sortedWith(
+                        compareBy<EventSeat> { seatRowIndex(it.seatId) }
+                            .thenBy { seatNumber(it.seatId) }
+                    )
+
+                    val availableSeatIds = seats.filter(EventSeat::isAvailable).mapTo(mutableSetOf()) { it.id }
+                    _uiState.update {
+                        it.copy(
+                            seats = seats,
+                            selectedSeatIds = it.selectedSeatIds.intersect(availableSeatIds),
+                            isLoading = false,
+                            error = null
+                        )
+                    }
+                }
+            }
+
         seatsRegistration = Firebase.firestore
             .collection("event_seats")
             .whereEqualTo("eventId", event.id)
@@ -27,12 +61,15 @@ class BookingViewModel : ViewModel() {
                 if (_uiState.value.event?.id != event.id) return@addSnapshotListener
 
                 if (exception != null) {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            error = exception.localizedMessage
-                                ?: "Không thể tải danh sách ghế. Vui lòng thử lại."
-                        )
+                    // Only update error if seats are not already loaded (to avoid override with errors)
+                    if (_uiState.value.seats.isEmpty()) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                error = exception.localizedMessage
+                                    ?: "Không thể tải danh sách ghế. Vui lòng thử lại."
+                            )
+                        }
                     }
                     return@addSnapshotListener
                 }

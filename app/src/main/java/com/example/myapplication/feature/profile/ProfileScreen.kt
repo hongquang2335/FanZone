@@ -37,6 +37,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
@@ -116,6 +117,8 @@ fun ProfileScreen(
     onOpenProfileOptions: () -> Unit,
     onSignOut: () -> Unit,
     onOpenProfile: (String) -> Unit = {},
+    unreadNotificationCount: Int = 0,
+    onOpenNotifications: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (authState.isSignedIn) {
@@ -135,6 +138,8 @@ fun ProfileScreen(
             onEditPost = onEditPost,
             onOpenProfileOptions = onOpenProfileOptions,
             onOpenProfile = onOpenProfile,
+            unreadNotificationCount = unreadNotificationCount,
+            onOpenNotifications = onOpenNotifications,
             modifier = modifier
         )
         return
@@ -168,6 +173,20 @@ fun ProfileScreen(
                         .fillMaxWidth()
                         .height(patternHeight)
                 )
+                IconButton(
+                    onClick = onOpenAuth,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .statusBarsPadding()
+                        .padding(top = 12.dp, end = horizontalPadding)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.NotificationsNone,
+                        contentDescription = "Thông báo",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
                 GuestAvatar(
                     size = avatarSize,
                     modifier = Modifier
@@ -239,6 +258,8 @@ private fun SignedInProfileScreen(
     onEditPost: (com.example.myapplication.domain.model.CommunityPost) -> Unit = {},
     onOpenProfileOptions: () -> Unit,
     onOpenProfile: (String) -> Unit,
+    unreadNotificationCount: Int,
+    onOpenNotifications: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val profileColors = profileColors()
@@ -270,19 +291,51 @@ private fun SignedInProfileScreen(
                         .fillMaxWidth()
                         .height(patternHeight)
                 )
-                IconButton(
-                    onClick = onOpenProfileOptions,
+                Row(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .statusBarsPadding()
-                        .padding(top = 12.dp, end = horizontalPadding)
+                        .padding(top = 12.dp, end = horizontalPadding),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        Icons.Default.MoreVert,
-                        contentDescription = AppStrings.Profile.OPTIONS_TITLE,
-                        tint = Color.White,
-                        modifier = Modifier.size(30.dp)
-                    )
+                    Box(modifier = Modifier.size(48.dp)) {
+                        IconButton(onClick = onOpenNotifications) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsNone,
+                                contentDescription = "Thông báo",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        if (unreadNotificationCount > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(top = 4.dp, end = 4.dp)
+                                    .size(18.dp)
+                                    .background(MaterialTheme.colorScheme.error, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = unreadNotificationCount.toString(),
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                    IconButton(
+                        onClick = onOpenProfileOptions
+                    ) {
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = AppStrings.Profile.OPTIONS_TITLE,
+                            tint = Color.White,
+                            modifier = Modifier.size(30.dp)
+                        )
+                    }
                 }
                 Surface(
                     modifier = Modifier

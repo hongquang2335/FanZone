@@ -841,53 +841,54 @@ private fun CommunityMediaViewer(
     contentDescription: String,
     onDismiss: () -> Unit
 ) {
-    val listState = rememberLazyListState(initialFirstVisibleItemIndex = startIndex)
+    val pagerState = androidx.compose.foundation.pager.rememberPagerState(
+        initialPage = startIndex,
+        pageCount = { mediaItems.size }
+    )
 
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-            LazyRow(
-                state = listState,
+            androidx.compose.foundation.pager.HorizontalPager(
+                state = pagerState,
                 modifier = Modifier.fillMaxSize()
-            ) {
-                itemsIndexed(mediaItems) { _, item ->
-                    Box(
-                        modifier = Modifier
-                            .fillParentMaxWidth()
-                            .fillMaxHeight()
-                            .padding(vertical = 48.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        when {
-                            item.imageRes != null -> {
-                                Image(
-                                    painter = painterResource(item.imageRes),
-                                    contentDescription = contentDescription,
-                                    contentScale = ContentScale.Fit,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            }
-                            item.isImage -> {
-                                AsyncImage(
-                                    model = item.url,
-                                    contentDescription = contentDescription,
-                                    contentScale = ContentScale.Fit,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            }
-                            item.isVideo -> {
-                                CommunityVideoPlayer(url = item.url.orEmpty())
-                            }
-                            else -> {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    Icon(Icons.Default.Mic, contentDescription = null, tint = Color.White, modifier = Modifier.size(56.dp))
-                                    Text("Tep ghi am", color = Color.White, style = MaterialTheme.typography.titleLarge)
-                                }
+            ) { page ->
+                val item = mediaItems[page]
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(vertical = 48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    when {
+                        item.imageRes != null -> {
+                            Image(
+                                painter = painterResource(item.imageRes),
+                                contentDescription = contentDescription,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        item.isImage -> {
+                            AsyncImage(
+                                model = item.url,
+                                contentDescription = contentDescription,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        item.isVideo -> {
+                            CommunityVideoPlayer(url = item.url.orEmpty())
+                        }
+                        else -> {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(Icons.Default.Mic, contentDescription = null, tint = Color.White, modifier = Modifier.size(56.dp))
+                                Text("Tep ghi am", color = Color.White, style = MaterialTheme.typography.titleLarge)
                             }
                         }
                     }

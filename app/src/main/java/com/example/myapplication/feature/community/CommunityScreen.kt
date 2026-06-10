@@ -1,17 +1,34 @@
 package com.example.myapplication.feature.community
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.NotificationsNone
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.myapplication.domain.model.CommunityComment
 import com.example.myapplication.domain.model.CommunityPost
 import com.example.myapplication.core.designsystem.component.CommunityCard
@@ -34,6 +51,9 @@ fun CommunityScreen(
     onOpenProfile: (String) -> Unit,
     onDeletePost: (String) -> Unit = {},
     onEditPost: (com.example.myapplication.domain.model.CommunityPost) -> Unit = {},
+    unreadNotificationCount: Int = 0,
+    onOpenNotifications: () -> Unit = {},
+    errorMessage: String? = null,
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background)) {
@@ -44,58 +64,126 @@ fun CommunityScreen(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            item { ComposerCard(currentAuthorAvatarUrl = currentAuthorAvatarUrl, onOpenAuth = onOpenAuth) }
-            if (isExpanded) {
-                item { SectionHeader("Dòng bài viết nổi bật", "Có sự kiện kèm tag") }
-            }
-            if (isExpanded) {
-                item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        posts.chunked(2).forEach { group ->
-                            androidx.compose.foundation.layout.Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Cộng đồng",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Box(modifier = Modifier.size(48.dp)) {
+                        IconButton(onClick = onOpenNotifications) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsNone,
+                                contentDescription = "Thông báo",
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        if (unreadNotificationCount > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(top = 4.dp, end = 4.dp)
+                                    .size(18.dp)
+                                    .background(MaterialTheme.colorScheme.error, CircleShape),
+                                contentAlignment = Alignment.Center
                             ) {
-                                group.forEach { post ->
-                                    CommunityCard(
-                                        post = post,
-                                        currentAuthorName = currentAuthorName,
-                                        currentUserId = currentUserId,
-                                        onOpenEventCommunity = onOpenEvent,
-                                        onSharePost = onSharePost,
-                                        onToggleLike = { onToggleLike(post.id) },
-                                        onToggleFollow = onToggleFollow,
-                                        comments = commentsByPostId[post.id].orEmpty(),
-                                        onOpenComments = { onOpenComments(post.id) },
-                                        onAddComment = { text -> onAddComment(post.id, text) },
-                                        onOpenAuth = onOpenAuth,
-                                        onOpenProfile = onOpenProfile,
-                                        onDeletePost = { onDeletePost(post.id) },
-                                        onEditPost = { onEditPost(post) }
-                                    )
-                                }
+                                Text(
+                                    text = unreadNotificationCount.toString(),
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
                 }
-            } else {
-                items(posts) { post ->
-                    CommunityCard(
-                        post = post,
-                        currentAuthorName = currentAuthorName,
-                        currentUserId = currentUserId,
-                        onOpenEventCommunity = onOpenEvent,
-                        onSharePost = onSharePost,
-                        onToggleLike = { onToggleLike(post.id) },
-                        onToggleFollow = onToggleFollow,
-                        comments = commentsByPostId[post.id].orEmpty(),
-                        onOpenComments = { onOpenComments(post.id) },
-                        onAddComment = { text -> onAddComment(post.id, text) },
-                        onOpenAuth = onOpenAuth,
-                        onOpenProfile = onOpenProfile,
-                        onDeletePost = { onDeletePost(post.id) },
-                        onEditPost = { onEditPost(post) }
+            }
+            if (!errorMessage.isNullOrBlank()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFFEE2E2), shape = RoundedCornerShape(8.dp))
+                            .border(1.dp, Color(0xFFEF4444), shape = RoundedCornerShape(8.dp))
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = errorMessage,
+                            color = Color(0xFFB91C1C),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+            item { ComposerCard(currentAuthorAvatarUrl = currentAuthorAvatarUrl, onOpenAuth = onOpenAuth) }
+            if (posts.isEmpty()) {
+                item {
+                    com.example.myapplication.core.designsystem.component.EmptyStateCard(
+                        title = "Chưa có bài viết nào",
+                        body = "Hãy là người đầu tiên chia sẻ bài viết với cộng đồng!"
                     )
+                }
+            } else {
+                if (isExpanded) {
+                    item { SectionHeader("Dòng bài viết nổi bật", "Có sự kiện kèm tag") }
+                }
+                if (isExpanded) {
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            posts.chunked(2).forEach { group ->
+                                androidx.compose.foundation.layout.Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    group.forEach { post ->
+                                        CommunityCard(
+                                            post = post,
+                                            currentAuthorName = currentAuthorName,
+                                            currentUserId = currentUserId,
+                                            onOpenEventCommunity = onOpenEvent,
+                                            onSharePost = onSharePost,
+                                            onToggleLike = { onToggleLike(post.id) },
+                                            onToggleFollow = onToggleFollow,
+                                            comments = commentsByPostId[post.id].orEmpty(),
+                                            onOpenComments = { onOpenComments(post.id) },
+                                            onAddComment = { text -> onAddComment(post.id, text) },
+                                            onOpenAuth = onOpenAuth,
+                                            onOpenProfile = onOpenProfile,
+                                            onDeletePost = { onDeletePost(post.id) },
+                                            onEditPost = { onEditPost(post) }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    items(posts) { post ->
+                        CommunityCard(
+                            post = post,
+                            currentAuthorName = currentAuthorName,
+                            currentUserId = currentUserId,
+                            onOpenEventCommunity = onOpenEvent,
+                            onSharePost = onSharePost,
+                            onToggleLike = { onToggleLike(post.id) },
+                            onToggleFollow = onToggleFollow,
+                            comments = commentsByPostId[post.id].orEmpty(),
+                            onOpenComments = { onOpenComments(post.id) },
+                            onAddComment = { text -> onAddComment(post.id, text) },
+                            onOpenAuth = onOpenAuth,
+                            onOpenProfile = onOpenProfile,
+                            onDeletePost = { onDeletePost(post.id) },
+                            onEditPost = { onEditPost(post) }
+                        )
+                    }
                 }
             }
         }

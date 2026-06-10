@@ -31,11 +31,14 @@ import com.example.myapplication.feature.profile.NotificationSettingsRoute
 import com.example.myapplication.feature.profile.ProfileOptionsRoute
 import com.example.myapplication.feature.profile.ProfileRoute
 import com.example.myapplication.feature.profile.ViewedProfileRoute
+import com.example.myapplication.feature.profile.NotificationViewModel
+import com.example.myapplication.feature.profile.NotificationListScreen
 import com.example.myapplication.feature.success.PurchaseSuccessScreen
 import com.example.myapplication.feature.support.ChatbotScreen
 import com.example.myapplication.feature.tickets.TicketWalletRoute
 import com.example.myapplication.ui.state.FanZoneUiState
 import com.example.myapplication.ui.state.FanZoneViewModel
+import com.example.myapplication.core.designsystem.theme.ElectricStageTheme
 
 @Composable
 fun FanZoneNavHost(
@@ -88,6 +91,7 @@ fun FanZoneNavHost(
                     }
                 },
                 viewModel = communityViewModel,
+                onOpenNotifications = { navController.navigate(AppDestination.Notifications.route) },
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -117,6 +121,7 @@ fun FanZoneNavHost(
                 },
                 onBack = { navController.popBackStack() },
                 viewModel = communityViewModel,
+                onOpenNotifications = { navController.navigate(AppDestination.Notifications.route) },
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -164,6 +169,8 @@ fun FanZoneNavHost(
                         navController.navigate(AppDestination.ViewedProfile.create(profileId))
                     }
                 },
+                onOpenNotifications = { navController.navigate(AppDestination.Notifications.route) },
+                unreadNotificationCount = communityState.unreadNotificationCount,
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -223,12 +230,44 @@ fun FanZoneNavHost(
             )
         }
         composable(AppDestination.NotificationSettings.route) {
-            NotificationSettingsRoute(
-                darkTheme = darkTheme,
-                onDarkThemeChange = onDarkThemeChange,
-                onBack = { navController.popBackStack() },
-                modifier = Modifier.fillMaxSize()
-            )
+            ElectricStageTheme {
+                NotificationSettingsRoute(
+                    darkTheme = darkTheme,
+                    onDarkThemeChange = onDarkThemeChange,
+                    onBack = { navController.popBackStack() },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+        composable(AppDestination.Notifications.route) {
+            val notificationViewModel: NotificationViewModel = composeViewModel()
+            ElectricStageTheme {
+                NotificationListScreen(
+                    onBack = { navController.popBackStack() },
+                    onNavigateToPost = { postId ->
+                        val posts = communityState.posts
+                        val post = posts.firstOrNull { it.id == postId }
+                        if (post?.eventId != null) {
+                            navController.navigate(AppDestination.EventCommunity.create(post.eventId))
+                        } else {
+                            navController.navigate(AppDestination.Community.route)
+                        }
+                    },
+                    onNavigateToProfile = { profileId ->
+                        if (profileId == authState.user?.uid) {
+                            navController.navigate(AppDestination.Profile.route) {
+                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        } else {
+                            navController.navigate(AppDestination.ViewedProfile.create(profileId))
+                        }
+                    },
+                    viewModel = notificationViewModel,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
         composable(AppDestination.Login.route) {
             LoginScreen(

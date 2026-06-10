@@ -34,17 +34,20 @@ fun ProfileRoute(
     onOpenProfileOptions: () -> Unit,
     onSignOut: () -> Unit,
     onOpenProfile: (String) -> Unit,
+    onOpenNotifications: () -> Unit,
     onDeletePost: (String) -> Unit = {},
     onEditPost: (com.example.myapplication.domain.model.CommunityPost) -> Unit = {},
+    unreadNotificationCount: Int = 0,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = viewModel()
 ) {
-    LaunchedEffect(user, authState, unreadSupport, posts) {
+    LaunchedEffect(user, authState, unreadSupport, posts, unreadNotificationCount) {
         viewModel.load(
             user = user,
             authState = authState,
             unreadSupport = unreadSupport,
-            posts = posts
+            posts = posts,
+            unreadNotificationCount = unreadNotificationCount
         )
     }
 
@@ -60,6 +63,7 @@ fun ProfileRoute(
         avatarUrl = uiState.avatarUrl,
         followerCount = uiState.followerCount,
         followingCount = uiState.followingCount,
+        unreadNotificationCount = uiState.unreadNotificationCount,
         onSharePost = onSharePost,
         onToggleLike = onToggleLike,
         onToggleFollow = onToggleFollow,
@@ -74,6 +78,7 @@ fun ProfileRoute(
         onOpenProfileOptions = onOpenProfileOptions,
         onSignOut = onSignOut,
         onOpenProfile = onOpenProfile,
+        onOpenNotifications = onOpenNotifications,
         modifier = modifier
     )
 }

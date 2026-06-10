@@ -24,18 +24,56 @@ class CommunityFirestoreDataSource(
         onPosts: (List<CommunityPost>) -> Unit,
         onError: (Throwable) -> Unit
     ): ListenerRegistration {
+        android.util.Log.d("FirestoreDataSource", "observeCommunityPosts: Bắt đầu đăng ký snapshot listener cho posts...")
+
+        // Fetch once immediately to populate UI in case snapshot listener is blocked/delayed
+        postsCollection.orderBy(FIELD_CREATED_AT, Query.Direction.DESCENDING).get()
+            .addOnSuccessListener { snapshot ->
+                if (snapshot != null && !snapshot.isEmpty) {
+                    android.util.Log.d("FirestoreDataSource", "observeCommunityPosts: GET ban đầu thành công với ${snapshot.size()} posts")
+                    val posts = mutableListOf<CommunityPost>()
+                    for (doc in snapshot.documents) {
+                        val post = toCommunityPost(doc)
+                        if (post != null) {
+                            posts.add(post)
+                        } else {
+                            android.util.Log.w("FirestoreDataSource", "observeCommunityPosts (GET): Parse thất bại cho document ID=${doc.id}")
+                        }
+                    }
+                    android.util.Log.d("FirestoreDataSource", "observeCommunityPosts (GET): Gọi hydratePostAuthorAvatars cho ${posts.size} posts")
+                    hydratePostAuthorAvatars(posts, onPosts, onError)
+                }
+            }
+            .addOnFailureListener { e ->
+                android.util.Log.e("FirestoreDataSource", "observeCommunityPosts: GET ban đầu thất bại: ${e.message}", e)
+            }
+
         return postsCollection
             .orderBy(FIELD_CREATED_AT, Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
+                    android.util.Log.e("FirestoreDataSource", "observeCommunityPosts: Lỗi snapshot listener: ${error.message}", error)
                     onError(error)
                     return@addSnapshotListener
                 }
 
-                val posts = snapshot
-                    ?.documents
-                    ?.mapNotNull(::toCommunityPost)
-                    .orEmpty()
+                if (snapshot == null) {
+                    android.util.Log.w("FirestoreDataSource", "observeCommunityPosts: Snapshot nhận được là null")
+                    onPosts(emptyList())
+                    return@addSnapshotListener
+                }
+
+                android.util.Log.d("FirestoreDataSource", "observeCommunityPosts: Đã nhận snapshot với ${snapshot.size()} documents")
+                val posts = mutableListOf<CommunityPost>()
+                for (doc in snapshot.documents) {
+                    val post = toCommunityPost(doc)
+                    if (post != null) {
+                        posts.add(post)
+                    } else {
+                        android.util.Log.w("FirestoreDataSource", "observeCommunityPosts: Parse thất bại cho document ID=${doc.id}. Data: ${doc.data}")
+                    }
+                }
+                android.util.Log.d("FirestoreDataSource", "observeCommunityPosts: Parse thành công ${posts.size} / ${snapshot.size()} posts")
                 hydratePostAuthorAvatars(posts, onPosts, onError)
             }
     }
@@ -138,16 +176,34 @@ class CommunityFirestoreDataSource(
         onComments: (List<CommunityComment>) -> Unit,
         onError: (Throwable) -> Unit
     ): ListenerRegistration {
+        android.util.Log.d("FirestoreDataSource", "observeComments: Bắt đầu đăng ký snapshot listener cho comments, postId=$postId...")
+
+        // Fetch once immediately to populate UI in case snapshot listener is blocked/delayed
+        postsCollection.document(postId).collection(COMMENTS_COLLECTION)
+            .orderBy(FIELD_CREATED_AT, Query.Direction.ASCENDING).get()
+            .addOnSuccessListener { snapshot ->
+                if (snapshot != null && !snapshot.isEmpty) {
+                    android.util.Log.d("FirestoreDataSource", "observeComments: GET ban đầu thành công với ${snapshot.size()} comments")
+                    val comments = snapshot.documents.mapNotNull { it.toCommunityComment(postId) }
+                    hydrateCommentAuthorAvatars(comments, onComments, onError)
+                }
+            }
+            .addOnFailureListener { e ->
+                android.util.Log.e("FirestoreDataSource", "observeComments: GET ban đầu thất bại: ${e.message}", e)
+            }
+
         return postsCollection
             .document(postId)
             .collection(COMMENTS_COLLECTION)
             .orderBy(FIELD_CREATED_AT, Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
+                    android.util.Log.e("FirestoreDataSource", "observeComments: Lỗi snapshot listener: ${error.message}", error)
                     onError(error)
                     return@addSnapshotListener
                 }
                 val comments = snapshot?.documents?.mapNotNull { it.toCommunityComment(postId) }.orEmpty()
+                android.util.Log.d("FirestoreDataSource", "observeComments: Nhận snapshot với ${comments.size} comments")
                 hydrateCommentAuthorAvatars(comments, onComments, onError)
             }
     }
@@ -216,7 +272,8 @@ class CommunityFirestoreDataSource(
         return postsCollection.document(postId).update(
             mapOf(
                 FIELD_CONTENT to text,
-                "mediaItems" to mediaItems.map { mapOf("url" to it.url, "type" to it.type) }
+                "mediaItems" to mediaItems.map { mapOf("url" to it.url, "type" to it.type) },
+                FIELD_UPDATED_AT to FieldValue.serverTimestamp()
             )
         )
     }
@@ -252,10 +309,18 @@ class CommunityFirestoreDataSource(
     }
 
     private fun toCommunityPost(document: DocumentSnapshot): CommunityPost? {
-        val author = document.getString(FIELD_AUTHOR) ?: return null
-        val role = document.getString(FIELD_ROLE) ?: return null
-        val topic = document.getString(FIELD_TOPIC) ?: return null
-        val content = document.getString(FIELD_CONTENT) ?: return null
+        val author = document.getString(FIELD_AUTHOR)
+        val role = document.getString(FIELD_ROLE)
+        val topic = document.getString(FIELD_TOPIC)
+        val content = document.getString(FIELD_CONTENT)
+
+        if (author == null || role == null || topic == null || content == null) {
+            android.util.Log.w(
+                "FirestoreDataSource",
+                "toCommunityPost: Gặp trường null trong document ID=${document.id}. author=$author, role=$role, topic=$topic, content=$content"
+            )
+            return null
+        }
 
         return CommunityPost(
             id = document.id,
@@ -299,25 +364,37 @@ class CommunityFirestoreDataSource(
             return
         }
 
-        Tasks.whenAllSuccess<DocumentSnapshot>(
-            authorIds.map { authorId -> usersCollection.document(authorId).get() }
-        )
-            .addOnSuccessListener { documents ->
-                val avatars: Map<String, String?> = documents.associate { document ->
-                    document.id to document.getString(FIELD_USER_AVATAR_URL)?.takeIf { it.isNotBlank() }
+        val tasks = authorIds.map { authorId -> usersCollection.document(authorId).get() }
+        Tasks.whenAllComplete(tasks)
+            .addOnCompleteListener { _ ->
+                val avatars = mutableMapOf<String, String?>()
+                val displayNames = mutableMapOf<String, String?>()
+                tasks.forEach { task ->
+                    if (task.isSuccessful) {
+                        val document = task.result
+                        if (document != null && document.exists()) {
+                            avatars[document.id] = document.getString(FIELD_USER_AVATAR_URL)?.takeIf { it.isNotBlank() }
+                            displayNames[document.id] = document.getString("displayName")?.takeIf { it.isNotBlank() }
+                        }
+                    } else {
+                        android.util.Log.e("FirestoreDataSource", "Failed to fetch user profile for post author: ${task.exception?.message}", task.exception)
+                    }
                 }
                 onPosts(
                     posts.map { post ->
                         post.copy(
-                            authorAvatarUrl = post.authorId?.let { authorId -> avatars[authorId] },
+                            author = post.authorId?.let { authorId -> displayNames[authorId] } ?: post.author,
+                            authorAvatarUrl = post.authorId?.let { authorId -> avatars[authorId] } ?: post.authorAvatarUrl,
                             sharedPost = post.sharedPost?.let { share ->
-                                share.copy(authorAvatarUrl = share.authorId?.let { authorId -> avatars[authorId] })
+                                share.copy(
+                                    author = share.authorId?.let { authorId -> displayNames[authorId] } ?: share.author,
+                                    authorAvatarUrl = share.authorId?.let { authorId -> avatars[authorId] } ?: share.authorAvatarUrl
+                                )
                             }
                         )
                     }
                 )
             }
-            .addOnFailureListener(onError)
     }
 
     private fun hydrateCommentAuthorAvatars(
@@ -331,20 +408,31 @@ class CommunityFirestoreDataSource(
             return
         }
 
-        Tasks.whenAllSuccess<DocumentSnapshot>(
-            authorIds.map { authorId -> usersCollection.document(authorId).get() }
-        )
-            .addOnSuccessListener { documents ->
-                val avatars: Map<String, String?> = documents.associate { document ->
-                    document.id to document.getString(FIELD_USER_AVATAR_URL)?.takeIf { it.isNotBlank() }
+        val tasks = authorIds.map { authorId -> usersCollection.document(authorId).get() }
+        Tasks.whenAllComplete(tasks)
+            .addOnCompleteListener { _ ->
+                val avatars = mutableMapOf<String, String?>()
+                val displayNames = mutableMapOf<String, String?>()
+                tasks.forEach { task ->
+                    if (task.isSuccessful) {
+                        val document = task.result
+                        if (document != null && document.exists()) {
+                            avatars[document.id] = document.getString(FIELD_USER_AVATAR_URL)?.takeIf { it.isNotBlank() }
+                            displayNames[document.id] = document.getString("displayName")?.takeIf { it.isNotBlank() }
+                        }
+                    } else {
+                        android.util.Log.e("FirestoreDataSource", "Failed to fetch user profile for comment author: ${task.exception?.message}", task.exception)
+                    }
                 }
                 onComments(
                     comments.map { comment ->
-                        comment.copy(authorAvatarUrl = avatars[comment.authorId])
+                        comment.copy(
+                            authorName = displayNames[comment.authorId] ?: comment.authorName,
+                            authorAvatarUrl = avatars[comment.authorId] ?: comment.authorAvatarUrl
+                        )
                     }
                 )
             }
-            .addOnFailureListener(onError)
     }
 
     @Suppress("UNCHECKED_CAST")

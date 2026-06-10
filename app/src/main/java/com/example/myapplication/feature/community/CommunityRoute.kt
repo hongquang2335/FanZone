@@ -11,6 +11,7 @@ fun CommunityRoute(
     onOpenEvent: (String) -> Unit,
     onOpenAuth: () -> Unit,
     onOpenProfile: (String) -> Unit,
+    onOpenNotifications: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: CommunityViewModel
 ) {
@@ -32,6 +33,9 @@ fun CommunityRoute(
         onOpenProfile = onOpenProfile,
         onDeletePost = viewModel::deletePost,
         onEditPost = viewModel::openEditPost,
+        unreadNotificationCount = uiState.unreadNotificationCount,
+        onOpenNotifications = onOpenNotifications,
+        errorMessage = uiState.errorMessage,
         modifier = modifier
     )
 
@@ -52,6 +56,7 @@ fun EventCommunityRoute(
     eventId: String?,
     onOpenAuth: () -> Unit,
     onOpenProfile: (String) -> Unit,
+    onOpenNotifications: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: CommunityViewModel
@@ -75,6 +80,9 @@ fun EventCommunityRoute(
         onDeletePost = viewModel::deletePost,
         onEditPost = viewModel::openEditPost,
         onBack = onBack,
+        unreadNotificationCount = uiState.unreadNotificationCount,
+        onOpenNotifications = onOpenNotifications,
+        errorMessage = uiState.errorMessage,
         modifier = modifier
     )
 

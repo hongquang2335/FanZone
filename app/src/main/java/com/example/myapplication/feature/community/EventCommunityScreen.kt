@@ -2,6 +2,8 @@ package com.example.myapplication.feature.community
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -17,9 +19,12 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,6 +62,9 @@ fun EventCommunityScreen(
     onDeletePost: (String) -> Unit = {},
     onEditPost: (CommunityPost) -> Unit = {},
     onBack: () -> Unit,
+    unreadNotificationCount: Int = 0,
+    onOpenNotifications: () -> Unit = {},
+    errorMessage: String? = null,
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(
@@ -67,13 +75,37 @@ fun EventCommunityScreen(
         val isExpanded = maxWidth >= 720.dp
 
         Column(modifier = Modifier.fillMaxSize()) {
-            EventCommunityTopBar(title = event.title, onBack = onBack)
+            EventCommunityTopBar(
+                title = event.title,
+                onBack = onBack,
+                unreadNotificationCount = unreadNotificationCount,
+                onOpenNotifications = onOpenNotifications
+            )
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
+                if (!errorMessage.isNullOrBlank()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .background(Color(0xFFFEE2E2), shape = RoundedCornerShape(8.dp))
+                                .border(1.dp, Color(0xFFEF4444), shape = RoundedCornerShape(8.dp))
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = errorMessage,
+                                color = Color(0xFFB91C1C),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
                 if (isExpanded) {
                     item {
                         ExpandedEventCommunityContent(
@@ -204,7 +236,9 @@ private fun ExpandedEventCommunityContent(
 @Composable
 private fun EventCommunityTopBar(
     title: String,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    unreadNotificationCount: Int,
+    onOpenNotifications: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -225,6 +259,33 @@ private fun EventCommunityTopBar(
             fontWeight = FontWeight.ExtraBold,
             maxLines = 1
         )
+        Box(modifier = Modifier.size(48.dp)) {
+            IconButton(onClick = onOpenNotifications) {
+                Icon(
+                    imageVector = Icons.Default.NotificationsNone,
+                    contentDescription = "Thông báo",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            if (unreadNotificationCount > 0) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 4.dp, end = 4.dp)
+                        .size(18.dp)
+                        .background(MaterialTheme.colorScheme.error, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = unreadNotificationCount.toString(),
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
     }
 }
 
