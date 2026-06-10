@@ -3,6 +3,7 @@ package com.example.myapplication.ui.state
 import com.example.myapplication.domain.model.Category
 import com.example.myapplication.domain.model.CommunityPost
 import com.example.myapplication.domain.model.Event
+import com.example.myapplication.domain.model.EventSeat
 import com.example.myapplication.domain.model.PaymentMethod
 import com.example.myapplication.domain.model.SupportShortcut
 import com.example.myapplication.domain.model.TicketTier
@@ -22,6 +23,7 @@ data class FanZoneUiState(
     val selectedPaymentMethod: String,
     val unreadSupportCount: Int,
     val tierQuantities: Map<String, Int>,
+    val selectedSeats: List<EventSeat> = emptyList(),
     val latestPurchasedTicketId: String? = null
 ) {
     val selectedEvent: Event

@@ -1,87 +1,250 @@
 package com.example.myapplication.feature.tickets
 
 import androidx.lifecycle.ViewModel
-import com.example.myapplication.data.repository.FakeFanZoneRepository
-import com.example.myapplication.domain.model.MyTicket
-import com.example.myapplication.domain.model.Order
-import com.example.myapplication.domain.model.TicketStatus
+import androidx.lifecycle.viewModelScope
+import com.google.firebase.Timestamp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
-class TicketWalletViewModel : ViewModel() {
+class TicketWalletViewModel(
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
+    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+) : ViewModel() {
     private val _uiState = MutableStateFlow(TicketWalletUiState())
     val uiState: StateFlow<TicketWalletUiState> = _uiState.asStateFlow()
 
+    private var ticketsRegistration: ListenerRegistration? = null
+    private val authStateListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+        observeTickets(firebaseAuth.currentUser)
+    }
+
     init {
-        loadData()
+        auth.addAuthStateListener(authStateListener)
+        observeTickets(auth.currentUser)
     }
 
-    private fun loadData() {
-        // Mocking data based on updated schema
-        val mockOrders = listOf(
-            Order(
-                bookingId = "booking_101",
-                userId = "user_001",
-                eventId = "neon-night",
-                eventTitle = "Neon Nights Festival 2024",
-                items = listOf(),
-                totalPrice = 1500000,
-                paymentStatus = "success",
-                paymentMethod = "ZaloPay",
-                sellerId = "system",
-                createdAt = "2026-05-10T08:55:36Z",
-                qrCodeData = "BILLING_QR_12345",
-                venue = "San van dong My Dinh",
-                startTime = "20:00, Thu Bay 15/06/2024",
-            )
-        )
-
-        val mockTickets = listOf(
-            MyTicket(
-                ticketId = "ticket_999",
-                bookingId = "booking_101",
-                eventId = "neon-night",
-                eventTitle = "Neon Nights Festival 2024",
-                startTime = "20:00, Thu Bay 15/06/2024",
-                venue = "San van dong My Dinh",
-                ticketType = "VIP",
-                zoneName = "Khu vuc A (Gan san khau)",
-                purchasePrice = 1100000,
-                qrCodeData = "unique_hash_for_checkin",
-                status = TicketStatus.UPCOMING
-            ),
-            MyTicket(
-                ticketId = "ticket_1000",
-                bookingId = "booking_101",
-                eventId = "neon-night",
-                eventTitle = "Neon Nights Festival 2024",
-                startTime = "20:00, Thu Bay 15/06/2024",
-                venue = "San van dong My Dinh",
-                ticketType = "Standard",
-                zoneName = "Khu vuc B",
-                purchasePrice = 400000,
-                qrCodeData = "unique_hash_checkin_2",
-                status = TicketStatus.UPCOMING
-            )
-        )
-
-        _uiState.update { 
-            it.copy(
-                orders = mockOrders,
-                myTickets = mockTickets,
-                recommendations = FakeFanZoneRepository.events.shuffled().take(3)
-            )
-        }
-    }
-
-    fun selectTab(tab: WalletTab) {
+    fun selectTab(tab: TicketTimeTab) {
         _uiState.update { it.copy(selectedTab = tab) }
     }
 
-    fun selectStatus(status: TicketStatus) {
-        _uiState.update { it.copy(selectedStatus = status) }
+    private fun observeTickets(user: FirebaseUser?) {
+        ticketsRegistration?.remove()
+        ticketsRegistration = null
+
+        if (user == null) {
+            _uiState.update {
+                it.copy(eventGroups = emptyList(), isLoading = false, error = null)
+            }
+            return
+        }
+
+        val observedUid = user.uid
+        _uiState.update { it.copy(isLoading = true, error = null) }
+        ticketsRegistration = firestore.collection("users")
+            .document(observedUid)
+            .collection("my_tickets")
+            .addSnapshotListener { snapshot, exception ->
+                if (auth.currentUser?.uid != observedUid) return@addSnapshotListener
+                if (exception != null) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error = "Không thể tải vé của bạn. Vui lòng thử lại."
+                        )
+                    }
+                    return@addSnapshotListener
+                }
+
+                val ticketDocuments = snapshot?.documents.orEmpty()
+                viewModelScope.launch {
+                    runCatching {
+                        buildEventGroups(ticketDocuments)
+                    }.onSuccess { groups ->
+                        if (auth.currentUser?.uid == observedUid) {
+                            _uiState.update {
+                                it.copy(
+                                    eventGroups = groups,
+                                    isLoading = false,
+                                    error = null
+                                )
+                            }
+                        }
+                    }.onFailure {
+                        if (auth.currentUser?.uid == observedUid) {
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    error = "Không thể tải thông tin sự kiện của vé."
+                                )
+                            }
+                        }
+                    }
+                }
+            }
     }
+
+    private suspend fun buildEventGroups(
+        documents: List<DocumentSnapshot>
+    ): List<OwnedEventTickets> {
+        if (documents.isEmpty()) return emptyList()
+
+        val ownerId = auth.currentUser?.uid ?: return emptyList()
+        val tickets = documents.mapNotNull { document ->
+            parseTicket(document, ownerId)
+        }
+        val eventDocuments = tickets
+            .map(PurchasedTicket::eventId)
+            .distinct()
+            .map { eventId ->
+                viewModelScope.async {
+                    eventId to firestore.collection("event").document(eventId).get().await()
+                }
+            }
+            .awaitAll()
+            .toMap()
+
+        val now = Date()
+        return tickets.groupBy(PurchasedTicket::eventId)
+            .map { (eventId, eventTickets) ->
+                val event = eventDocuments[eventId]
+                val firstTicket = eventTickets.first()
+                val startTime = event.readDate("startTime") ?: firstTicket.startTime
+                val endTime = event.readDate("endTime") ?: firstTicket.endTime
+                val comparisonTime = endTime ?: startTime
+
+                OwnedEventTickets(
+                    eventId = eventId,
+                    eventTitle = event?.getString("title")
+                        .orEmpty()
+                        .ifBlank { firstTicket.eventTitle },
+                    venueName = event?.getString("venue")
+                        .orEmpty()
+                        .ifBlank { firstTicket.venue },
+                    address = event?.getString("address")
+                        .orEmpty()
+                        .ifBlank { event?.getString("city").orEmpty() },
+                    imageUrl = event?.getString("banner")
+                        ?: event?.getString("imageUrl")
+                        ?: firstTicket.imageUrl,
+                    startTime = startTime,
+                    endTime = endTime,
+                    tickets = eventTickets
+                        .map { ticket ->
+                            OwnedTicket(
+                                ticketId = ticket.ticketId,
+                                eventId = ticket.eventId,
+                                ownerId = ticket.ownerId,
+                                seatName = ticket.seatName,
+                                price = ticket.price
+                            )
+                        }
+                        .distinctBy(OwnedTicket::ticketId)
+                        .sortedWith { left, right ->
+                            compareSeatNames(left.seatName, right.seatName)
+                        },
+                    hasEnded = comparisonTime?.before(now) == true
+                )
+            }
+            .sortedWith(
+                compareBy<OwnedEventTickets> { it.hasEnded }
+                    .thenBy { it.startTime ?: Date(Long.MAX_VALUE) }
+            )
+    }
+
+    private fun parseTicket(
+        document: DocumentSnapshot,
+        ownerId: String
+    ): PurchasedTicket? {
+        val eventId = document.getString("eventId")?.takeIf(String::isNotBlank)
+            ?: return null
+        return PurchasedTicket(
+            ticketId = document.getString("ticketId")
+                ?.takeIf(String::isNotBlank)
+                ?: document.id,
+            eventId = eventId,
+            ownerId = document.getString("ownerId")
+                ?.takeIf(String::isNotBlank)
+                ?: ownerId,
+            eventTitle = document.getString("eventTitle").orEmpty(),
+            venue = document.getString("venue").orEmpty(),
+            imageUrl = document.getString("imageUrl"),
+            seatName = document.getString("seatId")
+                ?: document.getString("seatName")
+                ?: "",
+            price = (document.get("purchasePrice") as? Number)?.toInt()
+                ?: (document.get("price") as? Number)?.toInt()
+                ?: 0,
+            startTime = document.readDate("startTime"),
+            endTime = document.readDate("endTime")
+        )
+    }
+
+    override fun onCleared() {
+        ticketsRegistration?.remove()
+        auth.removeAuthStateListener(authStateListener)
+        super.onCleared()
+    }
+}
+
+private data class PurchasedTicket(
+    val ticketId: String,
+    val eventId: String,
+    val ownerId: String,
+    val eventTitle: String,
+    val venue: String,
+    val imageUrl: String?,
+    val seatName: String,
+    val price: Int,
+    val startTime: Date?,
+    val endTime: Date?
+)
+
+private fun DocumentSnapshot?.readDate(field: String): Date? {
+    val value = this?.get(field) ?: return null
+    return when (value) {
+        is Timestamp -> value.toDate()
+        is Date -> value
+        is String -> value.toEventDate()
+        else -> null
+    }
+}
+
+private fun String.toEventDate(): Date? {
+    if (isBlank()) return null
+    val patterns = listOf(
+        "yyyy-MM-dd'T'HH:mm:ss.SSSX",
+        "yyyy-MM-dd'T'HH:mm:ssX"
+    )
+    return patterns.firstNotNullOfOrNull { pattern ->
+        runCatching {
+            SimpleDateFormat(pattern, Locale.US).apply {
+                isLenient = false
+            }.parse(trim())
+        }.getOrNull()
+    }
+}
+
+private fun compareSeatNames(left: String, right: String): Int {
+    val leftRow = left.takeWhile(Char::isLetter).uppercase()
+    val rightRow = right.takeWhile(Char::isLetter).uppercase()
+    val rowComparison = leftRow.compareTo(rightRow)
+    if (rowComparison != 0) return rowComparison
+
+    val leftNumber = left.dropWhile(Char::isLetter).toIntOrNull() ?: 0
+    val rightNumber = right.dropWhile(Char::isLetter).toIntOrNull() ?: 0
+    return leftNumber.compareTo(rightNumber)
 }

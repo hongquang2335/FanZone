@@ -16,6 +16,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 fun EventDetailRoute(
     eventId: String?,
     onBack: () -> Unit,
+    isUserSignedIn: () -> Boolean,
+    onNavigateToLogin: () -> Unit,
     onNavigateToBooking: (String) -> Unit,
     onOpenCommunity: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -39,6 +41,8 @@ fun EventDetailRoute(
                 event = uiState.event!!,
                 tiers = uiState.tiers,
                 onBack = onBack,
+                isUserSignedIn = isUserSignedIn,
+                onNavigateToLogin = onNavigateToLogin,
                 onBuyNow = { onNavigateToBooking(uiState.event!!.id) },
                 onOpenCommunity = { onOpenCommunity(uiState.event!!.id) },
                 modifier = Modifier.fillMaxSize()

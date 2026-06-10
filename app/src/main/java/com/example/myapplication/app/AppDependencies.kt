@@ -16,8 +16,9 @@ object AppDependencies {
     private const val CLOUDINARY_UPLOAD_PRESET = "fanzone_unsigned"
 
     val fanZoneRepository: FanZoneRepository = FakeFanZoneRepository
-    private val communityFirestoreDataSource = CommunityFirestoreDataSource()
+//    private val communityFirestoreDataSource = CommunityFirestoreDataSource()
     private val notificationFirestoreDataSource = NotificationFirestoreDataSource()
+    private val communityFirestoreDataSource by lazy { CommunityFirestoreDataSource() }
     @Volatile private var communityRepositoryInstance: CommunityRepository? = null
     @Volatile private var notificationRepositoryInstance: NotificationRepository? = null
 

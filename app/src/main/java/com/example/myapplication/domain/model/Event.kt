@@ -21,7 +21,9 @@ data class Event(
     val resaleTickets: List<ResaleTicket> = emptyList(),
     val orgName: String = "",
     val orgLogo: String? = null,
-    val orgDescription: String = ""
+    val orgDescription: String = "",
+    val startTime: String = "",
+    val endTime: String = ""
 )
 
 data class EventMoment(

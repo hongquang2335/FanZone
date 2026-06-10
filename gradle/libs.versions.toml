@@ -18,6 +18,7 @@ kotlinxCoroutinesPlayServices = "1.8.1"
 playServicesTasks = "18.1.0"
 playServicesBase = "18.9.0"
 firebaseBom = "34.13.0"
+zxing = "3.5.3"
 credentials = "1.5.0"
 googleid = "1.1.1"
 media3 = "1.5.0"
@@ -56,6 +57,7 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutinesPlayServices" }
 google-play-services-tasks = { group = "com.google.android.gms", name = "play-services-tasks", version.ref = "playServicesTasks" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 google-play-services-base = { group = "com.google.android.gms", name = "play-services-base", version.ref = "playServicesBase" }
 
 [plugins]
