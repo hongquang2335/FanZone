@@ -67,6 +67,14 @@ fun FanZoneNavHost(
                     navController.navigate(AppDestination.EventDetail.create(eventId))
                 },
                 onOpenCommunity = { navController.navigate(AppDestination.Community.route) },
+                onNavigateToSearch = { navController.navigate("search_route") },
+                onSelectCategory = { categoryId -> /* Tạm thời để trống */ },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        composable("search_route") {
+            com.example.myapplication.feature.search.SearchScreen(
+                onBackClick = { navController.popBackStack() },
                 modifier = Modifier.fillMaxSize()
             )
         }
