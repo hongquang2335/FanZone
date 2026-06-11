@@ -315,14 +315,6 @@ fun NotificationSettingsScreen(
                 panelBackground = panelBackground,
                 textColor = primaryText
             )
-            SettingsSwitchRow(
-                title = "Chế độ hiển thị",
-                value = if (darkTheme) "Tối" else "Sáng",
-                checked = darkTheme,
-                onCheckedChange = onDarkThemeChange,
-                panelBackground = panelBackground,
-                textColor = primaryText
-            )
         }
     }
 }

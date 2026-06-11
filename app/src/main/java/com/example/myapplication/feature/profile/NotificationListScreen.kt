@@ -1,5 +1,6 @@
 package com.example.myapplication.feature.profile
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,6 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
+import com.example.myapplication.core.designsystem.theme.Evergreen
+import com.example.myapplication.core.designsystem.theme.SoftLine
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -43,14 +46,14 @@ fun NotificationListScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(horizontal = 8.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -143,9 +146,15 @@ fun NotificationItemCard(
     }
 
     val cardColor = if (notification.isRead) {
-        MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.6f)
+        Color.White.copy(alpha = 0.72f)
     } else {
-        MaterialTheme.colorScheme.surfaceContainerHighest
+        Color.White
+    }
+
+    val cardBorder = if (notification.isRead) {
+        BorderStroke(1.dp, SoftLine.copy(alpha = 0.5f))
+    } else {
+        BorderStroke(1.dp, SoftLine)
     }
 
     val textColor = if (notification.isRead) {
@@ -155,11 +164,11 @@ fun NotificationItemCard(
     }
 
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        color = cardColor
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        color = cardColor,
+        border = cardBorder
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -204,7 +213,7 @@ fun NotificationItemCard(
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .background(Evergreen)
                 )
             }
         }
