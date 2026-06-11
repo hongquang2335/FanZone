@@ -14,8 +14,8 @@ data class BottomDestination(
 )
 
 val bottomDestinations = listOf(
-    BottomDestination(AppDestination.Home.route, "Trang chu", Icons.Default.Home),
-    BottomDestination(AppDestination.Community.route, "Cong dong", Icons.Default.ChatBubbleOutline),
-    BottomDestination(AppDestination.Tickets.route, "Ve cua toi", Icons.Default.ConfirmationNumber),
-    BottomDestination(AppDestination.Profile.route, "Tai khoan", Icons.Default.AccountCircle)
+    BottomDestination(AppDestination.Home.route, "Trang chủ", Icons.Default.Home),
+    BottomDestination(AppDestination.Community.route, "Cộng đồng", Icons.Default.ChatBubbleOutline),
+    BottomDestination(AppDestination.Tickets.route, "Vé của tôi", Icons.Default.ConfirmationNumber),
+    BottomDestination(AppDestination.Profile.route, "Tài khoản", Icons.Default.AccountCircle)
 )
