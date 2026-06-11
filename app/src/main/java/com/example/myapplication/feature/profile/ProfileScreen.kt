@@ -59,7 +59,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplication.core.designsystem.component.CircleAvatar
-import com.example.myapplication.core.designsystem.component.CommunityCard
+import com.example.myapplication.feature.community.component.CommunityCard
 import com.example.myapplication.domain.model.CommunityComment
 import com.example.myapplication.core.designsystem.theme.Evergreen
 import com.example.myapplication.domain.model.CommunityPost
@@ -458,12 +458,11 @@ private fun ProfileOptionsHeader(title: String, onBack: () -> Unit) {
             .statusBarsPadding()
     ) {
         Surface(
+            onClick = onBack,
             modifier = Modifier
                 .align(Alignment.CenterStart)
                 .padding(start = 24.dp)
-                .size(46.dp)
-                .clip(CircleShape)
-                .clickable(onClick = onBack),
+                .size(46.dp),
             shape = CircleShape,
             color = Color.Transparent,
             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.65f))

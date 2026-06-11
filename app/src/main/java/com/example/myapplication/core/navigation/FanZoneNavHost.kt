@@ -152,7 +152,7 @@ fun FanZoneNavHost(
                 authState = authState,
                 unreadSupport = uiState.unreadSupportCount,
                 posts = communityState.posts,
-                commentsByPostId = communityState.commentsByPostId,
+                commentsByPostId = communityState.mappedCommentsByPostId,
                 onSharePost = communityViewModel::sharePost,
                 onToggleLike = communityViewModel::toggleLike,
                 onToggleFollow = communityViewModel::toggleFollow,
@@ -194,7 +194,7 @@ fun FanZoneNavHost(
                 profileId = profileId,
                 currentUserId = authState.user?.uid,
                 posts = communityState.posts,
-                commentsByPostId = communityState.commentsByPostId,
+                commentsByPostId = communityState.mappedCommentsByPostId,
                 onSharePost = communityViewModel::sharePost,
                 onToggleLike = communityViewModel::toggleLike,
                 onToggleFollow = communityViewModel::toggleFollow,
@@ -477,5 +477,15 @@ fun FanZoneNavHost(
                 modifier = Modifier.fillMaxSize()
             )
         }
+    }
+
+    communityState.editingPost?.let { post ->
+        com.example.myapplication.feature.community.component.EditPostDialog(
+            post = post,
+            onDismiss = communityViewModel::closeEditPost,
+            onSave = { newText, newMedia ->
+                communityViewModel.updatePost(post.id, newText, newMedia)
+            }
+        )
     }
 }

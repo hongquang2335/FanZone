@@ -32,6 +32,7 @@ class CommunityViewModel(
     private var subscription: CommunityPostSubscription? = null
     private var notificationSubscription: CommunityPostSubscription? = null
     private val commentSubscriptions = mutableMapOf<String, CommunityPostSubscription>()
+    private var currentUserListener: com.google.firebase.firestore.ListenerRegistration? = null
  
     private val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
         val user = firebaseAuth.currentUser
@@ -40,6 +41,8 @@ class CommunityViewModel(
             subscription = null
             notificationSubscription?.dispose()
             notificationSubscription = null
+            currentUserListener?.remove()
+            currentUserListener = null
             NotificationHelper.reset()
             _uiState.update {
                 it.copy(
@@ -231,21 +234,26 @@ class CommunityViewModel(
         }
         observeNotifications(user.uid)
 
-        firestore.collection("users")
+        currentUserListener?.remove()
+        currentUserListener = firestore.collection("users")
             .document(user.uid)
-            .get()
-            .addOnSuccessListener { document ->
-                if (auth.currentUser?.uid != user.uid) return@addOnSuccessListener
-                val profileName = document.getString("displayName")?.takeIf { it.isNotBlank() }
-                val avatarUrl = document.getString("avatarUrl")?.takeIf { it.isNotBlank() }
-                val followingIds = (document.get("followingIds") as? List<*>)?.mapNotNull { it as? String }.orEmpty().toSet()
-                _uiState.update {
-                    it.copy(
-                        currentAuthorName = profileName ?: fallbackName,
-                        currentAuthorAvatarUrl = avatarUrl,
-                        currentUserId = user.uid,
-                        followedProfileIds = followingIds
-                    )
+            .addSnapshotListener { document, error ->
+                if (error != null) {
+                    android.util.Log.e("CommunityViewModel", "Error listening to current user: ${error.message}", error)
+                    return@addSnapshotListener
+                }
+                if (document != null && document.exists() && auth.currentUser?.uid == user.uid) {
+                    val profileName = document.getString("displayName")?.takeIf { it.isNotBlank() }
+                    val avatarUrl = document.getString("avatarUrl")?.takeIf { it.isNotBlank() }
+                    val followingIds = (document.get("followingIds") as? List<*>)?.mapNotNull { it as? String }.orEmpty().toSet()
+                    _uiState.update {
+                        it.copy(
+                            currentAuthorName = profileName ?: fallbackName,
+                            currentAuthorAvatarUrl = avatarUrl,
+                            currentUserId = user.uid,
+                            followedProfileIds = followingIds
+                        )
+                    }
                 }
             }
     }
@@ -278,12 +286,19 @@ class CommunityViewModel(
         )
     }
 
+    fun refreshPosts() {
+        _uiState.update { it.copy(isLoading = true) }
+        observePosts()
+    }
+
     override fun onCleared() {
         auth.removeAuthStateListener(authListener)
         subscription?.dispose()
         subscription = null
         notificationSubscription?.dispose()
         notificationSubscription = null
+        currentUserListener?.remove()
+        currentUserListener = null
         commentSubscriptions.values.forEach { it.dispose() }
         commentSubscriptions.clear()
         super.onCleared()

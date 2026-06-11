@@ -23,6 +23,7 @@ import com.example.myapplication.core.navigation.bottomDestinations
 import com.example.myapplication.core.designsystem.theme.VibeGreen
 import com.example.myapplication.core.designsystem.theme.VibeGreenDeep
 import com.example.myapplication.ui.state.FanZoneViewModel
+import com.example.myapplication.feature.community.CommunityViewModel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -33,6 +34,7 @@ fun FanZoneApp(
 ) {
     val navController = rememberNavController()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val communityViewModel: CommunityViewModel = viewModel()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val showBottomBar = currentRoute == null || currentRoute in bottomDestinations.map { it.route }
@@ -46,7 +48,13 @@ fun FanZoneApp(
                     items = bottomDestinations,
                     currentRoute = currentRoute
                 ) { destination ->
-                    navController.navigateToRootDestination(destination.route)
+                    if (destination.route == currentRoute) {
+                        if (currentRoute == AppDestination.Community.route) {
+                            communityViewModel.refreshPosts()
+                        }
+                    } else {
+                        navController.navigateToRootDestination(destination.route)
+                    }
                 }
             }
         },
@@ -69,6 +77,7 @@ fun FanZoneApp(
             viewModel = viewModel,
             darkTheme = darkTheme,
             onDarkThemeChange = onDarkThemeChange,
+            communityViewModel = communityViewModel,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = padding.calculateBottomPadding())

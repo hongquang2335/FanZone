@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import com.example.myapplication.app.AppDependencies
 import com.example.myapplication.domain.repository.CreateCommunityPostRequest
 import com.example.myapplication.domain.repository.SelectedCommunityMedia
+import com.example.myapplication.domain.model.Notification
+import com.example.myapplication.domain.model.NotificationType
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
@@ -17,11 +19,13 @@ class CommunityPostViewModel(
     application: Application
 ) : AndroidViewModel(application) {
     private val repository = AppDependencies.communityRepository(application)
+    private val notificationRepository = AppDependencies.notificationRepository(application)
     private val auth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
     private val _uiState = MutableStateFlow(CommunityPostUiState())
     val uiState: StateFlow<CommunityPostUiState> = _uiState.asStateFlow()
-
+    private var currentUserListener: com.google.firebase.firestore.ListenerRegistration? = null
+ 
     private val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
         val user = firebaseAuth.currentUser
         if (user == null) {
@@ -94,12 +98,34 @@ class CommunityPostViewModel(
                 eventTitle = eventTitle,
                 media = state.selectedMedia
             ),
-            onSuccess = {
+            onSuccess = { postId ->
                 _uiState.value = CommunityPostUiState(
                     currentAuthorId = authorId,
                     currentAuthorName = state.currentAuthorName,
                     currentAuthorAvatarUrl = state.currentAuthorAvatarUrl
                 )
+                firestore.collection("users")
+                    .document(authorId)
+                    .get()
+                    .addOnSuccessListener { document ->
+                        if (document != null && document.exists()) {
+                            val followerIds = (document.get("followerIds") as? List<*>)
+                                ?.mapNotNull { it as? String }
+                                .orEmpty()
+                            followerIds.forEach { followerId ->
+                                val notification = Notification(
+                                    recipientId = followerId,
+                                    senderId = authorId,
+                                    senderName = state.currentAuthorName,
+                                    senderAvatarUrl = state.currentAuthorAvatarUrl,
+                                    type = NotificationType.NEW_POST,
+                                    postId = postId,
+                                    postContentExcerpt = content.take(60)
+                                )
+                                notificationRepository.createNotification(notification)
+                            }
+                        }
+                    }
                 onSuccess()
             },
             onError = ::handlePostError
@@ -107,6 +133,8 @@ class CommunityPostViewModel(
     }
 
     private fun clearCurrentAuthor() {
+        currentUserListener?.remove()
+        currentUserListener = null
         _uiState.update {
             CommunityPostUiState(
                 draft = it.draft,
@@ -130,19 +158,24 @@ class CommunityPostViewModel(
             )
         }
 
-        firestore.collection("users")
+        currentUserListener?.remove()
+        currentUserListener = firestore.collection("users")
             .document(user.uid)
-            .get()
-            .addOnSuccessListener { document ->
-                if (auth.currentUser?.uid != user.uid) return@addOnSuccessListener
-                val profileName = document.getString("displayName")?.takeIf { it.isNotBlank() }
-                val avatarUrl = document.getString("avatarUrl")?.takeIf { it.isNotBlank() }
-                _uiState.update {
-                    it.copy(
-                        currentAuthorId = user.uid,
-                        currentAuthorName = profileName ?: fallbackName,
-                        currentAuthorAvatarUrl = avatarUrl
-                    )
+            .addSnapshotListener { document, error ->
+                if (error != null) {
+                    android.util.Log.e("CommunityPostViewModel", "Error listening to current user: ${error.message}", error)
+                    return@addSnapshotListener
+                }
+                if (document != null && document.exists() && auth.currentUser?.uid == user.uid) {
+                    val profileName = document.getString("displayName")?.takeIf { it.isNotBlank() }
+                    val avatarUrl = document.getString("avatarUrl")?.takeIf { it.isNotBlank() }
+                    _uiState.update {
+                        it.copy(
+                            currentAuthorId = user.uid,
+                            currentAuthorName = profileName ?: fallbackName,
+                            currentAuthorAvatarUrl = avatarUrl
+                        )
+                    }
                 }
             }
     }
@@ -158,6 +191,8 @@ class CommunityPostViewModel(
 
     override fun onCleared() {
         auth.removeAuthStateListener(authListener)
+        currentUserListener?.remove()
+        currentUserListener = null
         super.onCleared()
     }
 }

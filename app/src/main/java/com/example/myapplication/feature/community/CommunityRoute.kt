@@ -19,10 +19,12 @@ fun CommunityRoute(
 
     CommunityScreen(
         posts = uiState.posts,
-        commentsByPostId = uiState.commentsByPostId,
+        commentsByPostId = uiState.mappedCommentsByPostId,
         currentAuthorName = uiState.currentAuthorName,
         currentAuthorAvatarUrl = uiState.currentAuthorAvatarUrl,
         currentUserId = uiState.currentUserId,
+        isLoading = uiState.isLoading,
+        onRefresh = viewModel::refreshPosts,
         onOpenEvent = onOpenEvent,
         onSharePost = viewModel::sharePost,
         onToggleLike = viewModel::toggleLike,
@@ -41,15 +43,6 @@ fun CommunityRoute(
         modifier = modifier
     )
 
-    uiState.editingPost?.let { post ->
-        com.example.myapplication.core.designsystem.component.EditPostDialog(
-            post = post,
-            onDismiss = viewModel::closeEditPost,
-            onSave = { newText, newMedia ->
-                viewModel.updatePost(post.id, newText, newMedia)
-            }
-        )
-    }
 }
 
 @Composable
@@ -68,10 +61,12 @@ fun EventCommunityRoute(
     EventCommunityScreen(
         event = event,
         posts = uiState.posts.filter { it.eventId == eventId },
-        commentsByPostId = uiState.commentsByPostId,
+        commentsByPostId = uiState.mappedCommentsByPostId,
         currentAuthorName = uiState.currentAuthorName,
         currentAuthorAvatarUrl = uiState.currentAuthorAvatarUrl,
         currentUserId = uiState.currentUserId,
+        isLoading = uiState.isLoading,
+        onRefresh = viewModel::refreshPosts,
         onSharePost = viewModel::sharePost,
         onToggleLike = viewModel::toggleLike,
         onToggleFollow = viewModel::toggleFollow,
@@ -90,13 +85,4 @@ fun EventCommunityRoute(
         modifier = modifier
     )
 
-    uiState.editingPost?.let { post ->
-        com.example.myapplication.core.designsystem.component.EditPostDialog(
-            post = post,
-            onDismiss = viewModel::closeEditPost,
-            onSave = { newText, newMedia ->
-                viewModel.updatePost(post.id, newText, newMedia)
-            }
-        )
-    }
 }

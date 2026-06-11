@@ -41,7 +41,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.example.myapplication.core.designsystem.component.CommunityCard
+import com.example.myapplication.feature.community.component.CommunityCard
 import com.example.myapplication.core.designsystem.theme.SoftText
 import com.example.myapplication.domain.model.CommunityComment
 import com.example.myapplication.domain.model.CommunityPost
@@ -70,6 +70,8 @@ fun EventCommunityScreen(
     errorMessage: String? = null,
     targetCommentsPostId: String? = null,
     onCommentsDismissed: () -> Unit = {},
+    isLoading: Boolean = false,
+    onRefresh: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(
@@ -101,86 +103,93 @@ fun EventCommunityScreen(
                 onOpenNotifications = onOpenNotifications
             )
 
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+            @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+            androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                isRefreshing = isLoading,
+                onRefresh = onRefresh,
+                modifier = Modifier.fillMaxSize()
             ) {
-                if (!errorMessage.isNullOrBlank()) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                                .background(Color(0xFFFEE2E2), shape = RoundedCornerShape(8.dp))
-                                .border(1.dp, Color(0xFFEF4444), shape = RoundedCornerShape(8.dp))
-                                .padding(16.dp)
-                        ) {
-                            Text(
-                                text = errorMessage,
-                                color = Color(0xFFB91C1C),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    if (!errorMessage.isNullOrBlank()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                    .background(Color(0xFFFEE2E2), shape = RoundedCornerShape(8.dp))
+                                    .border(1.dp, Color(0xFFEF4444), shape = RoundedCornerShape(8.dp))
+                                    .padding(16.dp)
+                            ) {
+                                Text(
+                                    text = errorMessage,
+                                    color = Color(0xFFB91C1C),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
                     }
-                }
-                if (isExpanded) {
-                    item {
-                        ExpandedEventCommunityContent(
-                            event = event,
-                            posts = posts,
-                            commentsByPostId = commentsByPostId,
-                            currentAuthorName = currentAuthorName,
-                            currentAuthorAvatarUrl = currentAuthorAvatarUrl,
-                            currentUserId = currentUserId,
-                            onSharePost = onSharePost,
-                            onToggleLike = onToggleLike,
-                            onToggleFollow = onToggleFollow,
-                            onOpenComments = onOpenComments,
-                            onAddComment = onAddComment,
-                            onOpenAuth = onOpenAuth,
-                            onOpenProfile = onOpenProfile,
-                            onDeletePost = onDeletePost,
-                            onEditPost = onEditPost,
-                            targetCommentsPostId = targetCommentsPostId,
-                            onCommentsDismissed = onCommentsDismissed
-                        )
-                    }
-                } else {
-                    item { EventCommunityHeader(event = event) }
-                    item {
-                        ComposerCard(
-                            eventId = event.id,
-                            eventTitle = event.title,
-                            currentAuthorAvatarUrl = currentAuthorAvatarUrl,
-                            onOpenAuth = onOpenAuth
-                        )
-                    }
-                    items(posts) { post ->
-                        CommunityCard(
-                            post = post,
-                            currentAuthorName = currentAuthorName,
-                            currentUserId = currentUserId,
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            onSharePost = onSharePost,
-                            onToggleLike = { onToggleLike(post.id) },
-                            onToggleFollow = onToggleFollow,
-                            comments = commentsByPostId[post.id].orEmpty(),
-                            onOpenComments = { onOpenComments(post.id) },
-                            onAddComment = { text -> onAddComment(post.id, text) },
-                            onOpenAuth = onOpenAuth,
-                            onOpenProfile = onOpenProfile,
-                            onDeletePost = { onDeletePost(post.id) },
-                            onEditPost = { onEditPost(post) },
-                            showCommentsInitially = false,
-                            onCommentsDismissed = onCommentsDismissed
-                        )
-                    }
-                    if (posts.isEmpty()) {
+                    if (isExpanded) {
                         item {
-                            EmptyPostsMessage(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
+                            ExpandedEventCommunityContent(
+                                event = event,
+                                posts = posts,
+                                commentsByPostId = commentsByPostId,
+                                currentAuthorName = currentAuthorName,
+                                currentAuthorAvatarUrl = currentAuthorAvatarUrl,
+                                currentUserId = currentUserId,
+                                onSharePost = onSharePost,
+                                onToggleLike = onToggleLike,
+                                onToggleFollow = onToggleFollow,
+                                onOpenComments = onOpenComments,
+                                onAddComment = onAddComment,
+                                onOpenAuth = onOpenAuth,
+                                onOpenProfile = onOpenProfile,
+                                onDeletePost = onDeletePost,
+                                onEditPost = onEditPost,
+                                targetCommentsPostId = targetCommentsPostId,
+                                onCommentsDismissed = onCommentsDismissed
+                            )
+                        }
+                    } else {
+                        item { EventCommunityHeader(event = event) }
+                        item {
+                            ComposerCard(
+                                eventId = event.id,
+                                eventTitle = event.title,
+                                currentAuthorAvatarUrl = currentAuthorAvatarUrl,
+                                onOpenAuth = onOpenAuth
+                            )
+                        }
+                        items(posts) { post ->
+                            CommunityCard(
+                                post = post,
+                                currentAuthorName = currentAuthorName,
+                                currentUserId = currentUserId,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                onSharePost = onSharePost,
+                                onToggleLike = { onToggleLike(post.id) },
+                                onToggleFollow = onToggleFollow,
+                                comments = commentsByPostId[post.id].orEmpty(),
+                                onOpenComments = { onOpenComments(post.id) },
+                                onAddComment = { text -> onAddComment(post.id, text) },
+                                onOpenAuth = onOpenAuth,
+                                onOpenProfile = onOpenProfile,
+                                onDeletePost = { onDeletePost(post.id) },
+                                onEditPost = { onEditPost(post) },
+                                showCommentsInitially = false,
+                                onCommentsDismissed = onCommentsDismissed
+                            )
+                        }
+                        if (posts.isEmpty()) {
+                            item {
+                                EmptyPostsMessage(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
+                            }
                         }
                     }
                 }

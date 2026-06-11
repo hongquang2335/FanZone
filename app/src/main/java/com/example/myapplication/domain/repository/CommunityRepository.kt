@@ -13,7 +13,7 @@ interface CommunityRepository {
 
     fun createCommunityPost(
         request: CreateCommunityPostRequest,
-        onSuccess: () -> Unit,
+        onSuccess: (String) -> Unit,
         onError: (Throwable) -> Unit
     )
 

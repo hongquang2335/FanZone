@@ -212,16 +212,7 @@ fun AccountInfoScreen(
                 }
             )
 
-            if (authUser?.isGoogleLinked != true) {
-            GoogleSignInButton(
-                enabled = !authState.isLoading && !isUploadingAvatar,
-                onGoogleLogin = onLinkGoogle,
-                onGoogleLoginError = onGoogleError,
-                text = "Liên kết Google"
-            )
-            }
-
-            FieldLabel("Ngay sinh *", color = primaryText)
+            FieldLabel("Ngày sinh *", color = primaryText)
             ProfileTextField(
                 value = birthday,
                 onValueChange = {},
@@ -267,9 +258,9 @@ fun AccountInfoScreen(
             ) {
                 Text(
                     when {
-                        isUploadingAvatar -> "Dang tai anh..."
-                        authState.isLoading -> "Dang luu..."
-                        else -> "Hoan thanh"
+                        isUploadingAvatar -> "Đang tải ảnh..."
+                        authState.isLoading -> "Đang lưu..."
+                        else -> "Hoàn thành"
                     },
                     style = MaterialTheme.typography.titleMedium
                 )

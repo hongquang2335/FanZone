@@ -116,10 +116,9 @@ fun NotificationListScreen(
                             viewModel.markAsRead(notification.id)
                             when (notification.type) {
                                 NotificationType.FOLLOW -> onNavigateToProfile(notification.senderId)
-                                NotificationType.LIKE, NotificationType.COMMENT -> {
+                                NotificationType.LIKE, NotificationType.COMMENT, NotificationType.NEW_POST -> {
                                     notification.postId?.let(onNavigateToPost)
                                 }
-                                else -> {}
                             }
                         }
                     )

@@ -621,7 +621,8 @@ private fun CircleHeaderButton(
     onClick: () -> Unit
 ) {
     Surface(
-        modifier = Modifier.size(38.dp).clickable(onClick = onClick),
+        onClick = onClick,
+        modifier = Modifier.size(38.dp),
         shape = CircleShape,
         color = Color.Transparent,
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.75f))

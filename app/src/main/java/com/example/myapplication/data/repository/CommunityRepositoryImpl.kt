@@ -26,7 +26,7 @@ class CommunityRepositoryImpl(
 
     override fun createCommunityPost(
         request: CreateCommunityPostRequest,
-        onSuccess: () -> Unit,
+        onSuccess: (String) -> Unit,
         onError: (Throwable) -> Unit
     ) {
         if (request.media.isEmpty()) {
@@ -67,7 +67,7 @@ class CommunityRepositoryImpl(
     private fun writePost(
         request: CreateCommunityPostRequest,
         mediaItems: List<CommunityMediaItem>,
-        onSuccess: () -> Unit,
+        onSuccess: (String) -> Unit,
         onError: (Throwable) -> Unit
     ) {
         val firstMedia = mediaItems.firstOrNull()
@@ -85,7 +85,7 @@ class CommunityRepositoryImpl(
             mediaType = firstMedia?.type,
             mediaItems = mediaItems
         )
-            .addOnSuccessListener { onSuccess() }
+            .addOnSuccessListener { ref -> onSuccess(ref.id) }
             .addOnFailureListener(onError)
     }
 

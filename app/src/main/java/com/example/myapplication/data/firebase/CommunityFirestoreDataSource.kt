@@ -40,8 +40,10 @@ class CommunityFirestoreDataSource(
                             android.util.Log.w("FirestoreDataSource", "observeCommunityPosts (GET): Parse thất bại cho document ID=${doc.id}")
                         }
                     }
-                    android.util.Log.d("FirestoreDataSource", "observeCommunityPosts (GET): Gọi hydratePostAuthorAvatars cho ${posts.size} posts")
-                    hydratePostAuthorAvatars(posts, onPosts, onError)
+                    android.util.Log.d("FirestoreDataSource", "observeCommunityPosts (GET): Gọi hydrateOriginalPosts cho ${posts.size} posts")
+                    hydrateOriginalPosts(posts, { hydratedPosts ->
+                        hydratePostAuthorAvatars(hydratedPosts, onPosts, onError)
+                    }, onError)
                 }
             }
             .addOnFailureListener { e ->
@@ -74,7 +76,9 @@ class CommunityFirestoreDataSource(
                     }
                 }
                 android.util.Log.d("FirestoreDataSource", "observeCommunityPosts: Parse thành công ${posts.size} / ${snapshot.size()} posts")
-                hydratePostAuthorAvatars(posts, onPosts, onError)
+                hydrateOriginalPosts(posts, { hydratedPosts ->
+                    hydratePostAuthorAvatars(hydratedPosts, onPosts, onError)
+                }, onError)
             }
     }
 
@@ -348,8 +352,8 @@ class CommunityFirestoreDataSource(
             originalPostId = document.getString(FIELD_ORIGINAL_POST_ID),
             resharedFromPostId = document.getString(FIELD_RESHARED_FROM_POST_ID),
             sharedPost = document.get(FIELD_SHARED_POST)?.let(::toSharedPost),
-            createdAtMillis = document.getTimestamp(FIELD_CREATED_AT)?.toDate()?.time,
-            updatedAtMillis = document.getTimestamp(FIELD_UPDATED_AT)?.toDate()?.time
+            createdAtMillis = parseCreatedAt(document.get(FIELD_CREATED_AT)),
+            updatedAtMillis = parseCreatedAt(document.get(FIELD_UPDATED_AT))
         )
     }
 
@@ -397,6 +401,67 @@ class CommunityFirestoreDataSource(
                         )
                     }
                 )
+            }
+    }
+
+    private fun hydrateOriginalPosts(
+        posts: List<CommunityPost>,
+        onComplete: (List<CommunityPost>) -> Unit,
+        onError: (Throwable) -> Unit
+    ) {
+        val sharePosts = posts.filter { it.originalPostId != null }
+        val originalPostIds = sharePosts.mapNotNull { it.originalPostId }.distinct()
+
+        if (originalPostIds.isEmpty()) {
+            onComplete(posts)
+            return
+        }
+
+        val tasks = originalPostIds.map { id -> postsCollection.document(id).get() }
+        Tasks.whenAllComplete(tasks)
+            .addOnCompleteListener { _ ->
+                val originalPostsMap = mutableMapOf<String, CommunityPost?>()
+                tasks.forEachIndexed { index, task ->
+                    val id = originalPostIds[index]
+                    if (task.isSuccessful) {
+                        val document = task.result
+                        if (document != null && document.exists()) {
+                            originalPostsMap[id] = toCommunityPost(document)
+                        } else {
+                            originalPostsMap[id] = null
+                        }
+                    } else {
+                        originalPostsMap[id] = null
+                    }
+                }
+
+                val hydratedPosts = posts.map { post ->
+                    if (post.originalPostId != null) {
+                        val originalPost = originalPostsMap[post.originalPostId]
+                        if (originalPost != null) {
+                            val updatedSharedPost = (post.sharedPost ?: SharedCommunityPost(author = originalPost.author)).copy(
+                                authorId = originalPost.authorId,
+                                author = originalPost.author,
+                                content = originalPost.content,
+                                mediaItems = originalPost.mediaItems,
+                                eventId = originalPost.eventId,
+                                eventTitle = originalPost.eventTitle,
+                                createdAtMillis = originalPost.createdAtMillis,
+                                updatedAtMillis = originalPost.updatedAtMillis,
+                                isDeleted = false
+                            )
+                            post.copy(sharedPost = updatedSharedPost)
+                        } else {
+                            val updatedSharedPost = (post.sharedPost ?: SharedCommunityPost(author = "")).copy(
+                                isDeleted = true
+                            )
+                            post.copy(sharedPost = updatedSharedPost)
+                        }
+                    } else {
+                        post
+                    }
+                }
+                onComplete(hydratedPosts)
             }
     }
 
@@ -454,11 +519,9 @@ class CommunityFirestoreDataSource(
     private fun toSharedPost(value: Any): SharedCommunityPost? {
         val data = value as? Map<String, Any?> ?: return null
         val rawCreatedAt = data[FIELD_CREATED_AT]
-        val createdAtMillis = when (rawCreatedAt) {
-            is com.google.firebase.Timestamp -> rawCreatedAt.toDate().time
-            is Number -> rawCreatedAt.toLong()
-            else -> null
-        }
+        val createdAtMillis = parseCreatedAt(rawCreatedAt)
+        val rawUpdatedAt = data[FIELD_UPDATED_AT]
+        val updatedAtMillis = parseCreatedAt(rawUpdatedAt)
         return SharedCommunityPost(
             postId = data[FIELD_POST_ID] as? String,
             authorId = data[FIELD_AUTHOR_ID] as? String,
@@ -471,7 +534,9 @@ class CommunityFirestoreDataSource(
             eventId = data[FIELD_EVENT_ID] as? String,
             eventTitle = data[FIELD_EVENT_TITLE] as? String,
             caption = data[FIELD_SHARED_CAPTION] as? String ?: "",
-            createdAtMillis = createdAtMillis
+            createdAtMillis = createdAtMillis,
+            updatedAtMillis = updatedAtMillis,
+            isDeleted = data["isDeleted"] as? Boolean ?: false
         )
     }
 
@@ -575,8 +640,8 @@ private fun DocumentSnapshot.toCommunityComment(postId: String): CommunityCommen
         }.orEmpty(),
         likes = getLong(CommunityFirestoreDataSource.FIELD_LIKES)?.toInt() ?: 0,
         likedBy = (get(CommunityFirestoreDataSource.FIELD_LIKED_BY) as? List<*>)?.mapNotNull { it as? String }.orEmpty(),
-        createdAtMillis = getTimestamp(CommunityFirestoreDataSource.FIELD_CREATED_AT)?.toDate()?.time,
-        updatedAtMillis = getTimestamp(CommunityFirestoreDataSource.FIELD_UPDATED_AT)?.toDate()?.time
+        createdAtMillis = parseCreatedAt(get(CommunityFirestoreDataSource.FIELD_CREATED_AT)),
+        updatedAtMillis = parseCreatedAt(get(CommunityFirestoreDataSource.FIELD_UPDATED_AT))
     )
 }
 
@@ -619,7 +684,8 @@ private fun CommunityPost.toOriginalShareSnapshot(originalPostId: String): Share
         mediaItems = mediaItems,
         eventId = eventId,
         eventTitle = eventTitle,
-        createdAtMillis = createdAtMillis
+        createdAtMillis = createdAtMillis,
+        updatedAtMillis = updatedAtMillis
     )
 }
 
@@ -634,7 +700,9 @@ private fun SharedCommunityPost.toFirestoreMap(): Map<String, Any?> {
         CommunityFirestoreDataSource.FIELD_EVENT_ID to eventId,
         CommunityFirestoreDataSource.FIELD_EVENT_TITLE to eventTitle,
         CommunityFirestoreDataSource.FIELD_SHARED_CAPTION to caption,
-        CommunityFirestoreDataSource.FIELD_CREATED_AT to createdAtMillis
+        CommunityFirestoreDataSource.FIELD_CREATED_AT to createdAtMillis,
+        CommunityFirestoreDataSource.FIELD_UPDATED_AT to updatedAtMillis,
+        "isDeleted" to isDeleted
     )
 }
 
@@ -643,6 +711,36 @@ private fun CommunityMediaItem.toFirestoreMap(): Map<String, Any?> {
         CommunityFirestoreDataSource.FIELD_MEDIA_ITEM_URL to url,
         CommunityFirestoreDataSource.FIELD_MEDIA_ITEM_TYPE to type
     )
+}
+
+private fun parseCreatedAt(rawCreatedAt: Any?): Long? {
+    if (rawCreatedAt == null) return null
+    return when (rawCreatedAt) {
+        is com.google.firebase.Timestamp -> rawCreatedAt.toDate().time
+        is java.util.Date -> rawCreatedAt.time
+        is Number -> {
+            val num = rawCreatedAt.toLong()
+            if (num < 10_000_000_000L) num * 1000 else num
+        }
+        is String -> {
+            val num = rawCreatedAt.toLongOrNull()
+            if (num != null) {
+                if (num < 10_000_000_000L) num * 1000 else num
+            } else {
+                null
+            }
+        }
+        is Map<*, *> -> {
+            val seconds = (rawCreatedAt["seconds"] ?: rawCreatedAt["_seconds"]) as? Number
+            val nanoseconds = (rawCreatedAt["nanoseconds"] ?: rawCreatedAt["_nanoseconds"]) as? Number
+            if (seconds != null) {
+                seconds.toLong() * 1000 + (nanoseconds?.toLong() ?: 0L) / 1_000_000L
+            } else {
+                null
+            }
+        }
+        else -> null
+    }
 }
 
 data class CommunityStorageCheck(

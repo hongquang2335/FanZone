@@ -50,7 +50,9 @@ data class SharedCommunityPost(
     val eventId: String? = null,
     val eventTitle: String? = null,
     val caption: String = "",
-    val createdAtMillis: Long? = null
+    val createdAtMillis: Long? = null,
+    val updatedAtMillis: Long? = null,
+    val isDeleted: Boolean = false
 )
 
 data class CommunityComment(

@@ -41,6 +41,9 @@ graph TD
 ### C. Lớp Dữ liệu (Data Layer)
 - **`CommunityRepository`** & **`CommunityFirestoreDataSource`**: Thực hiện các truy vấn đọc/ghi tài liệu bài đăng, lượt thích, bình luận và theo dõi trên Firestore Database.
 
+> [!NOTE]
+> Chi tiết thiết kế và tất cả các Composable con của hệ thống bài đăng đã được tách và mô tả đầy đủ tại [Tài liệu Chi tiết các Thành phần Giao diện Cộng đồng](file:///c:/Users/quang/AndroidStudioProjects/MyApplication/docs/COMMUNITY_COMPONENTS.md).
+
 ---
 
 ## 3. Quy trình điều hướng & Cuộn tự động (Navigation & Auto-Scroll Flow)
@@ -111,3 +114,37 @@ Nếu bạn không nhận được thông báo trên điện thoại khi thử n
    - Hệ thống sẽ không bắn thông báo nếu bạn tự Thích hoặc tự Bình luận trên bài đăng của chính mình. Hãy dùng một tài khoản khác để tương tác và thử nghiệm.
 3. **Firestore Security Rules**:
    - Đảm bảo cơ sở dữ liệu Firebase của bạn đã cấp quyền ghi (`allow create`) và đọc (`allow read`) cho tài liệu trong bộ sưu tập `notifications`.
+
+---
+
+## 7. Công nghệ Sử dụng (Tech Stack)
+
+Để phát triển tính năng Cộng đồng một cách bền vững và hiệu năng cao, ứng dụng FanZone sử dụng các công nghệ cốt lõi sau:
+
+### A. Giao diện (Frontend & UI)
+- **Jetpack Compose (với Kotlin Compose Compiler)**: Xây dựng toàn bộ giao diện theo cơ chế khai báo (Declarative UI).
+- **Material Design 3 (M3)**: Sử dụng các component chuẩn M3 như `Card`, `IconButton`, `Text`, `CircularProgressIndicator`, và `ModalBottomSheet` kết hợp hệ thống màu tùy chỉnh (`Evergreen`, `SoftText`, `Background`).
+- **Coil Compose (`io.coil-kt:coil-compose`)**: Đọc và hiển thị ảnh bất đồng bộ từ URL (Firebase Storage) với cơ chế cache tự động và tối ưu hóa bộ nhớ cho danh sách cuộn nhanh.
+- **Jetpack Media3 ExoPlayer & UI**:
+  - `media3-exoplayer`: Bộ giải mã và phát video hiệu năng cao, hỗ trợ tải trước (buffering) và cấu hình phát lặp lại (looping).
+  - `media3-ui` (`PlayerView`): Sử dụng `AndroidView` để nhúng khung phát video native vào Compose.
+  - Quản lý vòng đời chặt chẽ: Giải phóng ExoPlayer thủ công ngay khi Dialog hoặc Screen bị hủy (`onDispose`), ngăn ngừa rò rỉ bộ nhớ (Memory Leak).
+
+### B. Kiến trúc & Quản lý Trạng thái (Architecture & State Management)
+- **Mô hình kiến trúc MVVM**:
+  - **Model**: Đại diện bởi lớp thực thể dữ liệu sạch (`CommunityPost`, `CommunityComment`, `SharedCommunityPost`).
+  - **View**: Giao diện Compose thuần túy, không chứa business logic (`CommunityScreen`, `EventCommunityScreen`).
+  - **ViewModel**: `CommunityViewModel` đóng vai trò là single source of truth cho luồng dữ liệu của UI.
+- **Luồng dữ liệu một chiều (UDF - Unidirectional Data Flow)**: Giao diện chỉ nhận dữ liệu từ `StateFlow<CommunityUiState>` và truyền các sự kiện hành động (Events) ngược lại ViewModel qua lambda callbacks.
+- **Hoisting Dialogs**: Trạng thái của các dialog chỉnh sửa (`EditPostDialog`) được đưa lên cấp điều hướng cao nhất ở `FanZoneNavHost`, đảm bảo hiển thị đồng nhất khi người dùng mở từ bất kỳ Route nào (Community feed, Event detail, Profile cá nhân, hoặc trang Profile người lạ).
+
+### C. Quản lý Dữ liệu & Cơ sở dữ liệu (Data & Storage)
+- **Firebase Cloud Firestore**: Cơ sở dữ liệu NoSQL phân tán, thời gian thực.
+  - **Realtime Sync**: Sử dụng `addSnapshotListener` để nhận cập nhật tức thì khi có bài đăng mới, lượt thích, bình luận, hoặc khi bài đăng bị chỉnh sửa/xóa mà không cần reload trang.
+  - **Đồng bộ bài viết gốc**: Khi tải feed, hàm `hydrateOriginalPosts` truy vấn bổ sung thông tin từ Firestore để điền dữ liệu động vào `SharedCommunityPost`. Nếu bài viết gốc bị xóa, trường `isDeleted` được gán thành `true` để UI hiển thị thông báo lỗi phù hợp.
+  - **Deserialize linh hoạt**: Helper `parseCreatedAt()` xử lý đa dạng các kiểu dữ liệu thời gian của Firestore (`Timestamp`, `Date`, `Long`, hoặc cấu trúc `Map` chứa seconds/nanoseconds), đảm bảo thời gian hiển thị chính xác trên mọi dòng thiết bị.
+- **Firebase Authentication**: Xác thực người dùng hiện tại và quản lý trạng thái đăng nhập (`AuthStateListener`). Giải phóng tài nguyên và xóa cache thông báo của `NotificationHelper` khi người dùng đăng xuất.
+
+### D. Hệ thống Nền tảng & Phân quyền (Platform Services & Permissions)
+- **Android NotificationManager & NotificationChannel**: Cấu hình kênh thông báo với độ ưu tiên cao (`IMPORTANCE_HIGH`) để bắn thông báo dạng banner (heads-up banner).
+- **Runtime Permissions Check (API 33+)**: Yêu cầu quyền `POST_NOTIFICATIONS` động trên Android 13 trở lên, tự động cho phép trên các phiên bản Android cũ hơn để đảm bảo tính tương thích ngược rộng rãi.

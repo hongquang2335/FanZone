@@ -5,8 +5,8 @@ sealed class AppDestination(val route: String) {
     data object Community : AppDestination("community")
     data object Tickets : AppDestination("tickets")
     data object Profile : AppDestination("profile")
-    data object ViewedProfile : AppDestination("profile/{profileId}") {
-        fun create(profileId: String) = "profile/$profileId"
+    data object ViewedProfile : AppDestination("viewed_profile/{profileId}") {
+        fun create(profileId: String) = "viewed_profile/$profileId"
     }
     data object Login : AppDestination("login")
     data object Register : AppDestination("register")

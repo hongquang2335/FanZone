@@ -18,6 +18,29 @@ data class CommunityUiState(
 ) {
     val posts: List<CommunityPost>
         get() = remotePosts.map { post ->
-            post.copy(isAuthorFollowed = post.authorId != null && followedProfileIds.contains(post.authorId))
+            val isCurrentUser = post.authorId != null && post.authorId == currentUserId
+            post.copy(
+                isAuthorFollowed = post.authorId != null && followedProfileIds.contains(post.authorId),
+                author = if (isCurrentUser) currentAuthorName else post.author,
+                authorAvatarUrl = if (isCurrentUser) currentAuthorAvatarUrl else post.authorAvatarUrl,
+                sharedPost = post.sharedPost?.let { share ->
+                    val isShareCurrentUser = share.authorId != null && share.authorId == currentUserId
+                    share.copy(
+                        author = if (isShareCurrentUser) currentAuthorName else share.author,
+                        authorAvatarUrl = if (isShareCurrentUser) currentAuthorAvatarUrl else share.authorAvatarUrl
+                    )
+                }
+            )
+        }
+
+    val mappedCommentsByPostId: Map<String, List<CommunityComment>>
+        get() = commentsByPostId.mapValues { (_, commentList) ->
+            commentList.map { comment ->
+                val isCurrentUser = comment.authorId == currentUserId
+                comment.copy(
+                    authorName = if (isCurrentUser) currentAuthorName else comment.authorName,
+                    authorAvatarUrl = if (isCurrentUser) currentAuthorAvatarUrl else comment.authorAvatarUrl
+                )
+            }
         }
 }
