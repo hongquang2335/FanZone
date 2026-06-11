@@ -23,7 +23,7 @@ interface CommunityRepository {
         author: String,
         authorAvatarUrl: String?,
         caption: String,
-        onSuccess: () -> Unit,
+        onSuccess: (String) -> Unit,
         onError: (Throwable) -> Unit
     )
 

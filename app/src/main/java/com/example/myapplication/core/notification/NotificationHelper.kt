@@ -84,6 +84,8 @@ object NotificationHelper {
             NotificationType.COMMENT -> "Bình luận mới"
             NotificationType.FOLLOW -> "Người theo dõi mới"
             NotificationType.NEW_POST -> "Bài viết mới"
+            NotificationType.SHARE -> "Lượt chia sẻ mới"
+            NotificationType.NEW_SHARE -> "Bài viết chia sẻ mới"
         }
 
         val text = when (notification.type) {
@@ -91,6 +93,8 @@ object NotificationHelper {
             NotificationType.COMMENT -> "${notification.senderName} đã bình luận: \"${notification.postContentExcerpt}\""
             NotificationType.FOLLOW -> "${notification.senderName} đã bắt đầu theo dõi bạn."
             NotificationType.NEW_POST -> "${notification.senderName} đã đăng một bài viết mới."
+            NotificationType.SHARE -> "${notification.senderName} đã chia sẻ bài viết của bạn."
+            NotificationType.NEW_SHARE -> "${notification.senderName} đã chia sẻ một bài viết."
         }
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)

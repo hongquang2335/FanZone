@@ -1,7 +1,7 @@
 package com.example.myapplication.domain.model
 
 enum class NotificationType {
-    LIKE, COMMENT, FOLLOW, NEW_POST
+    LIKE, COMMENT, FOLLOW, NEW_POST, SHARE, NEW_SHARE
 }
 
 data class Notification(

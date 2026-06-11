@@ -125,10 +125,11 @@ class CommunityFirestoreDataSource(
         shareAuthorId: String,
         shareAuthor: String,
         shareAuthorAvatarUrl: String?,
-        caption: String
-    ): Task<Void> {
+        caption: String,
+        sharedPostId: String = postsCollection.document().id
+    ): Task<String> {
         val originalPostId = originalPost.originalPostId ?: originalPost.id
-        val shareDocument = postsCollection.document()
+        val shareDocument = postsCollection.document(sharedPostId)
         val shareRecordDocument = postsCollection
             .document(originalPostId)
             .collection(SHARES_COLLECTION)
@@ -172,7 +173,7 @@ class CommunityFirestoreDataSource(
             batch.set(shareDocument, data)
             batch.set(shareRecordDocument, shareRecord)
             batch.update(postsCollection.document(originalPostId), FIELD_SHARE_COUNT, FieldValue.increment(1))
-        }
+        }.continueWith { sharedPostId }
     }
 
     fun observeComments(

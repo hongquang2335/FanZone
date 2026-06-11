@@ -71,13 +71,54 @@ class CommunityViewModel(
             return
         }
 
+        val trimmedCaption = caption.trim()
+
         repository.shareCommunityPost(
             post = post,
             shareAuthorId = currentUserId,
             author = _uiState.value.currentAuthorName,
             authorAvatarUrl = _uiState.value.currentAuthorAvatarUrl,
-            caption = caption.trim(),
-            onSuccess = {},
+            caption = trimmedCaption,
+            onSuccess = { sharedPostId ->
+                // 1. Notify original author if they are not the current user
+                if (post.authorId != null && post.authorId != currentUserId) {
+                    val shareNotification = Notification(
+                        recipientId = post.authorId,
+                        senderId = currentUserId,
+                        senderName = _uiState.value.currentAuthorName,
+                        senderAvatarUrl = _uiState.value.currentAuthorAvatarUrl,
+                        type = NotificationType.SHARE,
+                        postId = sharedPostId,
+                        postContentExcerpt = post.content.take(60)
+                    )
+                    notificationRepository.createNotification(shareNotification)
+                }
+
+                // 2. Notify followers of the person who shared the post
+                firestore.collection("users")
+                    .document(currentUserId)
+                    .get()
+                    .addOnSuccessListener { document ->
+                        if (document != null && document.exists()) {
+                            val followerIds = (document.get("followerIds") as? List<*>)
+                                ?.mapNotNull { it as? String }
+                                .orEmpty()
+                                .filter { it != post.authorId && it != currentUserId }
+                            followerIds.forEach { followerId ->
+                                val followNotification = Notification(
+                                    recipientId = followerId,
+                                    senderId = currentUserId,
+                                    senderName = _uiState.value.currentAuthorName,
+                                    senderAvatarUrl = _uiState.value.currentAuthorAvatarUrl,
+                                    type = NotificationType.NEW_SHARE,
+                                    postId = sharedPostId,
+                                    postContentExcerpt = trimmedCaption.take(60)
+                                )
+                                notificationRepository.createNotification(followNotification)
+                            }
+                        }
+                    }
+            },
             onError = { throwable ->
                 _uiState.update {
                     it.copy(errorMessage = throwable.localizedMessage ?: "Khong the chia se bai viet.")

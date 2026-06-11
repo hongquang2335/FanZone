@@ -95,7 +95,7 @@ class CommunityRepositoryImpl(
         author: String,
         authorAvatarUrl: String?,
         caption: String,
-        onSuccess: () -> Unit,
+        onSuccess: (String) -> Unit,
         onError: (Throwable) -> Unit
     ) {
         firestoreDataSource.createSharedPost(
@@ -105,7 +105,7 @@ class CommunityRepositoryImpl(
             shareAuthorAvatarUrl = authorAvatarUrl,
             caption = caption
         )
-            .addOnSuccessListener { onSuccess() }
+            .addOnSuccessListener { sharedPostId -> onSuccess(sharedPostId) }
             .addOnFailureListener(onError)
     }
 

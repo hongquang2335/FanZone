@@ -119,7 +119,8 @@ fun NotificationListScreen(
                             viewModel.markAsRead(notification.id)
                             when (notification.type) {
                                 NotificationType.FOLLOW -> onNavigateToProfile(notification.senderId)
-                                NotificationType.LIKE, NotificationType.COMMENT, NotificationType.NEW_POST -> {
+                                NotificationType.LIKE, NotificationType.COMMENT, NotificationType.NEW_POST,
+                                NotificationType.SHARE, NotificationType.NEW_SHARE -> {
                                     notification.postId?.let(onNavigateToPost)
                                 }
                             }
@@ -143,6 +144,8 @@ fun NotificationItemCard(
         NotificationType.COMMENT -> "đã bình luận về bài viết của bạn: \"${notification.postContentExcerpt.orEmpty()}\""
         NotificationType.FOLLOW -> "đã bắt đầu theo dõi bạn"
         NotificationType.NEW_POST -> "đã đăng một bài viết mới"
+        NotificationType.SHARE -> "đã chia sẻ bài viết của bạn: \"${notification.postContentExcerpt.orEmpty()}\""
+        NotificationType.NEW_SHARE -> "đã chia sẻ một bài viết"
     }
 
     val cardColor = if (notification.isRead) {
