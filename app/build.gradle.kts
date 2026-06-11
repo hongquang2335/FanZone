@@ -16,6 +16,8 @@ val vnpayBackendUrl = localProperties
     .trimEnd('/')
     .replace("\\", "\\\\")
     .replace("\"", "\\\"")
+val algoliaAppId = localProperties.getProperty("ALGOLIA_APP_ID", "").trim()
+val algoliaApiKey = localProperties.getProperty("ALGOLIA_API_KEY", "").trim()
 
 plugins {
     alias(libs.plugins.android.application)
@@ -40,6 +42,16 @@ android {
             "String",
             "VNPAY_BACKEND_URL",
             "\"$vnpayBackendUrl\""
+        )
+        buildConfigField(
+            "String",
+            "ALGOLIA_APP_ID",
+            "\"$algoliaAppId\""
+        )
+        buildConfigField(
+            "String",
+            "ALGOLIA_API_KEY",
+            "\"$algoliaApiKey\""
         )
     }
 

@@ -57,7 +57,7 @@ class ChatViewModel : ViewModel() {
                     functionDeclarations = listOf(
                         FunctionDeclaration(
                             name = "searchEvents",
-                            description = "Tìm kiếm sự kiện/vé dựa trên bất kỳ thông tin nào người dùng cung cấp (ví dụ: piano, ca nhạc, kịch, tên nghệ sĩ, thành phố, hoặc thời gian cụ thể). Luôn ưu tiên gọi hàm này khi người dùng muốn tìm kiếm, hỏi thông tin chi tiết hoặc hỏi về các chính sách (độ tuổi, quy định) của sự kiện.",
+                            description = "Tìm kiếm sự kiện/vé dựa trên bất kỳ thông tin nào người dùng cung cấp (ví dụ: piano, ca nhạc, kịch, tên nghệ sĩ, thành phố, hoặc thời gian cụ thể). Luôn ưu tiên gọi hàm này khi người dùng muốn tìm kiếm, hỏi thông tin chi tiết hoặc hỏi về các chính sách (độ tuổi, quy định) của sự kiện. Không trích xuất từ khóa \"sự kiện\", mà để là rỗng, title=\"sự kiện\" là không được phép",
                             parameters = mapOf(
                                 "artistName" to Schema.string(
                                     "Tên nghệ sĩ, ca sĩ hoặc đoàn nghệ thuật (optional). Ví dụ: 'Tóc Tiên', 'Sơn T  ùng'"
@@ -193,10 +193,19 @@ class ChatViewModel : ViewModel() {
                     val aiFilteredEvents = try {
                         val jsonRegex = Regex("""```json\s*([\s\S]*?)\s*```""")
                         val matchResult = jsonRegex.find(responseText)
-                        val jsonString = matchResult?.groupValues?.get(1) ?: ""
+                        var jsonString = matchResult?.groupValues?.get(1)?.trim() ?: ""
                         
                         if (jsonString.isNotEmpty()) {
-                            val parsed = Json { ignoreUnknownKeys = true }.decodeFromString<List<AlgoliaEvent>>(jsonString)
+                            // Tự động bọc vào mảng [] nếu AI chỉ trả về object {} hoặc danh sách object thiếu ngoặc vuông
+                            if (jsonString.startsWith("{")) {
+                                android.util.Log.d("ChatAI", "🔄 Đang tự động bọc JSON Object vào mảng []")
+                                jsonString = "[$jsonString]"
+                            }
+                            
+                            val parsed = Json { 
+                                ignoreUnknownKeys = true 
+                                coerceInputValues = true // Tự động gán giá trị mặc định nếu thiếu hoặc sai kiểu
+                            }.decodeFromString<List<AlgoliaEvent>>(jsonString)
                             android.util.Log.d("ChatAI", "🎉 AI đã lọc và trả về ${parsed.size} sự kiện")
                             parsed
                         } else {
@@ -257,7 +266,7 @@ class ChatViewModel : ViewModel() {
         ---
 
         ## Nhiệm vụ của bạn:
-        1. **Tư vấn & Gợi ý sự kiện:** Giúp người dùng tìm kiếm, lựa chọn sự kiện phù hợp với sở thích (thể loại, nghệ sĩ, thời gian, địa điểm). BẮT BUỘC sử dụng công cụ `searchEvents` khi người dùng hỏi về bất kỳ sự kiện, thể loại nghệ thuật hoặc yêu cầu tìm kiếm thông tin về sự kiện, BAO GỒM cả việc hỏi về quy định độ tuổi hoặc các chính sách riêng của sự kiện đó. Hãy trích xuất thông tin chuẩn xác
+        1. **Tư vấn & Gợi ý sự kiện:** Giúp người dùng tìm kiếm, lựa chọn sự kiện phù hợp với sở thích (thể loại, nghệ sĩ, thời gian, địa điểm). BẮT BUỘC sử dụng công cụ `searchEvents` khi người dùng hỏi về bất kỳ sự kiện, thể loại nghệ thuật hoặc yêu cầu tìm kiếm thông tin về sự kiện, BAO GỒM cả việc hỏi về quy định độ tuổi hoặc các chính sách riêng của sự kiện đó. Hãy trích xuất thông tin chuẩn xác. Không được trích xuất title với từ khoá "sự kiện", ví dụ title="sự kiện" là không được phép.
         2. **Hỗ trợ thông tin vé:** Cung cấp thông tin chi tiết về các hạng vé (Standard, VIP, Early Bird), sơ đồ khán đài, giá vé, chính sách hoàn/hủy/đổi vé.
         3. **Hướng dẫn quy trình:** Định hướng người dùng cách đặt vé, thanh toán, nhận vé điện tử (E-ticket) hoặc check-in tại sự kiện.
         4. **Giải quyết sự cố cơ bản:** Hỗ trợ xử lý các thắc mắc về lỗi thanh toán, không nhận được mail vé, hoặc sự kiện bị hoãn/hủy dựa trên dữ liệu hệ thống.
@@ -272,7 +281,7 @@ class ChatViewModel : ViewModel() {
         - **Tư duy kích hoạt Tool (Cloud Functions):** Khi người dùng hỏi thông tin động (Ví dụ: "Sự kiện X còn vé không?", "Vé của tôi đã thanh toán chưa?"), bạn cần phân tích để chuẩn bị gọi các hàm hệ thống (sẽ được cấu hình) thay vì tự suy đoán.
         - **Nguyên tắc trích xuất tham số:** Khi gọi Tool, bạn TUYỆT ĐỐI KHÔNG được tự ý điền các tham số nếu người dùng không nhắc tới trong cuộc hội thoại (Ví dụ: Không được tự điền 'Hồ Chí Minh' nếu người dùng chỉ nói 'Tìm show ca nhạc', hay tự động điền thời gian là tháng này). Nếu thiếu thông tin để tìm kiếm chính xác, hãy gọi Tool với các tham số hiện có hoặc hỏi lại người dùng.
         - **Quy tắc hiển thị danh sách sự kiện:** Khi bạn thực hiện gọi hàm tìm kiếm sự kiện (`searchEvents`), kết quả tìm kiếm trả về sẽ được giao diện ứng dụng tự động hiển thị dưới dạng danh sách các thẻ sự kiện vuốt ngang trực quan. Do đó, trong câu trả lời văn bản của mình, bạn TUYỆT ĐỐI không được liệt kê chi tiết danh sách các sự kiện (như tên sự kiện, thời gian, địa điểm, nghệ sĩ, giá vé). Thay vào đó, hãy chỉ đưa ra một câu giới thiệu ngắn gọn, thân thiện (ví dụ: 'Dưới đây là một số sự kiện nổi bật tại TP.HCM trong tháng 8 này mà bạn không nên bỏ lỡ:') để khuyến khích người dùng tự vuốt xem và nhấn vào thẻ để xem chi tiết.
-        - **Quy tắc trả về dữ liệu JSON:** Sau khi nhận kết quả từ hàm `searchEvents`, bạn PHẢI phân tích danh sách `hits` nhận được. Hãy loại bỏ những sự kiện KHÔNG liên quan chặt chẽ đến câu hỏi (ví dụ: nếu người dùng hỏi về 'Hồng Vân' mà kết quả fuzzy ra 'Hùng Văn', hãy loại bỏ 'Hùng Văn'). Sau đó, bạn PHẢI đính kèm danh sách các sự kiện đã lọc này vào cuối câu trả lời của mình dưới dạng một khối mã JSON (format y hệt như input nhận được từ hàm). Khối JSON này phải được bao bọc trong thẻ ```json ... ```.
+        - **Quy tắc trả về dữ liệu JSON:** Sau khi nhận kết quả từ hàm `searchEvents`, bạn PHẢI phân tích danh sách `hits` nhận được. Hãy loại bỏ những sự kiện KHÔNG liên quan chặt chẽ đến câu hỏi (ví dụ: nếu người dùng hỏi về 'Hồng Vân' mà kết quả fuzzy ra 'Hùng Văn', hãy loại bỏ 'Hùng Văn'). Sau đó, bạn PHẢI đính kèm danh sách các sự kiện đã lọc này vào cuối câu trả lời của mình dưới dạng một MẢNG JSON (luôn bọc trong dấu ngoặc vuông `[ ... ]` ngay cả khi chỉ có 1 kết quả). Khối JSON này phải chứa ĐẦY ĐỦ các trường dữ liệu như `objectID`, `title`, `venue`, `startTime`, v.v. (giữ nguyên format từ function response). Khối JSON này phải được bao bọc trong thẻ ```json ... ```.
 
         ---
 

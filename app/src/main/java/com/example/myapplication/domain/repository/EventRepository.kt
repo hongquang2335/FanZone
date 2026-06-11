@@ -14,9 +14,11 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 
+import com.example.myapplication.BuildConfig
+
 object EventRepository {
-    private const val ALGOLIA_APP_ID = "00M68Y1BYT"
-    private const val ALGOLIA_API_KEY = "f018d3378292ef943b7e010c4735e9cb"
+    private val ALGOLIA_APP_ID = BuildConfig.ALGOLIA_APP_ID
+    private val ALGOLIA_API_KEY = BuildConfig.ALGOLIA_API_KEY
     private const val ALGOLIA_INDEX = "event"
 
     suspend fun searchEvents(
