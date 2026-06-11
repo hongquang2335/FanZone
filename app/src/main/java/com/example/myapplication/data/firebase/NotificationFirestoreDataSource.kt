@@ -19,6 +19,7 @@ class NotificationFirestoreDataSource(
         onNotifications: (List<Notification>) -> Unit,
         onError: (Throwable) -> Unit
     ): ListenerRegistration {
+        android.util.Log.d("NotificationDataSource", "observeNotifications: Bắt đầu lắng nghe thông báo cho userId=$userId")
         // Fetch once immediately to populate UI in case snapshot listener is blocked/delayed
         notificationsCollection
             .whereEqualTo(FIELD_RECIPIENT_ID, userId)
@@ -26,7 +27,10 @@ class NotificationFirestoreDataSource(
             .addOnSuccessListener { snapshot ->
                 if (snapshot != null && !snapshot.isEmpty) {
                     val list = snapshot.documents.mapNotNull(::toNotification)
+                    android.util.Log.d("NotificationDataSource", "observeNotifications (GET): Lấy thành công ${list.size} thông báo")
                     onNotifications(list)
+                } else {
+                    android.util.Log.d("NotificationDataSource", "observeNotifications (GET): Không tìm thấy thông báo nào cho userId=$userId")
                 }
             }
             .addOnFailureListener { e ->
@@ -38,10 +42,15 @@ class NotificationFirestoreDataSource(
             .orderBy(FIELD_TIMESTAMP, Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
+                    android.util.Log.e("NotificationDataSource", "observeNotifications: Lỗi snapshot listener: ${error.message}", error)
                     onError(error)
                     return@addSnapshotListener
                 }
                 val list = snapshot?.documents?.mapNotNull(::toNotification).orEmpty()
+                android.util.Log.d("NotificationDataSource", "observeNotifications (SNAPSHOT): Nhận được ${list.size} thông báo cho userId=$userId")
+                list.forEach { 
+                    android.util.Log.d("NotificationDataSource", "observeNotifications item: id=${it.id}, type=${it.type}, recipientId=${it.recipientId}")
+                }
                 onNotifications(list)
             }
     }
@@ -85,7 +94,11 @@ class NotificationFirestoreDataSource(
         val senderId = document.getString(FIELD_SENDER_ID) ?: return null
         val senderName = document.getString(FIELD_SENDER_NAME) ?: return null
         val typeStr = document.getString(FIELD_TYPE) ?: return null
-        val type = runCatching { NotificationType.valueOf(typeStr) }.getOrDefault(NotificationType.LIKE)
+        val typeResult = runCatching { NotificationType.valueOf(typeStr) }
+        val type = typeResult.getOrDefault(NotificationType.LIKE)
+        if (typeResult.isFailure) {
+            android.util.Log.e("NotificationDataSource", "toNotification: Parse typeStr='$typeStr' thất bại cho document ID=${document.id}. Fallback to LIKE", typeResult.exceptionOrNull())
+        }
         val timestamp = document.getTimestamp(FIELD_TIMESTAMP)?.toDate()?.time ?: System.currentTimeMillis()
 
         return Notification(
