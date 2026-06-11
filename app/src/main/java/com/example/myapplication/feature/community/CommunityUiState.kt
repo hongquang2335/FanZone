@@ -13,7 +13,8 @@ data class CommunityUiState(
     val followedProfileIds: Set<String> = emptySet(),
     val editingPost: CommunityPost? = null,
     val unreadNotificationCount: Int = 0,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val targetCommentsPostId: String? = null
 ) {
     val posts: List<CommunityPost>
         get() = remotePosts.map { post ->

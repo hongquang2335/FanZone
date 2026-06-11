@@ -36,6 +36,8 @@ fun CommunityRoute(
         unreadNotificationCount = uiState.unreadNotificationCount,
         onOpenNotifications = onOpenNotifications,
         errorMessage = uiState.errorMessage,
+        targetCommentsPostId = uiState.targetCommentsPostId,
+        onCommentsDismissed = { viewModel.setTargetCommentsPostId(null) },
         modifier = modifier
     )
 
@@ -83,6 +85,8 @@ fun EventCommunityRoute(
         unreadNotificationCount = uiState.unreadNotificationCount,
         onOpenNotifications = onOpenNotifications,
         errorMessage = uiState.errorMessage,
+        targetCommentsPostId = uiState.targetCommentsPostId,
+        onCommentsDismissed = { viewModel.setTargetCommentsPostId(null) },
         modifier = modifier
     )
 

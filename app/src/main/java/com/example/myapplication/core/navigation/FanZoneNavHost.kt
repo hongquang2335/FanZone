@@ -79,7 +79,12 @@ fun FanZoneNavHost(
         }
         composable("search_route") {
             com.example.myapplication.feature.search.SearchScreen(
+                viewModel = viewModel,
                 onBackClick = { navController.popBackStack() },
+                onOpenEvent = { eventId ->
+                    viewModel.selectEvent(eventId)
+                    navController.navigate(AppDestination.EventDetail.create(eventId))
+                },
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -247,33 +252,32 @@ fun FanZoneNavHost(
         }
         composable(AppDestination.Notifications.route) {
             val notificationViewModel: NotificationViewModel = composeViewModel()
-            ElectricStageTheme {
-                NotificationListScreen(
-                    onBack = { navController.popBackStack() },
-                    onNavigateToPost = { postId ->
-                        val posts = communityState.posts
-                        val post = posts.firstOrNull { it.id == postId }
-                        if (post?.eventId != null) {
-                            navController.navigate(AppDestination.EventCommunity.create(post.eventId))
-                        } else {
-                            navController.navigate(AppDestination.Community.route)
+            NotificationListScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToPost = { postId ->
+                    communityViewModel.setTargetCommentsPostId(postId)
+                    val posts = communityState.posts
+                    val post = posts.firstOrNull { it.id == postId }
+                    if (post?.eventId != null) {
+                        navController.navigate(AppDestination.EventCommunity.create(post.eventId))
+                    } else {
+                        navController.navigate(AppDestination.Community.route)
+                    }
+                },
+                onNavigateToProfile = { profileId ->
+                    if (profileId == authState.user?.uid) {
+                        navController.navigate(AppDestination.Profile.route) {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
                         }
-                    },
-                    onNavigateToProfile = { profileId ->
-                        if (profileId == authState.user?.uid) {
-                            navController.navigate(AppDestination.Profile.route) {
-                                popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        } else {
-                            navController.navigate(AppDestination.ViewedProfile.create(profileId))
-                        }
-                    },
-                    viewModel = notificationViewModel,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+                    } else {
+                        navController.navigate(AppDestination.ViewedProfile.create(profileId))
+                    }
+                },
+                viewModel = notificationViewModel,
+                modifier = Modifier.fillMaxSize()
+            )
         }
         composable(AppDestination.Login.route) {
             LoginScreen(

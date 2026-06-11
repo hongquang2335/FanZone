@@ -453,6 +453,12 @@ class CommunityFirestoreDataSource(
     @Suppress("UNCHECKED_CAST")
     private fun toSharedPost(value: Any): SharedCommunityPost? {
         val data = value as? Map<String, Any?> ?: return null
+        val rawCreatedAt = data[FIELD_CREATED_AT]
+        val createdAtMillis = when (rawCreatedAt) {
+            is com.google.firebase.Timestamp -> rawCreatedAt.toDate().time
+            is Number -> rawCreatedAt.toLong()
+            else -> null
+        }
         return SharedCommunityPost(
             postId = data[FIELD_POST_ID] as? String,
             authorId = data[FIELD_AUTHOR_ID] as? String,
@@ -464,7 +470,8 @@ class CommunityFirestoreDataSource(
             mediaItems = data[FIELD_MEDIA_ITEMS]?.let(::toMediaItems).orEmpty(),
             eventId = data[FIELD_EVENT_ID] as? String,
             eventTitle = data[FIELD_EVENT_TITLE] as? String,
-            caption = data[FIELD_SHARED_CAPTION] as? String ?: ""
+            caption = data[FIELD_SHARED_CAPTION] as? String ?: "",
+            createdAtMillis = createdAtMillis
         )
     }
 
@@ -611,7 +618,8 @@ private fun CommunityPost.toOriginalShareSnapshot(originalPostId: String): Share
         content = content,
         mediaItems = mediaItems,
         eventId = eventId,
-        eventTitle = eventTitle
+        eventTitle = eventTitle,
+        createdAtMillis = createdAtMillis
     )
 }
 
@@ -625,7 +633,8 @@ private fun SharedCommunityPost.toFirestoreMap(): Map<String, Any?> {
         CommunityFirestoreDataSource.FIELD_MEDIA_ITEMS to mediaItems.map { it.toFirestoreMap() },
         CommunityFirestoreDataSource.FIELD_EVENT_ID to eventId,
         CommunityFirestoreDataSource.FIELD_EVENT_TITLE to eventTitle,
-        CommunityFirestoreDataSource.FIELD_SHARED_CAPTION to caption
+        CommunityFirestoreDataSource.FIELD_SHARED_CAPTION to caption,
+        CommunityFirestoreDataSource.FIELD_CREATED_AT to createdAtMillis
     )
 }
 

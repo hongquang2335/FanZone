@@ -15,10 +15,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -30,6 +32,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -65,6 +68,8 @@ fun EventCommunityScreen(
     unreadNotificationCount: Int = 0,
     onOpenNotifications: () -> Unit = {},
     errorMessage: String? = null,
+    targetCommentsPostId: String? = null,
+    onCommentsDismissed: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(
@@ -73,6 +78,20 @@ fun EventCommunityScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         val isExpanded = maxWidth >= 720.dp
+        val listState = rememberLazyListState()
+
+        LaunchedEffect(targetCommentsPostId) {
+            if (targetCommentsPostId != null) {
+                val index = posts.indexOfFirst { it.id == targetCommentsPostId }
+                if (index >= 0) {
+                    var targetIndex = 2 // EventCommunityHeader (index 0) + ComposerCard (index 1)
+                    if (!errorMessage.isNullOrBlank()) targetIndex++
+                    targetIndex += index
+                    listState.animateScrollToItem(targetIndex)
+                }
+                onCommentsDismissed()
+            }
+        }
 
         Column(modifier = Modifier.fillMaxSize()) {
             EventCommunityTopBar(
@@ -83,6 +102,7 @@ fun EventCommunityScreen(
             )
 
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -123,7 +143,9 @@ fun EventCommunityScreen(
                             onOpenAuth = onOpenAuth,
                             onOpenProfile = onOpenProfile,
                             onDeletePost = onDeletePost,
-                            onEditPost = onEditPost
+                            onEditPost = onEditPost,
+                            targetCommentsPostId = targetCommentsPostId,
+                            onCommentsDismissed = onCommentsDismissed
                         )
                     }
                 } else {
@@ -151,7 +173,9 @@ fun EventCommunityScreen(
                             onOpenAuth = onOpenAuth,
                             onOpenProfile = onOpenProfile,
                             onDeletePost = { onDeletePost(post.id) },
-                            onEditPost = { onEditPost(post) }
+                            onEditPost = { onEditPost(post) },
+                            showCommentsInitially = false,
+                            onCommentsDismissed = onCommentsDismissed
                         )
                     }
                     if (posts.isEmpty()) {
@@ -181,7 +205,9 @@ private fun ExpandedEventCommunityContent(
     onOpenAuth: () -> Unit,
     onOpenProfile: (String) -> Unit,
     onDeletePost: (String) -> Unit,
-    onEditPost: (CommunityPost) -> Unit
+    onEditPost: (CommunityPost) -> Unit,
+    targetCommentsPostId: String? = null,
+    onCommentsDismissed: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -225,7 +251,9 @@ private fun ExpandedEventCommunityContent(
                         onOpenAuth = onOpenAuth,
                         onOpenProfile = onOpenProfile,
                         onDeletePost = { onDeletePost(post.id) },
-                        onEditPost = { onEditPost(post) }
+                        onEditPost = { onEditPost(post) },
+                        showCommentsInitially = false,
+                        onCommentsDismissed = onCommentsDismissed
                     )
                 }
             }
@@ -259,29 +287,23 @@ private fun EventCommunityTopBar(
             fontWeight = FontWeight.ExtraBold,
             maxLines = 1
         )
-        Box(modifier = Modifier.size(48.dp)) {
-            IconButton(onClick = onOpenNotifications) {
+        IconButton(
+            onClick = onOpenNotifications
+        ) {
+            Box {
                 Icon(
                     imageVector = Icons.Default.NotificationsNone,
                     contentDescription = "Thông báo",
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(28.dp)
                 )
-            }
-            if (unreadNotificationCount > 0) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 4.dp, end = 4.dp)
-                        .size(18.dp)
-                        .background(MaterialTheme.colorScheme.error, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = unreadNotificationCount.toString(),
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
+                if (unreadNotificationCount > 0) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 2.dp, y = (-2).dp)
+                            .size(10.dp)
+                            .background(MaterialTheme.colorScheme.error, CircleShape)
                     )
                 }
             }

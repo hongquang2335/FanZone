@@ -327,12 +327,14 @@ fun CommunityCard(
     onOpenAuth: () -> Unit = {},
     onOpenProfile: (String) -> Unit = {},
     onDeletePost: () -> Unit = {},
-    onEditPost: () -> Unit = {}
+    onEditPost: () -> Unit = {},
+    showCommentsInitially: Boolean = false,
+    onCommentsDismissed: () -> Unit = {}
 ) {
     var liked by remember(post.id, currentUserId, post.likedBy) { mutableStateOf(post.isLikedByUser(currentUserId)) }
     var likeCount by remember(post.id, post.likes) { mutableStateOf(post.likes) }
     var commentCount by remember(post.id) { mutableStateOf(post.comments) }
-    var commentOpen by remember(post.id) { mutableStateOf(false) }
+    var commentOpen by remember(post.id, showCommentsInitially) { mutableStateOf(showCommentsInitially) }
     var shareOpen by remember(post.id) { mutableStateOf(false) }
     var shareCount by remember(post.id) { mutableStateOf(post.shareCount) }
     var showAuthPrompt by remember { mutableStateOf(false) }
@@ -533,7 +535,10 @@ fun CommunityCard(
             likeCount = likeCount,
             shareCount = shareCount,
             authorName = currentAuthorName,
-            onDismiss = { commentOpen = false },
+            onDismiss = {
+                commentOpen = false
+                onCommentsDismissed()
+            },
             onAddComment = { text ->
                 commentCount++
                 onAddComment(text)
@@ -669,7 +674,7 @@ private fun SharedPostPreview(
                                 )
                                 PostMetaLine(
                                     author = share.author.takeIf { share.eventTitle != null },
-                                    timeLabel = post.postTimeLabel(),
+                                    timeLabel = share.postTimeLabel(),
                                     textStyle = MaterialTheme.typography.bodySmall,
                                     onAuthorClick = share.authorId?.let { id -> { onOpenProfile(id) } }
                                 )
@@ -703,7 +708,7 @@ private fun SharedPostPreview(
     }
 }
 
-private fun CommunityPost.postTimeLabel(): String {
+private fun formatTimeLabel(createdAtMillis: Long?): String {
     val createdAt = createdAtMillis ?: return "Vừa xong"
     val elapsedMillis = (System.currentTimeMillis() - createdAt).coerceAtLeast(0L)
     val minuteMillis = 60_000L
@@ -721,6 +726,10 @@ private fun CommunityPost.postTimeLabel(): String {
         else -> SimpleDateFormat("d/M/yyyy", Locale.getDefault()).format(Date(createdAt))
     }
 }
+
+private fun CommunityPost.postTimeLabel(): String = formatTimeLabel(createdAtMillis)
+
+private fun SharedCommunityPost.postTimeLabel(): String = formatTimeLabel(createdAtMillis)
 
 @Composable
 private fun CommunityPostMedia(

@@ -299,29 +299,23 @@ private fun SignedInProfileScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Box(modifier = Modifier.size(48.dp)) {
-                        IconButton(onClick = onOpenNotifications) {
+                    IconButton(
+                        onClick = onOpenNotifications
+                    ) {
+                        Box {
                             Icon(
                                 imageVector = Icons.Default.NotificationsNone,
                                 contentDescription = "Thông báo",
                                 tint = Color.White,
                                 modifier = Modifier.size(28.dp)
                             )
-                        }
-                        if (unreadNotificationCount > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(top = 4.dp, end = 4.dp)
-                                    .size(18.dp)
-                                    .background(MaterialTheme.colorScheme.error, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = unreadNotificationCount.toString(),
-                                    color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
+                            if (unreadNotificationCount > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = 2.dp, y = (-2).dp)
+                                        .size(10.dp)
+                                        .background(MaterialTheme.colorScheme.error, CircleShape)
                                 )
                             }
                         }
@@ -468,6 +462,7 @@ private fun ProfileOptionsHeader(title: String, onBack: () -> Unit) {
                 .align(Alignment.CenterStart)
                 .padding(start = 24.dp)
                 .size(46.dp)
+                .clip(CircleShape)
                 .clickable(onClick = onBack),
             shape = CircleShape,
             color = Color.Transparent,

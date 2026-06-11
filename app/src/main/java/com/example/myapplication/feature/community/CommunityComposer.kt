@@ -212,7 +212,7 @@ private fun NewPostDialog(
                 )
                 TextButton(
                     onClick = onPost,
-                    enabled = state.canPost,
+                    enabled = state.canPost && !state.isPosting,
                     modifier = Modifier.align(Alignment.CenterEnd)
                 ) {
                     if (state.isPosting) {
@@ -221,14 +221,14 @@ private fun NewPostDialog(
                             color = Evergreen,
                             strokeWidth = 2.dp
                         )
-                        androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(8.dp))
+                    } else {
+                        Text(
+                            text = AppStrings.Community.POST_ACTION,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (state.canPost) Evergreen else SoftText
+                        )
                     }
-                    Text(
-                        text = if (state.isPosting) AppStrings.Community.POSTING else AppStrings.Community.POST_ACTION,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = if (state.canPost || state.isPosting) Evergreen else SoftText
-                    )
                 }
             }
 

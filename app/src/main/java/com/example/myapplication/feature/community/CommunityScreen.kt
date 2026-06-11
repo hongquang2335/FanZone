@@ -12,9 +12,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.NotificationsNone
@@ -23,6 +25,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -54,51 +57,64 @@ fun CommunityScreen(
     unreadNotificationCount: Int = 0,
     onOpenNotifications: () -> Unit = {},
     errorMessage: String? = null,
+    targetCommentsPostId: String? = null,
+    onCommentsDismissed: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background)) {
         val isExpanded = maxWidth >= 720.dp
+        val listState = rememberLazyListState()
+
+        LaunchedEffect(targetCommentsPostId) {
+            if (targetCommentsPostId != null) {
+                val index = posts.indexOfFirst { it.id == targetCommentsPostId }
+                if (index >= 0) {
+                    var targetIndex = 2 // Header (index 0) + ComposerCard (index 1)
+                    if (!errorMessage.isNullOrBlank()) targetIndex++
+                    targetIndex += index
+                    listState.animateScrollToItem(targetIndex)
+                }
+                onCommentsDismissed()
+            }
+        }
 
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize().statusBarsPadding(),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
                 ) {
                     Text(
                         text = "Cộng đồng",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onBackground
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.align(Alignment.Center)
                     )
-                    Box(modifier = Modifier.size(48.dp)) {
-                        IconButton(onClick = onOpenNotifications) {
+                    IconButton(
+                        onClick = onOpenNotifications,
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    ) {
+                        Box {
                             Icon(
                                 imageVector = Icons.Default.NotificationsNone,
                                 contentDescription = "Thông báo",
                                 tint = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.size(28.dp)
                             )
-                        }
-                        if (unreadNotificationCount > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(top = 4.dp, end = 4.dp)
-                                    .size(18.dp)
-                                    .background(MaterialTheme.colorScheme.error, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = unreadNotificationCount.toString(),
-                                    color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
+                            if (unreadNotificationCount > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = 2.dp, y = (-2).dp)
+                                        .size(10.dp)
+                                        .background(MaterialTheme.colorScheme.error, CircleShape)
                                 )
                             }
                         }
@@ -158,7 +174,9 @@ fun CommunityScreen(
                                             onOpenAuth = onOpenAuth,
                                             onOpenProfile = onOpenProfile,
                                             onDeletePost = { onDeletePost(post.id) },
-                                            onEditPost = { onEditPost(post) }
+                                            onEditPost = { onEditPost(post) },
+                                            showCommentsInitially = false,
+                                            onCommentsDismissed = onCommentsDismissed
                                         )
                                     }
                                 }
@@ -181,7 +199,9 @@ fun CommunityScreen(
                             onOpenAuth = onOpenAuth,
                             onOpenProfile = onOpenProfile,
                             onDeletePost = { onDeletePost(post.id) },
-                            onEditPost = { onEditPost(post) }
+                            onEditPost = { onEditPost(post) },
+                            showCommentsInitially = false,
+                            onCommentsDismissed = onCommentsDismissed
                         )
                     }
                 }

@@ -49,7 +49,8 @@ data class SharedCommunityPost(
     val mediaItems: List<CommunityMediaItem> = emptyList(),
     val eventId: String? = null,
     val eventTitle: String? = null,
-    val caption: String = ""
+    val caption: String = "",
+    val createdAtMillis: Long? = null
 )
 
 data class CommunityComment(

@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.content.Intent
@@ -378,7 +379,7 @@ private fun SettingsHeader(title: String, onBack: () -> Unit) {
             .statusBarsPadding()
     ) {
         Surface(
-            modifier = Modifier.align(Alignment.CenterStart).padding(start = 24.dp).size(46.dp).clickable(onClick = onBack),
+            modifier = Modifier.align(Alignment.CenterStart).padding(start = 24.dp).size(46.dp).clip(CircleShape).clickable(onClick = onBack),
             shape = CircleShape,
             color = Color.Transparent,
             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.65f))

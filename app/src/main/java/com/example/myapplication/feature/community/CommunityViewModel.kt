@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.update
 import com.example.myapplication.domain.model.Notification
 import com.example.myapplication.domain.model.NotificationType
 import com.example.myapplication.domain.repository.NotificationRepository
+import com.example.myapplication.core.notification.NotificationHelper
 
 class CommunityViewModel(
     application: Application
@@ -39,6 +40,7 @@ class CommunityViewModel(
             subscription = null
             notificationSubscription?.dispose()
             notificationSubscription = null
+            NotificationHelper.reset()
             _uiState.update {
                 it.copy(
                     currentAuthorName = "Ban",
@@ -294,9 +296,17 @@ class CommunityViewModel(
             onNotifications = { list ->
                 val unread = list.count { !it.isRead }
                 _uiState.update { it.copy(unreadNotificationCount = unread) }
+                NotificationHelper.handleNotifications(getApplication(), list)
             },
             onError = {}
         )
+    }
+
+    fun setTargetCommentsPostId(postId: String?) {
+        _uiState.update { it.copy(targetCommentsPostId = postId) }
+        if (postId != null) {
+            observeComments(postId)
+        }
     }
 
     fun openEditPost(post: CommunityPost) {
