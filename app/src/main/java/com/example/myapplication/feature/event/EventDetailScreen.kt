@@ -63,7 +63,8 @@ fun EventDetailScreen(
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = { AppTopBar(title = "FanZone", onBack = onBack) },
-            containerColor = MaterialTheme.colorScheme.background
+            containerColor = MaterialTheme.colorScheme.background,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0)
         ) { innerPadding ->
             EventDetailBody(
                 event = event,

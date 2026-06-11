@@ -41,7 +41,8 @@ fun ChatbotScreen(
 
     Scaffold(
         topBar = { ChatTopBar(onBackClick = onBackClick) },
-        containerColor = VibeCanvas
+        containerColor = VibeCanvas,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -88,7 +89,9 @@ fun ChatbotScreen(
                 onSendMessage = { text ->
                     viewModel.sendMessage(text)
                 },
-                modifier = Modifier.imePadding() // Hỗ trợ đẩy lên khi hiện bàn phím
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .imePadding()
             )
         }
     }
@@ -118,7 +121,8 @@ fun ChatbotScreenPreview() {
         Scaffold(
             topBar = { ChatTopBar(onBackClick = {}) },
             bottomBar = { ChatInputBar(onSendMessage = {}) },
-            containerColor = VibeCanvas
+            containerColor = VibeCanvas,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0)
         ) { padding ->
             Column(
                 modifier = Modifier
