@@ -80,8 +80,10 @@ class CommunityViewModel(
             authorAvatarUrl = _uiState.value.currentAuthorAvatarUrl,
             caption = trimmedCaption,
             onSuccess = { sharedPostId ->
+                android.util.Log.d("CommunityViewModel", "sharePost onSuccess: sharedPostId=$sharedPostId, post.authorId=${post.authorId}, currentUserId=$currentUserId")
                 // 1. Notify original author if they are not the current user
                 if (post.authorId != null && post.authorId != currentUserId) {
+                    android.util.Log.d("CommunityViewModel", "sharePost: Creating SHARE notification for recipientId=${post.authorId}")
                     val shareNotification = Notification(
                         recipientId = post.authorId,
                         senderId = currentUserId,
@@ -91,7 +93,17 @@ class CommunityViewModel(
                         postId = sharedPostId,
                         postContentExcerpt = post.content.take(60)
                     )
-                    notificationRepository.createNotification(shareNotification)
+                    notificationRepository.createNotification(
+                        notification = shareNotification,
+                        onSuccess = {
+                            android.util.Log.d("CommunityViewModel", "sharePost: SHARE notification created successfully in Firestore")
+                        },
+                        onError = { e ->
+                            android.util.Log.e("CommunityViewModel", "sharePost: Failed to create SHARE notification: ${e.message}", e)
+                        }
+                    )
+                } else {
+                    android.util.Log.d("CommunityViewModel", "sharePost: SHARE notification skipped. post.authorId matches currentUserId or is null")
                 }
 
                 // 2. Notify followers of the person who shared the post
@@ -104,6 +116,7 @@ class CommunityViewModel(
                                 ?.mapNotNull { it as? String }
                                 .orEmpty()
                                 .filter { it != post.authorId && it != currentUserId }
+                            android.util.Log.d("CommunityViewModel", "sharePost: Found ${followerIds.size} followers to notify (excluding author/self): $followerIds")
                             followerIds.forEach { followerId ->
                                 val followNotification = Notification(
                                     recipientId = followerId,
@@ -114,9 +127,22 @@ class CommunityViewModel(
                                     postId = sharedPostId,
                                     postContentExcerpt = trimmedCaption.take(60)
                                 )
-                                notificationRepository.createNotification(followNotification)
+                                notificationRepository.createNotification(
+                                    notification = followNotification,
+                                    onSuccess = {
+                                        android.util.Log.d("CommunityViewModel", "sharePost: NEW_SHARE notification created successfully for followerId=$followerId")
+                                    },
+                                    onError = { e ->
+                                        android.util.Log.e("CommunityViewModel", "sharePost: Failed to create NEW_SHARE notification for follower: ${e.message}", e)
+                                    }
+                                )
                             }
+                        } else {
+                            android.util.Log.d("CommunityViewModel", "sharePost: Current user document does not exist in users collection")
                         }
+                    }
+                    .addOnFailureListener { e ->
+                        android.util.Log.e("CommunityViewModel", "sharePost: Failed to fetch current user document: ${e.message}", e)
                     }
             },
             onError = { throwable ->
