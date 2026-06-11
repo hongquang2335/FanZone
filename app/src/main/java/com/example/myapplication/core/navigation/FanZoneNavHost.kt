@@ -1,5 +1,6 @@
 package com.example.myapplication.core.navigation
 
+import android.net.Uri
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -64,22 +65,35 @@ fun FanZoneNavHost(
     ) {
         composable(AppDestination.Home.route) {
             HomeScreen(
-                event = uiState.selectedEvent,
                 events = uiState.events,
-                categories = uiState.categories,
+                posts = communityState.posts,
                 onOpenEvent = { eventId ->
                     viewModel.selectEvent(eventId)
                     navController.navigate(AppDestination.EventDetail.create(eventId))
                 },
-                onOpenCommunity = { navController.navigate(AppDestination.Community.route) },
                 onNavigateToSearch = { navController.navigate("search_route") },
-                onSelectCategory = { categoryId -> /* Tạm thời để trống */ },
+                onViewCategory = { category ->
+                    navController.navigate("search_route?category=${Uri.encode(category)}")
+                },
                 modifier = Modifier.fillMaxSize()
             )
         }
-        composable("search_route") {
+        composable(
+            route = "search_route?category={category}",
+            arguments = listOf(
+                navArgument("category") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { entry ->
             com.example.myapplication.feature.search.SearchScreen(
-                viewModel = viewModel,
+                events = uiState.events,
+                searchHistory = authState.searchHistory,
+                isSignedIn = authState.isSignedIn,
+                initialCategory = entry.arguments?.getString("category"),
+                onSearchSubmit = authViewModel::saveSearchQuery,
                 onBackClick = { navController.popBackStack() },
                 onOpenEvent = { eventId ->
                     viewModel.selectEvent(eventId)

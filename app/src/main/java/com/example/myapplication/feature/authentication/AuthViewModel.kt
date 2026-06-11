@@ -27,7 +27,11 @@ class AuthViewModel(
     private val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
         val firebaseUser = firebaseAuth.currentUser
         _uiState.update { state ->
-            state.copy(user = firebaseUser?.toAuthUser(), isLoading = false)
+            state.copy(
+                user = firebaseUser?.toAuthUser(),
+                searchHistory = if (firebaseUser == null) emptyList() else state.searchHistory,
+                isLoading = false
+            )
         }
         firebaseUser?.uid?.let { uid ->
             loadUserProfile(uid)
@@ -660,6 +664,32 @@ class AuthViewModel(
         _uiState.update { it.copy(isLoading = false, errorMessage = message, infoMessage = null) }
     }
 
+    fun saveSearchQuery(query: String) {
+        val user = auth.currentUser ?: return
+        val normalizedQuery = query.trim()
+        if (normalizedQuery.isBlank()) return
+
+        val nextHistory = buildList {
+            add(normalizedQuery)
+            addAll(
+                _uiState.value.searchHistory.filterNot {
+                    it.equals(normalizedQuery, ignoreCase = true)
+                }
+            )
+        }.take(5)
+
+        _uiState.update { it.copy(searchHistory = nextHistory) }
+        firestore.collection(USERS_COLLECTION)
+            .document(user.uid)
+            .set(
+                mapOf(
+                    "searchHistory" to nextHistory,
+                    "updatedAt" to System.currentTimeMillis()
+                ),
+                SetOptions.merge()
+            )
+    }
+
     private fun handleAuthSuccess(user: FirebaseUser?, infoMessage: String?, onSuccess: () -> Unit) {
         upsertUserDocument(user)
         _uiState.update {
@@ -757,6 +787,7 @@ class AuthViewModel(
             if (!snapshot.contains("following")) defaults["following"] = 0
             if (!snapshot.contains("followerIds")) defaults["followerIds"] = emptyList<String>()
             if (!snapshot.contains("followingIds")) defaults["followingIds"] = emptyList<String>()
+            if (!snapshot.contains("searchHistory")) defaults["searchHistory"] = emptyList<String>()
             if (!snapshot.contains("createdAt")) defaults["createdAt"] = System.currentTimeMillis()
             if (defaults.isNotEmpty()) {
                 transaction.set(userRef, defaults, SetOptions.merge())
@@ -777,9 +808,14 @@ class AuthViewModel(
                     gender = document.getString("gender").orEmpty(),
                     avatarUrl = document.getString("avatarUrl")
                 )
+                val searchHistory = (document.get("searchHistory") as? List<*>)
+                    ?.mapNotNull { it as? String }
+                    ?.take(5)
+                    .orEmpty()
                 _uiState.update { state ->
                     state.copy(
                         accountProfile = profile,
+                        searchHistory = searchHistory,
                         user = state.user?.copy(displayName = profile.fullName.takeIf { it.isNotBlank() } ?: state.user.displayName)
                     )
                 }

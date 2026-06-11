@@ -3,6 +3,7 @@ package com.example.myapplication.feature.authentication
 data class AuthUiState(
     val user: AuthUser? = null,
     val accountProfile: AccountProfile = AccountProfile(),
+    val searchHistory: List<String> = emptyList(),
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val infoMessage: String? = null,

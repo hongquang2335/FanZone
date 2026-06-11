@@ -162,8 +162,7 @@ private fun WalletHeader() {
         modifier = Modifier
             .fillMaxWidth()
             .height(72.dp)
-            .background(VibeCanvas)
-            .shadow(1.dp),
+            .background(VibeCanvas),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -206,7 +205,7 @@ private fun TicketTabButton(
     onClick: () -> Unit
 ) {
     Surface(
-        modifier = Modifier.clickable(onClick = onClick),
+        onClick = onClick,
         shape = CircleShape,
         color = if (selected) VibeGreen else Color.White,
         border = BorderStroke(1.dp, Color(0x4DBCCABC))
