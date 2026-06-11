@@ -404,6 +404,9 @@ fun FanZoneNavHost(
         composable(AppDestination.Support.route) {
             ChatbotScreen(
                 onBackClick = { navController.popBackStack() },
+                onNavigateToEvent = { eventId ->
+                    navController.navigate(AppDestination.EventDetail.create(eventId))
+                },
                 viewModel = chatViewModel
             )
         }

@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.domain.model.ChatMessage
 import com.example.myapplication.domain.model.Participant
+import com.example.myapplication.domain.model.AlgoliaEvent
+import com.example.myapplication.domain.repository.EventRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,8 +15,16 @@ import java.util.UUID
 import kotlin.collections.filter
 import com.google.firebase.Firebase
 import com.google.firebase.ai.ai
+import com.google.firebase.ai.type.Schema
+import com.google.firebase.ai.type.FunctionDeclaration
 import com.google.firebase.ai.type.GenerativeBackend
+import com.google.firebase.ai.type.Tool
 import com.google.firebase.ai.type.content
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.decodeFromJsonElement
+
 class ChatViewModel : ViewModel() {
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
@@ -41,7 +51,31 @@ class ChatViewModel : ViewModel() {
             modelName = "gemini-3.1-flash-lite",
             systemInstruction = content {
                 text(prompt.trimIndent())
-            }
+            },
+            tools = listOf(
+                Tool.functionDeclarations(
+                    functionDeclarations = listOf(
+                        FunctionDeclaration(
+                            name = "searchEvents",
+                            description = "Tìm kiếm sự kiện/vé dựa trên bất kỳ thông tin nào người dùng cung cấp (ví dụ: piano, ca nhạc, kịch, tên nghệ sĩ, thành phố, hoặc thời gian cụ thể). Luôn ưu tiên gọi hàm này khi người dùng muốn tìm kiếm, hỏi thông tin chi tiết hoặc hỏi về các chính sách (độ tuổi, quy định) của sự kiện.",
+                            parameters = mapOf(
+                                "artistName" to Schema.string(
+                                    "Tên nghệ sĩ, ca sĩ hoặc đoàn nghệ thuật (optional). Ví dụ: 'Tóc Tiên', 'Sơn T  ùng'"
+                                ),
+                                "title" to Schema.string(
+                                    "Tên, thể loại hoặc từ khóa sự kiện (optional). Ví dụ: 'Concert', 'Triển lãm'"
+                                ),
+                                "address" to Schema.string(
+                                    "Địa điểm, thành phố hoặc quận huyện (optional). CHỈ trích xuất nếu người dùng nhắc đến địa điểm cụ thể. Ví dụ: 'Hồ Chí Minh', 'Hà Nội'"
+                                ),
+                                "month" to Schema.string(
+                                    "Tháng hoặc thời gian để tìm (optional). Format: YYYY-MM. CHỈ trích xuất nếu người dùng nhắc đến thời gian cụ thể. Ví dụ: '2026-08' cho tháng 8 năm 2026"
+                                )
+                            )
+                        )
+                    )
+                )
+            ),
         )
     }
 
@@ -57,7 +91,7 @@ class ChatViewModel : ViewModel() {
             ChatMessage(
                 sender = Participant.Bot,
                 content = "Chào bạn! Tôi là trợ lý ảo FanZone. Tôi có thể giúp gì cho bạn hôm nay?",
-                suggestions = listOf("Kiểm tra vé của tôi", "Sự kiện sắp diễn ra", "Chính sách hoàn vé", "Liên hệ hỗ trợ")
+                suggestions = listOf("Kiểm tra vé của tôi", "Sự kiện sắp diễn ra", "Liên hệ hỗ trợ")
             )
         )
     }
@@ -70,6 +104,7 @@ class ChatViewModel : ViewModel() {
     }
     private fun generateAIResponse(userText: String) {
         viewModelScope.launch {
+            android.util.Log.d("ChatAI", "💬 Người dùng gửi: \"$userText\"")
             // Thêm trạng thái "đang suy nghĩ" vào UI
             val thinkingMessage = ChatMessage(sender = Participant.Bot, content = "", isThinking = true)
             _messages.value = _messages.value + thinkingMessage
@@ -77,14 +112,20 @@ class ChatViewModel : ViewModel() {
             try {
                 // 3. Gửi tin nhắn đến Gemini thông qua Firebase AI Logic
                 val response = chat.sendMessage(userText)
-                val responseText = response.text ?: "Xin lỗi, tôi không thể trả lời lúc này."
-
-                // Xóa tin nhắn "thinking" và thêm phản hồi thật từ AI
-                _messages.value = _messages.value.filter { !it.isThinking } + ChatMessage(
-                    sender = Participant.Bot,
-                    content = responseText
-                )
+                android.util.Log.d("ChatAI", "🤖 Phản hồi ban đầu từ Gemini: text=\"${response.text}\", functionCalls=${response.functionCalls.map { it.name }}")
+                
+                if (response.functionCalls.isNotEmpty()) {
+                    handleFunctionCalls(response)
+                } else {
+                    val responseText = response.text ?: "Xin lỗi, tôi không thể trả lời lúc này."
+                    android.util.Log.d("ChatAI", "🤖 Trả lời trực tiếp bằng văn bản (không gọi hàm): $responseText")
+                    _messages.value = _messages.value.filter { !it.isThinking } + ChatMessage(
+                        sender = Participant.Bot,
+                        content = responseText
+                    )
+                }
             } catch (e: Exception) {
+                android.util.Log.e("ChatAI", "❌ Lỗi khi gửi tin nhắn tới Gemini: ${e.message}", e)
                 // Xử lý lỗi (ví dụ: mất mạng)
                 _messages.value = _messages.value.filter { !it.isThinking } + ChatMessage(
                     sender = Participant.Bot,
@@ -93,7 +134,92 @@ class ChatViewModel : ViewModel() {
             }
         }
     }
+    private suspend fun handleFunctionCalls(response: com.google.firebase.ai.type.GenerateContentResponse) {
+        response.functionCalls.forEach { functionCall ->
+            android.util.Log.d("ChatAI", "🚀 AI đang gọi hàm: ${functionCall.name}")
+            android.util.Log.d("ChatAI", "📦 Tham số AI trích xuất: ${functionCall.args}")
 
+            when (functionCall.name) {
+                "searchEvents" -> {
+                    val artistName = functionCall.args["artistName"]?.jsonPrimitive?.content
+                    val title = functionCall.args["title"]?.jsonPrimitive?.content
+                    val address = functionCall.args["address"]?.jsonPrimitive?.content
+                    val month = functionCall.args["month"]?.jsonPrimitive?.content
+
+                    android.util.Log.d("ChatAI", "🔍 Đang thực hiện searchEvents với: artist=$artistName, city=$address, month=$month")
+
+                    val searchResult = EventRepository.searchEvents(
+                        artistName = artistName,
+                        title = title,
+                        address = address,
+                        month = month
+                    )
+                    
+                    android.util.Log.d("ChatAI", "✅ Kết quả từ Repository: $searchResult")
+
+                    // Trích xuất danh sách sự kiện từ Algolia hits
+                    val events = try {
+                        val hits = searchResult["hits"]?.jsonArray
+                        android.util.Log.d("ChatAI", "Raw hits JSON: $hits")
+                        if (hits != null) {
+                            val parsedEvents = Json { ignoreUnknownKeys = true }.decodeFromJsonElement<List<AlgoliaEvent>>(hits)
+                            android.util.Log.d("ChatAI", "🎉 Parse thành công ${parsedEvents.size} sự kiện")
+                            parsedEvents
+                        } else {
+                            android.util.Log.w("ChatAI", "⚠️ Hits là null")
+                            emptyList()
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("ChatAI", "❌ Lỗi parse sự kiện: ${e.message}", e)
+                        emptyList()
+                    }
+
+                    android.util.Log.d("ChatAI", "📤 Gửi kết quả hàm lại cho Gemini...")
+                    val finalResponse = chat.sendMessage(
+                        com.google.firebase.ai.type.content("function") {
+                            part(
+                                com.google.firebase.ai.type.FunctionResponsePart(
+                                    "searchEvents",
+                                    searchResult
+                                )
+                            )
+                        }
+                    )
+
+                    val responseText = finalResponse.text ?: "Không tìm thấy sự kiện phù hợp"
+                    android.util.Log.d("ChatAI", "🤖 Phản hồi cuối cùng từ Gemini sau khi gọi hàm: $responseText")
+                    
+                    // Trích xuất danh sách sự kiện từ khối JSON trong responseText của AI
+                    val aiFilteredEvents = try {
+                        val jsonRegex = Regex("""```json\s*([\s\S]*?)\s*```""")
+                        val matchResult = jsonRegex.find(responseText)
+                        val jsonString = matchResult?.groupValues?.get(1) ?: ""
+                        
+                        if (jsonString.isNotEmpty()) {
+                            val parsed = Json { ignoreUnknownKeys = true }.decodeFromString<List<AlgoliaEvent>>(jsonString)
+                            android.util.Log.d("ChatAI", "🎉 AI đã lọc và trả về ${parsed.size} sự kiện")
+                            parsed
+                        } else {
+                            android.util.Log.w("ChatAI", "⚠️ AI không trả về khối JSON sự kiện")
+                            emptyList()
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("ChatAI", "❌ Lỗi parse JSON sự kiện từ AI: ${e.message}")
+                        emptyList()
+                    }
+
+                    // Loại bỏ khối JSON khỏi nội dung văn bản hiển thị cho người dùng
+                    val cleanDisplayContent = responseText.replace(Regex("""```json\s*[\s\S]*?\s*```"""), "").trim()
+
+                    _messages.value = _messages.value.filter { !it.isThinking } + ChatMessage(
+                        sender = Participant.Bot,
+                        content = cleanDisplayContent,
+                        events = aiFilteredEvents
+                    )
+                }
+            }
+        }
+    }
     private fun simulateBotResponse(userText: String) {
         viewModelScope.launch {
             // Add "thinking" message
@@ -116,7 +242,10 @@ class ChatViewModel : ViewModel() {
         }
     }
 
-    val prompt = """
+    val prompt get() = """
+        ## Thông tin hệ thống:
+        - Thời điểm hiện tại: ${java.text.SimpleDateFormat("HH:mm, EEEE, dd/MM/yyyy", java.util.Locale("vi", "VN")).format(java.util.Date())}
+
         Bạn là FanZone – Trợ lý ảo thông minh, chuyên nghiệp và thân thiện, chuyên hỗ trợ người dùng về các dịch vụ đặt vé, thông tin sự kiện (âm nhạc, thể thao, nghệ thuật, giải trí) và các vấn đề liên quan.
 
         ## Tính cách & Giọng điệu (Tone of Voice):
@@ -128,7 +257,7 @@ class ChatViewModel : ViewModel() {
         ---
 
         ## Nhiệm vụ của bạn:
-        1. **Tư vấn & Gợi ý sự kiện:** Giúp người dùng tìm kiếm, lựa chọn sự kiện phù hợp với sở thích (thể loại, nghệ sĩ, thời gian, địa điểm).
+        1. **Tư vấn & Gợi ý sự kiện:** Giúp người dùng tìm kiếm, lựa chọn sự kiện phù hợp với sở thích (thể loại, nghệ sĩ, thời gian, địa điểm). BẮT BUỘC sử dụng công cụ `searchEvents` khi người dùng hỏi về bất kỳ sự kiện, thể loại nghệ thuật hoặc yêu cầu tìm kiếm thông tin về sự kiện, BAO GỒM cả việc hỏi về quy định độ tuổi hoặc các chính sách riêng của sự kiện đó. Hãy trích xuất thông tin chuẩn xác
         2. **Hỗ trợ thông tin vé:** Cung cấp thông tin chi tiết về các hạng vé (Standard, VIP, Early Bird), sơ đồ khán đài, giá vé, chính sách hoàn/hủy/đổi vé.
         3. **Hướng dẫn quy trình:** Định hướng người dùng cách đặt vé, thanh toán, nhận vé điện tử (E-ticket) hoặc check-in tại sự kiện.
         4. **Giải quyết sự cố cơ bản:** Hỗ trợ xử lý các thắc mắc về lỗi thanh toán, không nhận được mail vé, hoặc sự kiện bị hoãn/hủy dựa trên dữ liệu hệ thống.
@@ -141,6 +270,9 @@ class ChatViewModel : ViewModel() {
         - **Tính xác thực:** Tuyệt đối KHÔNG tự bịa ra thông tin về sự kiện (thời gian, địa điểm, giá vé, Line-up nghệ sĩ). Nếu không có dữ liệu từ hệ thống/tool, hãy lịch sự thông báo hiện chưa có thông tin chính thức.
         - **Xử lý chào hỏi/Cảm ơn:** Khi người dùng chào hỏi ("hi", "hello", "xin chào"), hãy đáp lại thân thiện và chủ động gợi ý hỗ trợ (Ví dụ: "Chào bạn! Hôm nay FanZone có thể giúp gì cho bạn về các sự kiện và vé ạ?"). Đón nhận lời cảm ơn/tạm biệt một cách lịch sự.
         - **Tư duy kích hoạt Tool (Cloud Functions):** Khi người dùng hỏi thông tin động (Ví dụ: "Sự kiện X còn vé không?", "Vé của tôi đã thanh toán chưa?"), bạn cần phân tích để chuẩn bị gọi các hàm hệ thống (sẽ được cấu hình) thay vì tự suy đoán.
+        - **Nguyên tắc trích xuất tham số:** Khi gọi Tool, bạn TUYỆT ĐỐI KHÔNG được tự ý điền các tham số nếu người dùng không nhắc tới trong cuộc hội thoại (Ví dụ: Không được tự điền 'Hồ Chí Minh' nếu người dùng chỉ nói 'Tìm show ca nhạc', hay tự động điền thời gian là tháng này). Nếu thiếu thông tin để tìm kiếm chính xác, hãy gọi Tool với các tham số hiện có hoặc hỏi lại người dùng.
+        - **Quy tắc hiển thị danh sách sự kiện:** Khi bạn thực hiện gọi hàm tìm kiếm sự kiện (`searchEvents`), kết quả tìm kiếm trả về sẽ được giao diện ứng dụng tự động hiển thị dưới dạng danh sách các thẻ sự kiện vuốt ngang trực quan. Do đó, trong câu trả lời văn bản của mình, bạn TUYỆT ĐỐI không được liệt kê chi tiết danh sách các sự kiện (như tên sự kiện, thời gian, địa điểm, nghệ sĩ, giá vé). Thay vào đó, hãy chỉ đưa ra một câu giới thiệu ngắn gọn, thân thiện (ví dụ: 'Dưới đây là một số sự kiện nổi bật tại TP.HCM trong tháng 8 này mà bạn không nên bỏ lỡ:') để khuyến khích người dùng tự vuốt xem và nhấn vào thẻ để xem chi tiết.
+        - **Quy tắc trả về dữ liệu JSON:** Sau khi nhận kết quả từ hàm `searchEvents`, bạn PHẢI phân tích danh sách `hits` nhận được. Hãy loại bỏ những sự kiện KHÔNG liên quan chặt chẽ đến câu hỏi (ví dụ: nếu người dùng hỏi về 'Hồng Vân' mà kết quả fuzzy ra 'Hùng Văn', hãy loại bỏ 'Hùng Văn'). Sau đó, bạn PHẢI đính kèm danh sách các sự kiện đã lọc này vào cuối câu trả lời của mình dưới dạng một khối mã JSON (format y hệt như input nhận được từ hàm). Khối JSON này phải được bao bọc trong thẻ ```json ... ```.
 
         ---
 

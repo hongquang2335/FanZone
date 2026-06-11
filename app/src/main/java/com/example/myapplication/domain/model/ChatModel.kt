@@ -13,5 +13,6 @@ data class ChatMessage(
     val content: String,
     val suggestions: List<String> = emptyList(),
     val isThinking: Boolean = false,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val events: List<AlgoliaEvent> = emptyList()
 )

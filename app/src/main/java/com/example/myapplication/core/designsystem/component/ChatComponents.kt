@@ -16,6 +16,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,7 +36,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.myapplication.R
+import com.example.myapplication.domain.model.AlgoliaEvent
 import com.example.myapplication.domain.model.ChatMessage
 import com.example.myapplication.domain.model.Participant
 import com.example.myapplication.core.designsystem.theme.*
@@ -102,7 +106,8 @@ fun ChatBubble(
     message: ChatMessage,
     isAnimated: Boolean = true,
     onAnimationFinished: () -> Unit = {},
-    onSuggestionClick: (String) -> Unit
+    onSuggestionClick: (String) -> Unit,
+    onEventClick: (String) -> Unit = {}
 ) {
     val isBot = message.sender == Participant.Bot
 
@@ -149,6 +154,121 @@ fun ChatBubble(
             if (!isBot) {
                 Spacer(modifier = Modifier.width(8.dp))
                 AvatarBubble(isBot)
+            }
+        }
+
+        // Hiển thị danh sách sự kiện nếu có
+        if (isBot && message.events.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            ChatEventList(
+                events = message.events,
+                onEventClick = onEventClick
+            )
+        }
+    }
+}
+
+@Composable
+fun ChatEventList(
+    events: List<AlgoliaEvent>,
+    onEventClick: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyRow(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 44.dp), // Thụt vào để thẳng hàng với bubble (avatar 36dp + spacer 8dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(events) { event ->
+            EventChatCard(
+                event = event,
+                onClick = { onEventClick(event.objectID) }
+            )
+        }
+    }
+}
+
+@Composable
+fun EventChatCard(
+    event: AlgoliaEvent,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .width(190.dp) // Kích thước nhỏ hơn để hiện được nhiều hơn cùng lúc
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column {
+            // Ảnh sự kiện (sử dụng placeholder nếu không có URL)
+            AsyncImage(
+                model = "https://picsum.photos/seed/${event.objectID}/400/200", // Placeholder tạm thời
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+            )
+
+            Column(modifier = Modifier.padding(8.dp)) {
+                Text(
+                    text = event.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    color = VibeGreenDark
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.CalendarToday,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = VibeGreen
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = event.startTime,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = VibeTextMuted,
+                        maxLines = 1
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(2.dp))
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.LocationOn,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = VibeGreen
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = event.venue,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = VibeTextMuted,
+                        maxLines = 1
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Button(
+                    onClick = onClick,
+                    modifier = Modifier.fillMaxWidth().height(32.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = VibeGreen),
+                    contentPadding = PaddingValues(0.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Xem chi tiết", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
     }

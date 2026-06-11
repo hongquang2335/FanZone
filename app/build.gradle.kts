@@ -21,6 +21,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -105,6 +106,11 @@ dependencies {
 
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation(libs.firebase.ai)
+
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
+    implementation("com.squareup.retrofit2:retrofit:3.0.0")
+    implementation("com.squareup.retrofit2:converter-kotlinx-serialization:3.0.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)
 }

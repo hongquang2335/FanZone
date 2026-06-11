@@ -1,7 +1,6 @@
 package com.example.myapplication.feature.support
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -26,11 +25,11 @@ import kotlin.collections.isNotEmpty
 @Composable
 fun ChatbotScreen(
     onBackClick: () -> Unit,
+    onNavigateToEvent: (String) -> Unit = {},
     viewModel: ChatViewModel = viewModel()
 ) {
     val messages by viewModel.messages.collectAsState()
     val scrollState = rememberScrollState()
-    val coroutineScope = rememberCoroutineScope()
 
     // Tự động cuộn xuống đáy khi có tin nhắn mới
     LaunchedEffect(messages.size) {
@@ -68,7 +67,8 @@ fun ChatbotScreen(
                         },
                         onSuggestionClick = { suggestion ->
                             viewModel.sendMessage(suggestion)
-                        }
+                        },
+                        onEventClick = onNavigateToEvent
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
