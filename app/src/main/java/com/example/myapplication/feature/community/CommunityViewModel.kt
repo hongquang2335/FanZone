@@ -18,6 +18,11 @@ import com.example.myapplication.domain.model.Notification
 import com.example.myapplication.domain.model.NotificationType
 import com.example.myapplication.domain.repository.NotificationRepository
 import com.example.myapplication.core.notification.NotificationHelper
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 
 class CommunityViewModel(
     application: Application
@@ -80,44 +85,75 @@ class CommunityViewModel(
             authorAvatarUrl = _uiState.value.currentAuthorAvatarUrl,
             caption = trimmedCaption,
             onSuccess = { sharedPostId ->
-                // 1. Notify original author if they are not the current user
-                if (post.authorId != null && post.authorId != currentUserId) {
-                    val shareNotification = Notification(
-                        recipientId = post.authorId,
-                        senderId = currentUserId,
-                        senderName = _uiState.value.currentAuthorName,
-                        senderAvatarUrl = _uiState.value.currentAuthorAvatarUrl,
-                        type = NotificationType.SHARE,
-                        postId = sharedPostId,
-                        postContentExcerpt = post.content.take(60)
-                    )
-                    notificationRepository.createNotification(shareNotification)
-                }
+                android.util.Log.d("CommunityViewModel", "sharePost onSuccess: sharedPostId=$sharedPostId, post.authorId=${post.authorId}, currentUserId=$currentUserId")
 
-                // 2. Notify followers of the person who shared the post
-                firestore.collection("users")
-                    .document(currentUserId)
-                    .get()
-                    .addOnSuccessListener { document ->
-                        if (document != null && document.exists()) {
-                            val followerIds = (document.get("followerIds") as? List<*>)
-                                ?.mapNotNull { it as? String }
-                                .orEmpty()
-                                .filter { it != post.authorId && it != currentUserId }
-                            followerIds.forEach { followerId ->
-                                val followNotification = Notification(
-                                    recipientId = followerId,
+                // Launch background job to compile and write notifications in batch
+                viewModelScope.launch(Dispatchers.IO + NonCancellable) {
+                    try {
+                        val notifications = mutableListOf<Notification>()
+
+                        // 1. Notify original author if they are not the current user
+                        if (post.authorId != null && post.authorId != currentUserId) {
+                            android.util.Log.d("CommunityViewModel", "sharePost: Adding SHARE notification for recipientId=${post.authorId}")
+                            notifications.add(
+                                Notification(
+                                    recipientId = post.authorId,
                                     senderId = currentUserId,
                                     senderName = _uiState.value.currentAuthorName,
                                     senderAvatarUrl = _uiState.value.currentAuthorAvatarUrl,
-                                    type = NotificationType.NEW_SHARE,
+                                    type = NotificationType.SHARE,
                                     postId = sharedPostId,
-                                    postContentExcerpt = trimmedCaption.take(60)
+                                    postContentExcerpt = post.content.take(60)
                                 )
-                                notificationRepository.createNotification(followNotification)
-                            }
+                            )
                         }
+
+                        // 2. Notify followers of the person who shared the post
+                        val userDocument = firestore.collection("users")
+                            .document(currentUserId)
+                            .get()
+                            .await()
+
+                        if (userDocument != null && userDocument.exists()) {
+                            val followerIds = (userDocument.get("followerIds") as? List<*>)
+                                ?.mapNotNull { it as? String }
+                                .orEmpty()
+                                .filter { it != post.authorId && it != currentUserId }
+                            android.util.Log.d("CommunityViewModel", "sharePost: Found ${followerIds.size} followers to notify (excluding author/self)")
+
+                            followerIds.forEach { followerId ->
+                                notifications.add(
+                                    Notification(
+                                        recipientId = followerId,
+                                        senderId = currentUserId,
+                                        senderName = _uiState.value.currentAuthorName,
+                                        senderAvatarUrl = _uiState.value.currentAuthorAvatarUrl,
+                                        type = NotificationType.NEW_SHARE,
+                                        postId = sharedPostId,
+                                        postContentExcerpt = trimmedCaption.take(60)
+                                    )
+                                )
+                            }
+                        } else {
+                            android.util.Log.d("CommunityViewModel", "sharePost: Current user document does not exist in users collection")
+                        }
+
+                        // 3. Write all notifications to Firestore in batch
+                        if (notifications.isNotEmpty()) {
+                            notificationRepository.createNotifications(
+                                notifications = notifications,
+                                onSuccess = {
+                                    android.util.Log.d("CommunityViewModel", "sharePost: Batch notifications created successfully (${notifications.size} total)")
+                                },
+                                onError = { e ->
+                                    android.util.Log.e("CommunityViewModel", "sharePost: Failed to create batch notifications: ${e.message}", e)
+                                }
+                            )
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("CommunityViewModel", "sharePost background notifications failed: ${e.message}", e)
                     }
+                }
             },
             onError = { throwable ->
                 _uiState.update {

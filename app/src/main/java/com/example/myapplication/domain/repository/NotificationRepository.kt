@@ -15,6 +15,12 @@ interface NotificationRepository {
         onError: (Throwable) -> Unit = {}
     )
 
+    fun createNotifications(
+        notifications: List<Notification>,
+        onSuccess: () -> Unit = {},
+        onError: (Throwable) -> Unit = {}
+    )
+
     fun markAsRead(
         notificationId: String,
         onSuccess: () -> Unit = {},

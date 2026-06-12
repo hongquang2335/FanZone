@@ -14,6 +14,8 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import com.example.myapplication.core.designsystem.theme.Evergreen
 import com.example.myapplication.core.designsystem.theme.SoftLine
+import com.example.myapplication.core.designsystem.theme.VibeSurfaceMuted
+import androidx.compose.ui.draw.shadow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -149,7 +151,7 @@ fun NotificationItemCard(
     }
 
     val cardColor = if (notification.isRead) {
-        Color.White.copy(alpha = 0.72f)
+        VibeSurfaceMuted
     } else {
         Color.White
     }
@@ -166,9 +168,13 @@ fun NotificationItemCard(
         MaterialTheme.colorScheme.onSurface
     }
 
+    val shadowElevation = if (notification.isRead) 0.dp else 8.dp
+
     Surface(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(shadowElevation, RoundedCornerShape(28.dp)),
         shape = RoundedCornerShape(28.dp),
         color = cardColor,
         border = cardBorder
