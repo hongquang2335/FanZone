@@ -70,6 +70,31 @@ class NotificationFirestoreDataSource(
         return notificationsCollection.add(data)
     }
 
+    fun createNotifications(notifications: List<Notification>): Task<Void> {
+        if (notifications.isEmpty()) return com.google.android.gms.tasks.Tasks.forResult(null)
+        val chunks = notifications.chunked(500)
+        val tasks = chunks.map { chunk ->
+            val batch = firestore.batch()
+            chunk.forEach { notification ->
+                val docRef = notificationsCollection.document()
+                val data = mapOf(
+                    FIELD_RECIPIENT_ID to notification.recipientId,
+                    FIELD_SENDER_ID to notification.senderId,
+                    FIELD_SENDER_NAME to notification.senderName,
+                    FIELD_SENDER_AVATAR_URL to notification.senderAvatarUrl,
+                    FIELD_TYPE to notification.type.name,
+                    FIELD_POST_ID to notification.postId,
+                    FIELD_POST_CONTENT_EXCERPT to notification.postContentExcerpt,
+                    FIELD_TIMESTAMP to FieldValue.serverTimestamp(),
+                    FIELD_IS_READ to notification.isRead
+                )
+                batch.set(docRef, data)
+            }
+            batch.commit()
+        }
+        return com.google.android.gms.tasks.Tasks.whenAll(tasks)
+    }
+
     fun markAsRead(notificationId: String): Task<Void> {
         return notificationsCollection.document(notificationId).update(FIELD_IS_READ, true)
     }

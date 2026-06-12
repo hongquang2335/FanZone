@@ -1,6 +1,8 @@
 package com.example.myapplication.core.navigation
 
 import android.net.Uri
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,6 +57,7 @@ fun FanZoneNavHost(
     authViewModel: AuthViewModel = composeViewModel(),
     chatViewModel: ChatViewModel = composeViewModel()
 ) {
+    val context = LocalContext.current
     val communityState by communityViewModel.uiState.collectAsStateWithLifecycle()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
 
@@ -269,13 +272,21 @@ fun FanZoneNavHost(
             NotificationListScreen(
                 onBack = { navController.popBackStack() },
                 onNavigateToPost = { postId ->
-                    communityViewModel.setTargetCommentsPostId(postId)
                     val posts = communityState.posts
                     val post = posts.firstOrNull { it.id == postId }
-                    if (post?.eventId != null) {
-                        navController.navigate(AppDestination.EventCommunity.create(post.eventId))
+                    if (post != null) {
+                        communityViewModel.setTargetCommentsPostId(postId)
+                        if (post.eventId != null) {
+                            navController.navigate(AppDestination.EventCommunity.create(post.eventId))
+                        } else {
+                            navController.navigate(AppDestination.Community.route)
+                        }
                     } else {
-                        navController.navigate(AppDestination.Community.route)
+                        Toast.makeText(
+                            context,
+                            "Bài viết này không còn tồn tại hoặc đã bị xóa.",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 },
                 onNavigateToProfile = { profileId ->

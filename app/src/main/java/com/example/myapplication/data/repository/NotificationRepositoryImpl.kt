@@ -32,6 +32,16 @@ class NotificationRepositoryImpl(
             .addOnFailureListener(onError)
     }
 
+    override fun createNotifications(
+        notifications: List<Notification>,
+        onSuccess: () -> Unit,
+        onError: (Throwable) -> Unit
+    ) {
+        firestoreDataSource.createNotifications(notifications)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener(onError)
+    }
+
     override fun markAsRead(
         notificationId: String,
         onSuccess: () -> Unit,
