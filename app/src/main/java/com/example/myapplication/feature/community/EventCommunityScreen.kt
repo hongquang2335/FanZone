@@ -93,7 +93,7 @@ fun EventCommunityScreen(
             if (targetCommentsPostId != null) {
                 val index = posts.indexOfFirst { it.id == targetCommentsPostId }
                 if (index >= 0) {
-                    var targetIndex = 2 // EventCommunityHeader (index 0) + ComposerCard (index 1)
+                    var targetIndex = 2
                     if (!errorMessage.isNullOrBlank()) targetIndex++
                     targetIndex += index
                     listState.animateScrollToItem(targetIndex)

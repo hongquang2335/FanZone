@@ -117,4 +117,3 @@ object FakeFanZoneRepository : FanZoneRepository {
         SupportShortcut("scan", "Huong dan check-in")
     )
 }
-

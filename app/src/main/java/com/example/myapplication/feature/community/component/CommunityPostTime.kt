@@ -36,4 +36,3 @@ fun getEffectiveTimeLabel(createdAtMillis: Long?, updatedAtMillis: Long?): Strin
 fun CommunityPost.postTimeLabel(): String = getEffectiveTimeLabel(createdAtMillis, updatedAtMillis)
 
 fun SharedCommunityPost.postTimeLabel(): String = getEffectiveTimeLabel(createdAtMillis, updatedAtMillis)
-

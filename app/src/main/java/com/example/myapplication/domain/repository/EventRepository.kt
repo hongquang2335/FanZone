@@ -25,13 +25,12 @@ object EventRepository {
         artistName: String? = null,
         title: String? = null,
         address: String? = null,
-        month: String? = null  // Format: "2026-08" để tìm tháng
+        month: String? = null
     ): JsonObject {
         Log.d("EventRepo", "🔍 searchEvents gọi với: artist=$artistName, title=$title, address=$address, month=$month")
         return try {
             val queries = mutableListOf<String>()
 
-            // Xây dựng query string
             if (!artistName.isNullOrEmpty()) {
                 queries.add(artistName)
             }
@@ -42,8 +41,6 @@ object EventRepository {
                 queries.add(address)
             }
 
-            // Nếu có month, filter startTime
-            //val facetFilters = mutableListOf<String>()
             if (!month.isNullOrEmpty()) {
                 queries.add(month)
             }
@@ -66,14 +63,14 @@ object EventRepository {
 
     private suspend fun callAlgoliaAPI(
         query: String,
-//        facetFilters: List<String>?
+
     ): JsonObject = withContext(Dispatchers.IO) {
         Log.d("EventRepo", "🌐 Đang gọi Algolia API cho query: '$query'")
         val client = OkHttpClient()
         val requestBody = JsonObject(
             mapOf(
                 "query" to JsonPrimitive(query),
-//                "facetFilters" to JsonArray(facetFilters.map { JsonPrimitive(it) }),
+
                 "hitsPerPage" to JsonPrimitive(10)
             )
         ).toString()

@@ -30,27 +30,17 @@ object NotificationHelper {
         }
     }
 
-    /**
-     * Pre-populates the displayed set with existing notification IDs on initial load
-     * so that the user isn't spammed with old notifications.
-     */
     fun registerExistingNotifications(notifications: List<Notification>) {
         notifications.forEach {
             displayedNotificationIds.add(it.id)
         }
     }
 
-    /**
-     * Resets the initialization state and cleared cached IDs, e.g., on sign out.
-     */
     fun reset() {
         displayedNotificationIds.clear()
         isInitialized = false
     }
 
-    /**
-     * Handles live updates of the notification list, filtering and pushing alerts for new entries.
-     */
     fun handleNotifications(context: Context, notifications: List<Notification>) {
         if (!isInitialized) {
             registerExistingNotifications(notifications)
@@ -68,7 +58,6 @@ object NotificationHelper {
     fun showNotification(context: Context, notification: Notification) {
         displayedNotificationIds.add(notification.id)
 
-        // Build pending intent to open MainActivity when clicked
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
@@ -98,7 +87,7 @@ object NotificationHelper {
         }
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(com.example.myapplication.R.mipmap.ic_launcher) // local launcher icon
+            .setSmallIcon(com.example.myapplication.R.mipmap.ic_launcher)
             .setContentTitle(title)
             .setContentText(text)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

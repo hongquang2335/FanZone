@@ -29,7 +29,6 @@ class ChatViewModel : ViewModel() {
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
 
-    // Sử dụng mutableStateMapOf để Compose có thể quan sát được sự thay đổi
     private val animatedMessageIds = androidx.compose.runtime.mutableStateMapOf<String, Boolean>()
 
     fun isMessageAnimated(id: String): Boolean {
@@ -79,10 +78,9 @@ class ChatViewModel : ViewModel() {
         )
     }
 
-    // 2. Khởi tạo chat (multi turn0)
     private val chat by lazy { model.startChat() }
     init {
-        // Initial bot greeting
+
         addBotGreeting()
     }
 
@@ -105,15 +103,15 @@ class ChatViewModel : ViewModel() {
     private fun generateAIResponse(userText: String) {
         viewModelScope.launch {
             android.util.Log.d("ChatAI", "💬 Người dùng gửi: \"$userText\"")
-            // Thêm trạng thái "đang suy nghĩ" vào UI
+
             val thinkingMessage = ChatMessage(sender = Participant.Bot, content = "", isThinking = true)
             _messages.value = _messages.value + thinkingMessage
 
             try {
-                // 3. Gửi tin nhắn đến Gemini thông qua Firebase AI Logic
+
                 val response = chat.sendMessage(userText)
                 android.util.Log.d("ChatAI", "🤖 Phản hồi ban đầu từ Gemini: text=\"${response.text}\", functionCalls=${response.functionCalls.map { it.name }}")
-                
+
                 if (response.functionCalls.isNotEmpty()) {
                     handleFunctionCalls(response)
                 } else {
@@ -126,7 +124,7 @@ class ChatViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 android.util.Log.e("ChatAI", "❌ Lỗi khi gửi tin nhắn tới Gemini: ${e.message}", e)
-                // Xử lý lỗi (ví dụ: mất mạng)
+
                 _messages.value = _messages.value.filter { !it.isThinking } + ChatMessage(
                     sender = Participant.Bot,
                     content = "Đã có lỗi xảy ra: ${e.localizedMessage}. Vui lòng thử lại sau."
@@ -154,10 +152,9 @@ class ChatViewModel : ViewModel() {
                         address = address,
                         month = month
                     )
-                    
+
                     android.util.Log.d("ChatAI", "✅ Kết quả từ Repository: $searchResult")
 
-                    // Trích xuất danh sách sự kiện từ Algolia hits
                     val events = try {
                         val hits = searchResult["hits"]?.jsonArray
                         android.util.Log.d("ChatAI", "Raw hits JSON: $hits")
@@ -188,23 +185,22 @@ class ChatViewModel : ViewModel() {
 
                     val responseText = finalResponse.text ?: "Không tìm thấy sự kiện phù hợp"
                     android.util.Log.d("ChatAI", "🤖 Phản hồi cuối cùng từ Gemini sau khi gọi hàm: $responseText")
-                    
-                    // Trích xuất danh sách sự kiện từ khối JSON trong responseText của AI
+
                     val aiFilteredEvents = try {
                         val jsonRegex = Regex("""```json\s*([\s\S]*?)\s*```""")
                         val matchResult = jsonRegex.find(responseText)
                         var jsonString = matchResult?.groupValues?.get(1)?.trim() ?: ""
-                        
+
                         if (jsonString.isNotEmpty()) {
-                            // Tự động bọc vào mảng [] nếu AI chỉ trả về object {} hoặc danh sách object thiếu ngoặc vuông
+
                             if (jsonString.startsWith("{")) {
                                 android.util.Log.d("ChatAI", "🔄 Đang tự động bọc JSON Object vào mảng []")
                                 jsonString = "[$jsonString]"
                             }
-                            
-                            val parsed = Json { 
-                                ignoreUnknownKeys = true 
-                                coerceInputValues = true // Tự động gán giá trị mặc định nếu thiếu hoặc sai kiểu
+
+                            val parsed = Json {
+                                ignoreUnknownKeys = true
+                                coerceInputValues = true
                             }.decodeFromString<List<AlgoliaEvent>>(jsonString)
                             android.util.Log.d("ChatAI", "🎉 AI đã lọc và trả về ${parsed.size} sự kiện")
                             parsed
@@ -217,7 +213,6 @@ class ChatViewModel : ViewModel() {
                         emptyList()
                     }
 
-                    // Loại bỏ khối JSON khỏi nội dung văn bản hiển thị cho người dùng
                     val cleanDisplayContent = responseText.replace(Regex("""```json\s*[\s\S]*?\s*```"""), "").trim()
 
                     _messages.value = _messages.value.filter { !it.isThinking } + ChatMessage(
@@ -231,13 +226,12 @@ class ChatViewModel : ViewModel() {
     }
     private fun simulateBotResponse(userText: String) {
         viewModelScope.launch {
-            // Add "thinking" message
+
             val thinkingMessage = ChatMessage(sender = Participant.Bot, content = "", isThinking = true)
             _messages.value = _messages.value + thinkingMessage
 
-            delay(1500) // Thinking time
+            delay(1500)
 
-            // Remove thinking and add actual response
             val responseText = when {
                 userText.contains("vé", ignoreCase = true) -> "Tuyệt vời! Đây là một số sự kiện nổi bật sắp diễn ra trong tuần này:"
                 userText.contains("sự kiện", ignoreCase = true) -> "Hiện tại có rất nhiều sự kiện hấp dẫn! Bạn quan tâm đến thể loại nào?"
@@ -266,7 +260,7 @@ class ChatViewModel : ViewModel() {
         ---
 
         ## Nhiệm vụ của bạn:
-        1. **Tư vấn & Gợi ý sự kiện:** Giúp người dùng tìm kiếm, lựa chọn sự kiện phù hợp với sở thích (thể loại, nghệ sĩ, thời gian, địa điểm). BẮT BUỘC sử dụng công cụ `searchEvents` khi người dùng hỏi về bất kỳ sự kiện, thể loại nghệ thuật hoặc yêu cầu tìm kiếm thông tin về sự kiện, BAO GỒM cả việc hỏi về quy định độ tuổi hoặc các chính sách riêng của sự kiện đó. 
+        1. **Tư vấn & Gợi ý sự kiện:** Giúp người dùng tìm kiếm, lựa chọn sự kiện phù hợp với sở thích (thể loại, nghệ sĩ, thời gian, địa điểm). BẮT BUỘC sử dụng công cụ `searchEvents` khi người dùng hỏi về bất kỳ sự kiện, thể loại nghệ thuật hoặc yêu cầu tìm kiếm thông tin về sự kiện, BAO GỒM cả việc hỏi về quy định độ tuổi hoặc các chính sách riêng của sự kiện đó.
            - **Xử lý câu hỏi chung:** Nếu người dùng hỏi về sự kiện một cách chung chung (ví dụ: "có gì hot không?", "cho mình xem danh sách sự kiện") mà không chỉ rõ yêu cầu lọc, bạn PHẢI gọi hàm `searchEvents` (để trống các tham số hoặc chỉ điền tham số thời gian/địa điểm nếu có) để lấy toàn bộ dữ liệu hiện có. Sau đó, dựa trên dữ liệu thật đó, hãy đưa ra những gợi ý phù hợp và hấp dẫn nhất cho người dùng.
            - Hãy trích xuất thông tin chuẩn xác. Không được trích xuất title với từ khoá "sự kiện", ví dụ title="sự kiện" là không được phép.
         2. **Hỗ trợ thông tin vé:** Cung cấp thông tin chi tiết về các hạng vé (Standard, VIP, Early Bird), sơ đồ khán đài, giá vé, chính sách hoàn/hủy/đổi vé.
@@ -317,7 +311,7 @@ class ChatViewModel : ViewModel() {
 
         ### Ví dụ 4: Người dùng hỏi thông tin cần check hệ thống (Kịch bản sẵn sàng cho Tool Calling)
         **User:** Show của [Nghệ sĩ X] còn vé hạng Standard không bạn?
-        **Phân tích:** Câu hỏi yêu cầu dữ liệu thời gian thực về số lượng vé. 
+        **Phân tích:** Câu hỏi yêu cầu dữ liệu thời gian thực về số lượng vé.
         **Trả lời:** *(Sau khi hệ thống kiểm tra dữ liệu)* Dạ hiện tại vé hạng Standard của show [Nghệ sĩ X] đã được bán hết rồi ạ. Tuy nhiên, hệ thống ghi nhận hạng vé [Hạng vé khác] vẫn còn một vài lượt ghế trống. Bạn có muốn FanZone hỗ trợ kiểm tra sơ đồ và giá của hạng vé này không ạ?
     """.trimIndent()
 }

@@ -44,7 +44,6 @@ import com.example.myapplication.domain.model.Participant
 import com.example.myapplication.core.designsystem.theme.*
 import kotlinx.coroutines.delay
 
-
 @Composable
 fun ChatTopBar(onBackClick: () -> Unit) {
     Surface(
@@ -69,7 +68,7 @@ fun ChatTopBar(onBackClick: () -> Unit) {
                     .background(VibeMintSoft),
                 contentAlignment = Alignment.Center
             ) {
-                // Assuming you have a bot icon resource, or use a placeholder
+
                 Text("🤖", fontSize = 20.sp)
             }
 
@@ -157,7 +156,6 @@ fun ChatBubble(
             }
         }
 
-        // Hiển thị danh sách sự kiện nếu có
         if (isBot && message.events.isNotEmpty()) {
             Spacer(modifier = Modifier.height(12.dp))
             ChatEventList(
@@ -176,7 +174,7 @@ fun ChatEventList(
 ) {
     LazyRow(
         modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 44.dp), // Thụt vào để thẳng hàng với bubble (avatar 36dp + spacer 8dp)
+        contentPadding = PaddingValues(horizontal = 44.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(events) { event ->
@@ -195,16 +193,16 @@ fun EventChatCard(
 ) {
     Card(
         modifier = Modifier
-            .width(190.dp) // Kích thước nhỏ hơn để hiện được nhiều hơn cùng lúc
+            .width(190.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
-            // Ảnh sự kiện (sử dụng placeholder nếu không có URL)
+
             AsyncImage(
-                model = "https://picsum.photos/seed/${event.objectID}/400/200", // Placeholder tạm thời
+                model = "https://picsum.photos/seed/${event.objectID}/400/200",
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -221,9 +219,9 @@ fun EventChatCard(
                     maxLines = 1,
                     color = VibeGreenDark
                 )
-                
+
                 Spacer(modifier = Modifier.height(4.dp))
-                
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         Icons.Default.CalendarToday,
@@ -239,9 +237,9 @@ fun EventChatCard(
                         maxLines = 1
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.height(2.dp))
-                
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         Icons.Default.LocationOn,
@@ -257,9 +255,9 @@ fun EventChatCard(
                         maxLines = 1
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Button(
                     onClick = onClick,
                     modifier = Modifier.fillMaxWidth().height(32.dp),
@@ -338,9 +336,8 @@ fun TypingText(
         mutableIntStateOf(initialCount)
     }
 
-    // Tách biệt logic điều kiện khởi chạy và logic thực thi animation
     val shouldAnimate = !isPreview && isBot && !isAlreadyAnimated
-    
+
     LaunchedEffect(messageId, shouldAnimate) {
         if (shouldAnimate && displayedTextCount < text.length) {
             android.util.Log.d("ChatComponents", "Starting animation for messageId: $messageId")
@@ -369,15 +366,11 @@ fun TypingText(
     )
 }
 
-/**
- * Hàm parse Markdown nâng cao
- * Xử lý: Bullet points phức tạp và Bold text lồng nhau
- */
 private fun parseMarkdown(text: String): AnnotatedString {
-    // Bước 1: Xử lý bullet points lồng nhau hoặc thô
+
     val lines = text.lines().map { line ->
         var processedLine = line
-        // Regex khớp dấu * ở đầu dòng, có thể có khoảng trắng phía trước
+
         val bulletRegex = Regex("""^\s*\*\s+""")
         if (bulletRegex.containsMatchIn(processedLine)) {
             processedLine = processedLine.replaceFirst(bulletRegex, "  • ")
@@ -386,24 +379,21 @@ private fun parseMarkdown(text: String): AnnotatedString {
     }
     val processedText = lines.joinToString("\n")
 
-    // Bước 2: Parse Bold text dùng Regex
     return buildAnnotatedString {
-        // Regex mạnh mẽ hơn để tránh lỗi khi có dấu * đơn lẻ hoặc lỗi format
+
         val boldRegex = Regex("""\*\*(.*?)\*\*""")
         var lastIdx = 0
 
         boldRegex.findAll(processedText).forEach { match ->
-            // Thêm đoạn text thường trước match
+
             append(processedText.substring(lastIdx, match.range.first))
 
-            // Thêm đoạn bold
             withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = VibeGreenDark)) {
                 append(match.groupValues[1])
             }
             lastIdx = match.range.last + 1
         }
 
-        // Thêm đoạn còn lại
         if (lastIdx < processedText.length) {
             append(processedText.substring(lastIdx))
         }

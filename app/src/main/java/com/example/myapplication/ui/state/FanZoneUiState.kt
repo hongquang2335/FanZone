@@ -35,4 +35,3 @@ data class FanZoneUiState(
     val latestPurchasedTicket: TicketWalletItem?
         get() = latestPurchasedTicketId?.let { ticketId -> walletItems.find { it.id == ticketId } }
 }
-

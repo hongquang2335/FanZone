@@ -79,7 +79,7 @@ fun SharedPostPreview(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                
+
                 if (isMyPost) {
                     Box {
                         androidx.compose.material3.IconButton(onClick = { menuExpanded = true }) {

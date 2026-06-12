@@ -30,17 +30,14 @@ class MainActivity : ComponentActivity() {
         FirebaseApp.initializeApp(this)
         enableEdgeToEdge()
 
-        // Create the notification channel
         NotificationHelper.createNotificationChannel(this)
 
-        // Request notification permission for Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
             }
         }
 
-        // Initialize Firestore
         val db = Firebase.firestore
         Log.d("FirestoreSetup", "Firestore initialized: $db")
 
@@ -56,4 +53,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-

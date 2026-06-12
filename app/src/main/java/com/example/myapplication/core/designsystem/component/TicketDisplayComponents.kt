@@ -100,7 +100,6 @@ import com.example.myapplication.domain.model.MyTicket
 import com.example.myapplication.domain.model.Order
 import com.example.myapplication.domain.model.OrderItem
 
-
 @Composable
 fun OrderTicketCard(
     order: Order,
@@ -109,8 +108,6 @@ fun OrderTicketCard(
     val backgroundColor = Color.White
     val ticketShape = RoundedCornerShape(16.dp)
 
-    // Extracting day and month from startTime "20:00, Thu Bay 15/06/2024"
-    // For mock purposes, we'll simplify. In real app, use a formatter.
     val dateParts = order.startTime.split(" ").last().split("/")
     val day = dateParts.getOrNull(0) ?: "01"
     val month = dateParts.getOrNull(1) ?: "01"
@@ -128,7 +125,7 @@ fun OrderTicketCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(modifier = Modifier.fillMaxSize()) {
-            // Left Side: Date (Vertical)
+
             Column(
                 modifier = Modifier
                     .width(80.dp)
@@ -155,7 +152,6 @@ fun OrderTicketCard(
                 )
             }
 
-            // Dotted Vertical Line with cut-outs
             Box(
                 modifier = Modifier
                     .width(1.dp)
@@ -175,7 +171,6 @@ fun OrderTicketCard(
                 }
             }
 
-            // Right Side: Event Info
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -291,7 +286,7 @@ fun TicketDetailBottomSheet(
                             color = Ink
                         )
                     }
-                    
+
                     ticketsInGroup.forEach { ticket ->
                         IndividualTicketItem(ticket)
                     }
@@ -483,4 +478,3 @@ fun MessageBubble(author: String, body: String, isMine: Boolean) {
         }
     }
 }
-

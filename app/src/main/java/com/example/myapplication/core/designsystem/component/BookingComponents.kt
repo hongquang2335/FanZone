@@ -82,7 +82,6 @@ import com.example.myapplication.domain.model.TicketTier
 import com.example.myapplication.domain.model.TicketWalletItem
 import com.example.myapplication.domain.model.TierStatus
 
-
 @Composable
 fun TierCard(
     tier: TicketTier,
@@ -219,4 +218,3 @@ fun PaymentMethodCard(
         }
     }
 }
-

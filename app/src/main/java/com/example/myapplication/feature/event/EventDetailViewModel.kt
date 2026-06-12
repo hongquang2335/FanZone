@@ -30,13 +30,12 @@ class EventDetailViewModel : ViewModel() {
         Log.d("EventDetailVM", "--- Bắt đầu loadEvent ---")
         Log.d("EventDetailVM", "Yêu cầu ID: $eventId")
         _uiState.update { it.copy(isLoading = true, error = null) }
-        
+
         viewModelScope.launch {
             try {
                 val db = Firebase.firestore
                 var doc = db.collection("event").document(eventId).get().await()
-                
-                // Nếu không tìm thấy bằng ID cụ thể (do ID neon-night là ảo)
+
                 if (!doc.exists()) {
                     Log.w("EventDetailVM", "Không tìm thấy document ID: $eventId. Đang thử lấy document đầu tiên trong collection...")
                     val firstDocSnapshot = db.collection("event").limit(1).get().await()
@@ -63,12 +62,11 @@ class EventDetailViewModel : ViewModel() {
         try {
             val rawStartTime = doc.getString("startTime") ?: ""
             val rawEndTime = doc.getString("endTime") ?: ""
-            
+
             val formattedSchedule = if (rawStartTime.isNotEmpty()) {
                 formatEventSchedule(rawStartTime, rawEndTime)
             } else doc.getString("schedule") ?: "Đang cập nhật"
 
-            // Bóc tách vé từ ticketTypes mới
             val rawTicketTypes = doc.get("ticketTypes") as? List<*>
             val parsedTiers = rawTicketTypes?.mapNotNull { item ->
                 val ticketMap = item as? Map<*, *> ?: return@mapNotNull null
@@ -83,7 +81,7 @@ class EventDetailViewModel : ViewModel() {
             } ?: emptyList()
 
             val event = Event(
-                id = doc.id, 
+                id = doc.id,
                 title = doc.getString("title") ?: "Sự kiện không tên",
                 subtitle = doc.getString("orgName") ?: doc.getString("subtitle") ?: "Ban tổ chức",
                 schedule = formattedSchedule,
@@ -110,9 +108,9 @@ class EventDetailViewModel : ViewModel() {
                 startTime = rawStartTime,
                 endTime = rawEndTime
             )
-            
-            _uiState.update { 
-                it.copy(isLoading = false, event = event, tiers = parsedTiers) 
+
+            _uiState.update {
+                it.copy(isLoading = false, event = event, tiers = parsedTiers)
             }
             Log.d("EventDetailVM", "Parse dữ liệu thành công cho: ${event.title}")
         } catch (e: Exception) {
@@ -127,14 +125,14 @@ class EventDetailViewModel : ViewModel() {
             val vietnamTimeZone = TimeZone.getTimeZone("Asia/Ho_Chi_Minh")
             val startDate = sdfInput.parse(startTimeStr) ?: return startTimeStr
             val endDate = if (endTimeStr.isNotEmpty()) sdfInput.parse(endTimeStr) else null
-            
+
             val timeFormat = SimpleDateFormat("HH:mm", Locale.US).apply {
                 timeZone = vietnamTimeZone
             }
             val dateFormat = SimpleDateFormat("dd 'tháng' MM, yyyy", Locale("vi", "VN")).apply {
                 timeZone = vietnamTimeZone
             }
-            
+
             val getDayOfWeek = { date: java.util.Date ->
                 val cal = Calendar.getInstance(vietnamTimeZone)
                 cal.time = date
@@ -157,7 +155,7 @@ class EventDetailViewModel : ViewModel() {
                 val calEnd = Calendar.getInstance(vietnamTimeZone).apply { time = endDate }
                 val isSameDay = calStart.get(Calendar.YEAR) == calEnd.get(Calendar.YEAR) &&
                         calStart.get(Calendar.DAY_OF_YEAR) == calEnd.get(Calendar.DAY_OF_YEAR)
-                
+
                 if (isSameDay) {
                     "${timeFormat.format(startDate)}-${timeFormat.format(endDate)}, $startDayOfWeek|${dateFormat.format(startDate)}"
                 } else {

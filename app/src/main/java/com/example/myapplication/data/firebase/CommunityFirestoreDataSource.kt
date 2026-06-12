@@ -26,7 +26,6 @@ class CommunityFirestoreDataSource(
     ): ListenerRegistration {
         android.util.Log.d("FirestoreDataSource", "observeCommunityPosts: Bắt đầu đăng ký snapshot listener cho posts...")
 
-        // Fetch once immediately to populate UI in case snapshot listener is blocked/delayed
         postsCollection.orderBy(FIELD_CREATED_AT, Query.Direction.DESCENDING).get()
             .addOnSuccessListener { snapshot ->
                 if (snapshot != null && !snapshot.isEmpty) {
@@ -183,7 +182,6 @@ class CommunityFirestoreDataSource(
     ): ListenerRegistration {
         android.util.Log.d("FirestoreDataSource", "observeComments: Bắt đầu đăng ký snapshot listener cho comments, postId=$postId...")
 
-        // Fetch once immediately to populate UI in case snapshot listener is blocked/delayed
         postsCollection.document(postId).collection(COMMENTS_COLLECTION)
             .orderBy(FIELD_CREATED_AT, Query.Direction.ASCENDING).get()
             .addOnSuccessListener { snapshot ->

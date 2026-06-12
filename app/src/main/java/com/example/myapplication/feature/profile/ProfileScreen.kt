@@ -224,7 +224,6 @@ fun ProfileScreen(
                 verticalArrangement = Arrangement.spacedBy(if (compactHeight) 14.dp else 18.dp)
             ) {
 
-
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

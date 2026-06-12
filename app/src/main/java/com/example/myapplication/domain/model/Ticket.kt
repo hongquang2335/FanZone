@@ -34,7 +34,7 @@ enum class TicketStatus {
 }
 
 data class Order(
-    val bookingId: String, // Matching user's initial snippet
+    val bookingId: String,
     val userId: String,
     val eventId: String,
     val eventTitle: String,
@@ -44,7 +44,7 @@ data class Order(
     val paymentMethod: String,
     val sellerId: String,
     val createdAt: String,
-    val qrCodeData: String, // Matching user's initial snippet "qrCodeData"
+    val qrCodeData: String,
     val venue: String,
     val startTime: String
 )
@@ -57,7 +57,7 @@ data class OrderItem(
 
 data class MyTicket(
     val ticketId: String,
-    val bookingId: String, // Match naming
+    val bookingId: String,
     val eventId: String,
     val eventTitle: String,
     val startTime: String,
@@ -65,6 +65,6 @@ data class MyTicket(
     val ticketType: String,
     val zoneName: String,
     val purchasePrice: Int,
-    val qrCodeData: String, // Keep consistent with Order
+    val qrCodeData: String,
     val status: TicketStatus
 )

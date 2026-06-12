@@ -20,7 +20,6 @@ class NotificationFirestoreDataSource(
         onError: (Throwable) -> Unit
     ): ListenerRegistration {
         android.util.Log.d("NotificationDataSource", "observeNotifications: Bắt đầu lắng nghe thông báo cho userId=$userId")
-        // Fetch once immediately to populate UI in case snapshot listener is blocked/delayed
         notificationsCollection
             .whereEqualTo(FIELD_RECIPIENT_ID, userId)
             .orderBy(FIELD_TIMESTAMP, Query.Direction.DESCENDING).get()
@@ -48,7 +47,7 @@ class NotificationFirestoreDataSource(
                 }
                 val list = snapshot?.documents?.mapNotNull(::toNotification).orEmpty()
                 android.util.Log.d("NotificationDataSource", "observeNotifications (SNAPSHOT): Nhận được ${list.size} thông báo cho userId=$userId")
-                list.forEach { 
+                list.forEach {
                     android.util.Log.d("NotificationDataSource", "observeNotifications item: id=${it.id}, type=${it.type}, recipientId=${it.recipientId}")
                 }
                 onNotifications(list)

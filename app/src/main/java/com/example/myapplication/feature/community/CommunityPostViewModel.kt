@@ -25,7 +25,7 @@ class CommunityPostViewModel(
     private val _uiState = MutableStateFlow(CommunityPostUiState())
     val uiState: StateFlow<CommunityPostUiState> = _uiState.asStateFlow()
     private var currentUserListener: com.google.firebase.firestore.ListenerRegistration? = null
- 
+
     private val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
         val user = firebaseAuth.currentUser
         if (user == null) {

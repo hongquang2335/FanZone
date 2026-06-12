@@ -93,8 +93,6 @@ fun EventDetailScreen(
     }
 }
 
-
-
 @Composable
 private fun EventDetailBody(
     event: Event,
@@ -111,30 +109,30 @@ private fun EventDetailBody(
         item {
             EventHeroBanner(event)
         }
-        
+
         item {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // Categories với thanh cuộn ngang
+
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Nếu category trống, hiển thị nhãn mặc định là "Khác"
+
                     val categories = event.category.ifEmpty { listOf("Khác") }
                     items(categories) { cat ->
                         BadgeItem(cat)
                     }
                 }
-                
+
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    // Title
+
                     Text(
                         text = event.title,
                         style = MaterialTheme.typography.headlineLarge.copy(
@@ -144,12 +142,10 @@ private fun EventDetailBody(
                         color = Color(0xFF1E293B)
                     )
 
-                    // Info Grid
                     InfoGrid(event)
 
                     FanCommunityButton(onClick = onOpenCommunity)
 
-                    // Description
                     SectionHeader("Giới thiệu sự kiện", null)
                     Text(
                         text = event.description,
@@ -157,19 +153,15 @@ private fun EventDetailBody(
                         style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp)
                     )
 
-                    // Artists
                     SectionHeader("Nghệ sĩ tham gia", null)
                     ArtistAvatars(event.artists)
-                    
-                    // Performances & Tickets
+
                     SectionHeader("Lịch biểu diễn & Đặt vé", null)
                     PerformanceList(event, tiers, onBuyNow)
 
-                    // Organizer
                     SectionHeader("Ban tổ chức", null)
                     OrganizerSection(event)
-                    
-                    // Resale
+
                     if (event.resaleTickets.isNotEmpty()) {
                         SectionHeader("Danh sách vé pass lại", "Cập nhật liên tục")
                     }
@@ -319,9 +311,9 @@ private fun InfoGrid(event: Event) {
                 }
             }
         }
-        
+
         HorizontalDivider(color = Color(0xFFE2E8F0))
-        
+
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier.size(48.dp).background(Color(0xFFF1F5F9), RoundedCornerShape(12.dp)),
@@ -383,7 +375,7 @@ private fun abbreviateDayOfWeek(text: String): String {
 
 @Composable
 private fun PerformanceList(event: Event, tiers: List<TicketTier>, onBuyNow: () -> Unit) {
-    // Tự động lấy thông tin từ event.schedule nếu danh sách biểu diễn rỗng
+
     val performances = event.performances.ifEmpty {
         val scheduleParts = event.schedule.split("|")
         listOf(
@@ -399,7 +391,7 @@ private fun PerformanceList(event: Event, tiers: List<TicketTier>, onBuyNow: () 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         performances.forEachIndexed { index, perf ->
             var expanded by remember { mutableStateOf(index == 0) }
-            
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -415,7 +407,7 @@ private fun PerformanceList(event: Event, tiers: List<TicketTier>, onBuyNow: () 
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Cột chứa Text ngày giờ (tự co giãn)
+
                     Row(
                         modifier = Modifier.weight(1f),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -429,24 +421,23 @@ private fun PerformanceList(event: Event, tiers: List<TicketTier>, onBuyNow: () 
                         }
                         Column {
                             Text(
-                                text = abbreviateDayOfWeek(perf.time), 
+                                text = abbreviateDayOfWeek(perf.time),
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = perf.date, 
-                                color = Evergreen, 
+                                text = perf.date,
+                                color = Evergreen,
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.width(12.dp))
-                    
-                    // Button được ưu tiên hiển thị
+
                     Button(
                         onClick = onBuyNow,
                         colors = ButtonDefaults.buttonColors(containerColor = Evergreen),
@@ -456,7 +447,7 @@ private fun PerformanceList(event: Event, tiers: List<TicketTier>, onBuyNow: () 
                         Text("Mua vé ngay", maxLines = 1, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                     }
                 }
-                
+
                 AnimatedVisibility(visible = expanded) {
                     Column(
                         modifier = Modifier
@@ -476,10 +467,10 @@ private fun PerformanceList(event: Event, tiers: List<TicketTier>, onBuyNow: () 
                                     .padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // 1. MÔ TẢ VÉ: Bên tay trái (chiếm không gian còn lại)
+
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = tier.name, 
+                                        text = tier.name,
                                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                                         color = Color(0xFF1E293B)
                                     )
@@ -494,14 +485,13 @@ private fun PerformanceList(event: Event, tiers: List<TicketTier>, onBuyNow: () 
 
                                 Spacer(modifier = Modifier.width(12.dp))
 
-                                // 2. GIÁ TIỀN: Bên tay phải, ưu tiên không gian cho 8 chữ số
                                 Text(
-                                    text = formatPrice(tier.price), 
-                                    color = Evergreen, 
+                                    text = formatPrice(tier.price),
+                                    color = Evergreen,
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                                    modifier = Modifier.widthIn(min = 120.dp), // Đủ cho ~8 chữ số + "đ" không bị xuống dòng
+                                    modifier = Modifier.widthIn(min = 120.dp),
                                     textAlign = TextAlign.End,
-                                    softWrap = true // Chỉ xuống dòng khi vượt quá ngưỡng (ví dụ 9 chữ số)
+                                    softWrap = true
                                 )
                             }
                         }
@@ -514,11 +504,11 @@ private fun PerformanceList(event: Event, tiers: List<TicketTier>, onBuyNow: () 
 
 @Composable
 private fun OrganizerSection(event: Event) {
-    val displayName = if (event.orgName.isNotEmpty()) event.orgName 
-                      else if (event.subtitle.isNotEmpty()) event.subtitle 
+    val displayName = if (event.orgName.isNotEmpty()) event.orgName
+                      else if (event.subtitle.isNotEmpty()) event.subtitle
                       else "Ban tổ chức"
-                      
-    val displayDesc = if (event.orgDescription.isNotEmpty()) event.orgDescription 
+
+    val displayDesc = if (event.orgDescription.isNotEmpty()) event.orgDescription
                       else "Đơn vị tổ chức sự kiện."
 
     Row(
@@ -530,7 +520,7 @@ private fun OrganizerSection(event: Event) {
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Org logo – circular with border
+
         if (!event.orgLogo.isNullOrEmpty()) {
             AsyncImage(
                 model = event.orgLogo,
@@ -559,7 +549,6 @@ private fun OrganizerSection(event: Event) {
             }
         }
 
-        // Org name + description
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp)

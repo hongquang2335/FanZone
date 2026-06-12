@@ -19,4 +19,3 @@ interface FanZoneRepository {
     val paymentMethods: List<PaymentMethod>
     val supportShortcuts: List<SupportShortcut>
 }
-

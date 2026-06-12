@@ -20,7 +20,6 @@ class BookingViewModel : ViewModel() {
         seatsRegistration?.remove()
         _uiState.value = BookingUiState(event = event, isLoading = true)
 
-        // Fetch once immediately to populate UI in case snapshot listener is blocked/delayed
         Firebase.firestore
             .collection("event_seats")
             .whereEqualTo("eventId", event.id).get()
@@ -61,7 +60,7 @@ class BookingViewModel : ViewModel() {
                 if (_uiState.value.event?.id != event.id) return@addSnapshotListener
 
                 if (exception != null) {
-                    // Only update error if seats are not already loaded (to avoid override with errors)
+
                     if (_uiState.value.seats.isEmpty()) {
                         _uiState.update {
                             it.copy(

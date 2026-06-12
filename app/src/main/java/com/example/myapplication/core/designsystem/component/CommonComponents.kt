@@ -95,7 +95,6 @@ import com.example.myapplication.core.designsystem.theme.VibeGreenDark
 import com.example.myapplication.core.designsystem.theme.VibeSurfaceMuted
 import com.example.myapplication.core.designsystem.theme.VibeText
 
-
 @Composable
 fun SectionHeader(title: String, subtitle: String?) {
     Row(
@@ -444,4 +443,3 @@ fun DeleteConfirmDialog(
         }
     }
 }
-

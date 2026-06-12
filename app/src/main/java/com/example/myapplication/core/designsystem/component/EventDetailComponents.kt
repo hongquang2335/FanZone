@@ -82,7 +82,6 @@ import com.example.myapplication.domain.model.TicketTier
 import com.example.myapplication.domain.model.TicketWalletItem
 import com.example.myapplication.domain.model.TierStatus
 
-
 @Composable
 fun InfoPanel(rows: List<Pair<ImageVector, String>>) {
     Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
@@ -207,4 +206,3 @@ fun NoticeCard(note: String) {
         }
     }
 }
-

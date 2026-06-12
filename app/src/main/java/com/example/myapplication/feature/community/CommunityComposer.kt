@@ -294,7 +294,6 @@ private fun NewPostDialog(
 
             Surface(color = SoftLine, modifier = Modifier.fillMaxWidth().height(1.dp)) {}
 
-
             state.errorMessage?.let { message ->
                 Text(
                     text = message,
@@ -364,7 +363,7 @@ private fun MediaThumbnailItem(
             contentScale = androidx.compose.ui.layout.ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
-        // Video play icon overlay
+
         if (isVideo) {
             Box(
                 modifier = Modifier
@@ -380,7 +379,7 @@ private fun MediaThumbnailItem(
                 )
             }
         }
-        // Remove button
+
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)

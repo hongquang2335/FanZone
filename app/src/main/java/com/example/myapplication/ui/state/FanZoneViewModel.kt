@@ -54,7 +54,7 @@ class FanZoneViewModel(
             try {
                 Log.d("FanZoneVM", "Bắt đầu tải danh sách sự kiện từ Firestore...")
                 val snapshot = Firebase.firestore.collection("event").get().await()
-                
+
                 if (snapshot.isEmpty) {
                     Log.w("FanZoneVM", "Collection 'event' đang trống trên Firestore!")
                     return@launch
@@ -64,14 +64,14 @@ class FanZoneViewModel(
                     try {
                         val rawStartTime = doc.getString("startTime") ?: ""
                         val rawEndTime = doc.getString("endTime") ?: ""
-                        
+
                         val formattedSchedule = if (rawStartTime.isNotEmpty()) {
                             formatDate(rawStartTime) + (if (rawEndTime.isNotEmpty()) " - " + formatDate(rawEndTime) else "")
                         } else doc.getString("schedule") ?: ""
 
                         Event(
-                            // LUÔN dùng doc.id để khớp với Document trên Firestore
-                            id = doc.id, 
+
+                            id = doc.id,
                             title = doc.getString("title") ?: "Không có tiêu đề",
                             subtitle = doc.getString("orgName") ?: doc.getString("subtitle") ?: "",
                             schedule = formattedSchedule,
@@ -103,7 +103,7 @@ class FanZoneViewModel(
                         null
                     }
                 }
-                
+
                 Log.d("FanZoneVM", "Tải thành công ${fetchedEvents.size} sự kiện.")
                 _uiState.update { state ->
                     state.copy(

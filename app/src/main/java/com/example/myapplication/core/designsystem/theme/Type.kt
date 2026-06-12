@@ -42,4 +42,3 @@ val FanZoneTypography = Typography(
         lineHeight = 18.sp
     )
 )
-

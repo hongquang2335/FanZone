@@ -38,4 +38,3 @@ sealed class AppDestination(val route: String) {
     }
     data object Success : AppDestination("success")
 }
-

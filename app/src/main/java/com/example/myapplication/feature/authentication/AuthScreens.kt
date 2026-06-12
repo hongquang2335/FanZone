@@ -703,5 +703,3 @@ private fun AuthMessage(error: String?, info: String?) {
         textAlign = TextAlign.Center
     )
 }
-
-

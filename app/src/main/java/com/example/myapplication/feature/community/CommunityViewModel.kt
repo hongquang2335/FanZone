@@ -38,7 +38,7 @@ class CommunityViewModel(
     private var notificationSubscription: CommunityPostSubscription? = null
     private val commentSubscriptions = mutableMapOf<String, CommunityPostSubscription>()
     private var currentUserListener: com.google.firebase.firestore.ListenerRegistration? = null
- 
+
     private val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
         val user = firebaseAuth.currentUser
         if (user == null) {
@@ -87,12 +87,10 @@ class CommunityViewModel(
             onSuccess = { sharedPostId ->
                 android.util.Log.d("CommunityViewModel", "sharePost onSuccess: sharedPostId=$sharedPostId, post.authorId=${post.authorId}, currentUserId=$currentUserId")
 
-                // Launch background job to compile and write notifications in batch
                 viewModelScope.launch(Dispatchers.IO + NonCancellable) {
                     try {
                         val notifications = mutableListOf<Notification>()
 
-                        // 1. Notify original author if they are not the current user
                         if (post.authorId != null && post.authorId != currentUserId) {
                             android.util.Log.d("CommunityViewModel", "sharePost: Adding SHARE notification for recipientId=${post.authorId}")
                             notifications.add(
@@ -108,7 +106,6 @@ class CommunityViewModel(
                             )
                         }
 
-                        // 2. Notify followers of the person who shared the post
                         val userDocument = firestore.collection("users")
                             .document(currentUserId)
                             .get()
@@ -138,7 +135,6 @@ class CommunityViewModel(
                             android.util.Log.d("CommunityViewModel", "sharePost: Current user document does not exist in users collection")
                         }
 
-                        // 3. Write all notifications to Firestore in batch
                         if (notifications.isNotEmpty()) {
                             notificationRepository.createNotifications(
                                 notifications = notifications,
@@ -380,7 +376,7 @@ class CommunityViewModel(
         commentSubscriptions.clear()
         super.onCleared()
     }
- 
+
     private fun observeNotifications(userId: String) {
         notificationSubscription?.dispose()
         notificationSubscription = notificationRepository.observeNotifications(

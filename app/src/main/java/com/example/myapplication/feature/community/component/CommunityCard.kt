@@ -54,7 +54,7 @@ fun CommunityCard(
     var shareCount by remember(post.id) { mutableStateOf(post.shareCount) }
     var showAuthPrompt by remember { mutableStateOf(false) }
     val sharedPost = post.sharedPost
-    
+
     val isMyPost = post.authorId != null && post.authorId == currentUserId
     var menuExpanded by remember { androidx.compose.runtime.mutableStateOf(false) }
     var showDeleteConfirm by remember { androidx.compose.runtime.mutableStateOf(false) }

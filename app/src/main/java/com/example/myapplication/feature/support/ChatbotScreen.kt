@@ -31,7 +31,6 @@ fun ChatbotScreen(
     val messages by viewModel.messages.collectAsState()
     val scrollState = rememberScrollState()
 
-    // Tự động cuộn xuống đáy khi có tin nhắn mới
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
             scrollState.animateScrollTo(scrollState.maxValue)
@@ -46,7 +45,7 @@ fun ChatbotScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = paddingValues.calculateTopPadding()) // Chỉ lấy padding phía trên (TopBar)
+                .padding(top = paddingValues.calculateTopPadding())
         ) {
             Column(
                 modifier = Modifier
@@ -54,16 +53,16 @@ fun ChatbotScreen(
                     .fillMaxWidth()
                     .verticalScroll(scrollState)
             ) {
-                // Giảm khoảng cách giữa các tin nhắn bằng cách không bọc thêm padding ở đây
+
                 messages.forEach { message ->
                     val isAnimated = viewModel.isMessageAnimated(message.id)
                     android.util.Log.d("ChatbotScreen", "Rendering message: id=${message.id}, isAnimated=$isAnimated")
                     ChatBubble(
                         message = message,
                         isAnimated = isAnimated,
-                        onAnimationFinished = { 
+                        onAnimationFinished = {
                             android.util.Log.d("ChatbotScreen", "onAnimationFinished for id=${message.id}")
-                            viewModel.markMessageAsAnimated(message.id) 
+                            viewModel.markMessageAsAnimated(message.id)
                         },
                         onSuggestionClick = { suggestion ->
                             viewModel.sendMessage(suggestion)

@@ -45,9 +45,3 @@ data class ResaleTicket(
     val sellerName: String,
     val sellerAvatarUrl: String? = null
 )
-
-//data class Artist(
-//    val id: String,
-//    val name: String,
-//    val image: String
-//)
