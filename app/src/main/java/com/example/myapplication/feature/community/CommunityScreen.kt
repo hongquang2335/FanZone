@@ -26,6 +26,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import com.example.myapplication.core.designsystem.component.LoginRequiredDialog
+import com.example.myapplication.core.util.AppStrings
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -63,6 +69,7 @@ fun CommunityScreen(
     onRefresh: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    var showAuthPrompt by remember { mutableStateOf(false) }
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background)) {
         val isExpanded = maxWidth >= 720.dp
         val listState = rememberLazyListState()
@@ -106,7 +113,13 @@ fun CommunityScreen(
                             modifier = Modifier.align(Alignment.Center)
                         )
                         IconButton(
-                            onClick = onOpenNotifications,
+                            onClick = {
+                                if (currentUserId == null) {
+                                    showAuthPrompt = true
+                                } else {
+                                    onOpenNotifications()
+                                }
+                            },
                             modifier = Modifier.align(Alignment.CenterEnd)
                         ) {
                             Box {
@@ -215,6 +228,13 @@ fun CommunityScreen(
                     }
                 }
             }
+        }
+        if (showAuthPrompt) {
+            LoginRequiredDialog(
+                onDismiss = { showAuthPrompt = false },
+                onLogin = onOpenAuth,
+                subtitleText = "Bạn cần đăng nhập để sử dụng chức năng thông báo."
+            )
         }
     }
 }

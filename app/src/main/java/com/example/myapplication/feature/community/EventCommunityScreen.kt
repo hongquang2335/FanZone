@@ -32,6 +32,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import com.example.myapplication.core.designsystem.component.LoginRequiredDialog
+import com.example.myapplication.core.util.AppStrings
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,6 +80,7 @@ fun EventCommunityScreen(
     onRefresh: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    var showAuthPrompt by remember { mutableStateOf(false) }
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
@@ -100,7 +107,13 @@ fun EventCommunityScreen(
                 title = event.title,
                 onBack = onBack,
                 unreadNotificationCount = unreadNotificationCount,
-                onOpenNotifications = onOpenNotifications
+                onOpenNotifications = {
+                    if (currentUserId == null) {
+                        showAuthPrompt = true
+                    } else {
+                        onOpenNotifications()
+                    }
+                }
             )
 
             @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -194,6 +207,13 @@ fun EventCommunityScreen(
                     }
                 }
             }
+        }
+        if (showAuthPrompt) {
+            LoginRequiredDialog(
+                onDismiss = { showAuthPrompt = false },
+                onLogin = onOpenAuth,
+                subtitleText = "Bạn cần đăng nhập để sử dụng chức năng thông báo."
+            )
         }
     }
 }
