@@ -57,10 +57,10 @@ class ChatViewModel : ViewModel() {
                     functionDeclarations = listOf(
                         FunctionDeclaration(
                             name = "searchEvents",
-                            description = "Tìm kiếm sự kiện/vé dựa trên bất kỳ thông tin nào người dùng cung cấp (ví dụ: piano, ca nhạc, kịch, tên nghệ sĩ, thành phố, hoặc thời gian cụ thể). Luôn ưu tiên gọi hàm này khi người dùng muốn tìm kiếm, hỏi thông tin chi tiết hoặc hỏi về các chính sách (độ tuổi, quy định) của sự kiện. Không trích xuất từ khóa \"sự kiện\", mà để là rỗng, title=\"sự kiện\" là không được phép",
+                            description = "Tìm kiếm sự kiện/vé dựa trên bất kỳ thông tin nào người dùng cung cấp (ví dụ: piano, ca nhạc, kịch, tên nghệ sĩ, thành phố, hoặc thời gian cụ thể). Nếu người dùng chỉ hỏi về sự kiện nói chung (ví dụ: 'có sự kiện nào không?', 'gợi ý cho tôi vài show') mà không cung cấp thông tin lọc, hãy gọi hàm này với các tham số rỗng để lấy toàn bộ danh sách sự kiện hiện có, sau đó tự chọn lọc ra các sự kiện phù hợp nhất để gợi ý.",
                             parameters = mapOf(
                                 "artistName" to Schema.string(
-                                    "Tên nghệ sĩ, ca sĩ hoặc đoàn nghệ thuật (optional). Ví dụ: 'Tóc Tiên', 'Sơn T  ùng'"
+                                    "Tên nghệ sĩ, ca sĩ hoặc đoàn nghệ thuật (optional). Ví dụ: 'Tóc Tiên', 'Sơn Tùng'"
                                 ),
                                 "title" to Schema.string(
                                     "Tên, thể loại hoặc từ khóa sự kiện (optional). Ví dụ: 'Concert', 'Triển lãm'"
@@ -69,7 +69,7 @@ class ChatViewModel : ViewModel() {
                                     "Địa điểm, thành phố hoặc quận huyện (optional). CHỈ trích xuất nếu người dùng nhắc đến địa điểm cụ thể. Ví dụ: 'Hồ Chí Minh', 'Hà Nội'"
                                 ),
                                 "month" to Schema.string(
-                                    "Tháng hoặc thời gian để tìm (optional). Format: YYYY-MM. CHỈ trích xuất nếu người dùng nhắc đến thời gian cụ thể. Ví dụ: '2026-08' cho tháng 8 năm 2026"
+                                    "Tháng hoặc thời gian để tìm (optional). Format: YYYY-MM. CHỈ trích xuất nếu người dùng nhắc đến thời gian cụ thể. Ví dụ: '2026-08' cho tháng 8 năm 2026. Nếu người dùng hỏi sự kiện sắp tới thì không lọc gì cả, sẽ gọi cả danh sách nếu không sẽ miss các tháng sau"
                                 )
                             )
                         )
@@ -266,7 +266,9 @@ class ChatViewModel : ViewModel() {
         ---
 
         ## Nhiệm vụ của bạn:
-        1. **Tư vấn & Gợi ý sự kiện:** Giúp người dùng tìm kiếm, lựa chọn sự kiện phù hợp với sở thích (thể loại, nghệ sĩ, thời gian, địa điểm). BẮT BUỘC sử dụng công cụ `searchEvents` khi người dùng hỏi về bất kỳ sự kiện, thể loại nghệ thuật hoặc yêu cầu tìm kiếm thông tin về sự kiện, BAO GỒM cả việc hỏi về quy định độ tuổi hoặc các chính sách riêng của sự kiện đó. Hãy trích xuất thông tin chuẩn xác. Không được trích xuất title với từ khoá "sự kiện", ví dụ title="sự kiện" là không được phép.
+        1. **Tư vấn & Gợi ý sự kiện:** Giúp người dùng tìm kiếm, lựa chọn sự kiện phù hợp với sở thích (thể loại, nghệ sĩ, thời gian, địa điểm). BẮT BUỘC sử dụng công cụ `searchEvents` khi người dùng hỏi về bất kỳ sự kiện, thể loại nghệ thuật hoặc yêu cầu tìm kiếm thông tin về sự kiện, BAO GỒM cả việc hỏi về quy định độ tuổi hoặc các chính sách riêng của sự kiện đó. 
+           - **Xử lý câu hỏi chung:** Nếu người dùng hỏi về sự kiện một cách chung chung (ví dụ: "có gì hot không?", "cho mình xem danh sách sự kiện") mà không chỉ rõ yêu cầu lọc, bạn PHẢI gọi hàm `searchEvents` (để trống các tham số hoặc chỉ điền tham số thời gian/địa điểm nếu có) để lấy toàn bộ dữ liệu hiện có. Sau đó, dựa trên dữ liệu thật đó, hãy đưa ra những gợi ý phù hợp và hấp dẫn nhất cho người dùng.
+           - Hãy trích xuất thông tin chuẩn xác. Không được trích xuất title với từ khoá "sự kiện", ví dụ title="sự kiện" là không được phép.
         2. **Hỗ trợ thông tin vé:** Cung cấp thông tin chi tiết về các hạng vé (Standard, VIP, Early Bird), sơ đồ khán đài, giá vé, chính sách hoàn/hủy/đổi vé.
         3. **Hướng dẫn quy trình:** Định hướng người dùng cách đặt vé, thanh toán, nhận vé điện tử (E-ticket) hoặc check-in tại sự kiện.
         4. **Giải quyết sự cố cơ bản:** Hỗ trợ xử lý các thắc mắc về lỗi thanh toán, không nhận được mail vé, hoặc sự kiện bị hoãn/hủy dựa trên dữ liệu hệ thống.
@@ -293,7 +295,9 @@ class ChatViewModel : ViewModel() {
         4. **Tổng hợp & Kiểm tra:** Kết nối dữ liệu một cách logic, dễ hiểu. Đảm bảo câu trả lời không vi phạm quy tắc an toàn và không chứa thông tin phỏng đoán vô căn cứ.
 
         ---
-
+        ## SuggestionCard
+        Nếu người dùng hỏi xem vé của tôi, hãy hướng dẫn họ ấn vào tab vé của tôi ở thanh điều hướng dưới.
+        Nếu người dùng yêu cầu hỗ trợ hotline thì hãy hướng dẫn họ gọi đến hotline 1900 6767
         ## Few-shot ví dụ (Minh họa hành vi mong muốn):
 
         ### Ví dụ 1: Người dùng hỏi chung chung

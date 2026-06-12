@@ -74,11 +74,10 @@ fun ChatbotScreen(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            // Hiển thị gợi ý của tin nhắn cuối cùng (nếu có) ngay trên input bar
-            val lastBotMessage = messages.lastOrNull { it.sender == Participant.Bot }
-            if (lastBotMessage != null && lastBotMessage.suggestions.isNotEmpty()) {
+            val messageWithSuggestions = messages.find { it.suggestions.isNotEmpty() }
+            if (messageWithSuggestions != null) {
                 SuggestionChips(
-                    suggestions = lastBotMessage.suggestions,
+                    suggestions = messageWithSuggestions.suggestions,
                     onSuggestionClick = { suggestion ->
                         viewModel.sendMessage(suggestion)
                     }

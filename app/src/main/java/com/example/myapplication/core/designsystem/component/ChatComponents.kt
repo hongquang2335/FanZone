@@ -457,15 +457,6 @@ fun ChatInputBar(
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { /* No attachments requested */ }) {
-                    Icon(
-                        Icons.Default.AddCircle,
-                        contentDescription = "More",
-                        tint = VibeTextMuted,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-
                 TextField(
                     value = textState,
                     onValueChange = { textState = it },
