@@ -50,7 +50,7 @@ class AuthViewModel(
             return
         }
         if (!normalizedEmail.contains("@")) {
-            _uiState.update { it.copy(errorMessage = "Vui lòng nhập email hợp lệ. Ứng dụng không còn đăng nhập bằng số điện thoại.") }
+            _uiState.update { it.copy(errorMessage = "Vui lòng nhập email hợp lệ.") }
             return
         }
         _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }

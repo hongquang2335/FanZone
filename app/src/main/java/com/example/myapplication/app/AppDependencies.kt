@@ -17,10 +17,20 @@ object AppDependencies {
 
     val fanZoneRepository: FanZoneRepository = FakeFanZoneRepository
 
-    private val notificationFirestoreDataSource = NotificationFirestoreDataSource()
+    private val notificationFirestoreDataSource by lazy { NotificationFirestoreDataSource() }
     private val communityFirestoreDataSource by lazy { CommunityFirestoreDataSource() }
+
     @Volatile private var communityRepositoryInstance: CommunityRepository? = null
     @Volatile private var notificationRepositoryInstance: NotificationRepository? = null
+
+    fun setCommunityRepositoryForTesting(repository: CommunityRepository?) {
+        communityRepositoryInstance = repository
+    }
+
+    fun setNotificationRepositoryForTesting(repository: NotificationRepository?) {
+        notificationRepositoryInstance = repository
+    }
+
 
     fun communityStorageDataSource(context: Context): CommunityStorageDataSource {
         return CommunityStorageDataSource(
